@@ -1,0 +1,27 @@
+{
+  "templateType": "cellx-workflow-designer",
+  "version": "1.0",
+  "exportedAt": "2026-09-01T00:00:00.000Z",
+  "name": "Amazon Best Sellers Script Demo",
+  "nodes": [
+    {
+      "id": "node-1",
+      "type": "script",
+      "name": "Amazon Best Sellers Demo",
+      "action": "/ext-api/scripts/run",
+      "notes": "Run the approved Amazon Best Sellers demo script and return structured product rows.",
+      "icon": null,
+      "x": 90,
+      "y": 110,
+      "integrationSettings": {
+        "scriptName": "amazon_bestsellers_demo.py",
+        "inputJson": "{\"source_url\":\"https://www.amazon.com/Best-Sellers/zgbs\",\"limit\":3}",
+        "timeout": "20",
+        "args": ""
+      },
+      "connection": null,
+      "testResult": null
+    }
+  ],
+  "links": []
+}

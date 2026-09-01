@@ -1,0 +1,22 @@
+[Unit]
+Description=CellX Extension API
+After=network.target mysql.service
+
+[Service]
+Type=simple
+WorkingDirectory=/opt/cellx-extension-api
+Environment=PORT=3001
+Environment=DB_NAME=cellx_base
+Environment=DB_USER=root
+Environment=DB_PASSWORD=password
+Environment=SCRIPT_DIR=/opt/cellx-extension-api/customer-scripts
+Environment=SCRIPT_RUNNER_USER=cellxrunner
+Environment=MAX_SCRIPT_TIMEOUT=30
+Environment=MAX_SCRIPT_OUTPUT=200000
+ExecStart=/usr/bin/python3 /opt/cellx-extension-api/server.py
+Restart=always
+RestartSec=3
+User=root
+
+[Install]
+WantedBy=multi-user.target

@@ -1,0 +1,10 @@
+.venv/
+env/
+.vs/
+__pycache__/
+*.pyc
+reports/
+node_modules/
+outputs/
+*.pem
+*.xlsx

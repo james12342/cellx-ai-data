@@ -1,0 +1,27 @@
+{
+  "templateType": "cellx-workflow-designer",
+  "version": "1.0",
+  "exportedAt": "2026-09-01T00:00:00.000Z",
+  "name": "TVT Tarbut Website Crawler",
+  "nodes": [
+    {
+      "id": "node-1",
+      "type": "script",
+      "name": "TVT Tarbut Site Crawler",
+      "action": "/ext-api/scripts/run",
+      "notes": "Crawl public pages from tarbut.com and return structured website information rows.",
+      "icon": null,
+      "x": 90,
+      "y": 110,
+      "integrationSettings": {
+        "scriptName": "tarbut_site_crawler.py",
+        "inputJson": "{\"start_url\":\"https://www.tarbut.com/\",\"max_pages\":30,\"max_depth\":2,\"delay_seconds\":0.3}",
+        "timeout": "25",
+        "args": ""
+      },
+      "connection": null,
+      "testResult": null
+    }
+  ],
+  "links": []
+}

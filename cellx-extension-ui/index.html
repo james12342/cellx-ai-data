@@ -1,0 +1,111 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>CellX Workflow Designer</title>
+  <link rel="stylesheet" href="./styles.css">
+</head>
+<body>
+  <div class="app-shell">
+    <aside class="side-nav">
+      <div class="brand">
+        <img class="brand-logo" src="./logo-Ck36VV97.png" alt="CellX logo">
+        <div>
+          <strong>CellX Basic</strong>
+          <span>Platform</span>
+        </div>
+      </div>
+      <nav>
+        <a href="/">Home</a>
+        <a class="active" href="/workflow/">Workflow Designer</a>
+        <a href="/pagegenerator/page/cx_order">Order Management</a>
+        <a href="/system/user">System Management</a>
+      </nav>
+    </aside>
+
+    <section class="workspace">
+      <header class="topbar">
+        <div class="breadcrumbs">Home / Extension / <strong>Workflow Designer</strong></div>
+        <div class="top-actions">
+          <input type="search" placeholder="Please enter search content">
+          <a href="/">Back to System</a>
+        </div>
+      </header>
+
+      <main class="designer">
+        <section class="toolbar">
+          <div>
+            <h1>Workflow Designer</h1>
+            <p>Build sidecar automations for orders, carriers, marketplaces, and AI-assisted operations.</p>
+          </div>
+          <div class="toolbar-actions">
+            <button id="connectModeBtn" type="button">Connect Mode</button>
+            <button id="autoLayoutBtn" type="button">Auto Layout</button>
+            <button id="importTemplateBtn" type="button">Import Template</button>
+            <button id="exportTemplateBtn" type="button">Export Template</button>
+            <button id="saveBtn" class="primary" type="button">Save Draft</button>
+            <input id="templateFileInput" class="template-file-input" type="file" accept="application/json,.json">
+          </div>
+        </section>
+
+        <section class="designer-grid">
+          <aside class="palette">
+            <div class="panel-title">Node Library</div>
+            <input id="nodeSearch" class="node-search" type="search" placeholder="Search nodes">
+            <div id="nodeLibrary" class="node-library"></div>
+
+            <div class="runtime-card">
+              <span>API</span>
+              <strong id="apiStatus">Checking...</strong>
+            </div>
+            <div class="runtime-card">
+              <span>Database</span>
+              <strong id="dbStatus">Checking...</strong>
+            </div>
+          </aside>
+
+          <section class="canvas-wrap">
+            <div class="canvas-head">
+              <div>
+                <strong>Order Fulfillment Flow</strong>
+                <span>Drag nodes, reposition them, then connect steps.</span>
+              </div>
+              <button id="clearBtn" type="button">Clear</button>
+            </div>
+            <div id="canvas" class="canvas">
+              <svg id="links" class="links" aria-hidden="true"></svg>
+            </div>
+          </section>
+
+          <aside class="properties">
+            <div class="panel-title">Properties</div>
+            <label>
+              Node name
+              <input id="propName" type="text" placeholder="Select a node">
+            </label>
+            <label>
+              Node type
+              <input id="propType" type="text" readonly>
+            </label>
+            <label>
+              Endpoint / Action
+              <input id="propAction" type="text" placeholder="/ext-api/...">
+            </label>
+            <label>
+              Notes
+              <textarea id="propNotes" rows="6" placeholder="Describe how this step should run"></textarea>
+            </label>
+            <div id="integrationFields" class="integration-fields"></div>
+            <div class="hint">
+              Example: when a paid order arrives, ask the AI agent to classify risk, route shipments to UPS or FedEx, then write a status event.
+            </div>
+          </aside>
+        </section>
+      </main>
+    </section>
+  </div>
+
+  <script src="./app.js"></script>
+</body>
+</html>
