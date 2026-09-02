@@ -7,4 +7,5 @@ reports/
 node_modules/
 outputs/
 *.pem
+key.txt
 *.xlsx

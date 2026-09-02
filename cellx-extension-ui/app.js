@@ -710,6 +710,25 @@ function buildControlSpec(node) {
   };
 }
 
+function buildEmailSpec(node) {
+  const provider = node.name.includes("Gmail") ? "Gmail" : node.name.includes("Outlook") ? "Outlook" : "Email";
+  return {
+    title: `${provider} Customer Email`,
+    summary: "Prepare a customer email from previous workflow output. Real sending requires connected Gmail/Outlook credentials; preview mode renders the message for review.",
+    fields: [
+      field("deliveryMode", "Delivery Mode", "select", "preview or connected provider", [
+        ["preview", "Preview only"],
+        ["connected_provider", "Send with connected provider"],
+      ]),
+      field("to", "Customer Email", "text", "customer@example.com"),
+      field("subjectTemplate", "Subject Template", "text", "{{email.subject}}"),
+      field("bodyTemplate", "Body Template", "textarea", "{{email.body}}"),
+      field("accountId", "Connected Account ID", "text", "optional mailbox/account id"),
+      field("apiToken", "Provider Token", "password", "optional token or backend secret name", null, (settings) => settings.deliveryMode === "connected_provider"),
+    ],
+  };
+}
+
 function tableFromCellXNode(node) {
   const match = String(node.action || "").match(/\/table\/([^/]+)$/);
   if (match) return match[1];
@@ -903,6 +922,9 @@ function buildIntegrationSpec(node) {
       ],
     };
   }
+  if (node.name === "Gmail" || node.name === "Outlook Email" || String(node.action || "").includes("/mail") || String(node.action || "").includes("/gmail/send")) {
+    return buildEmailSpec(node);
+  }
   if (node.name.startsWith("Google ")) {
     return {
       title: "Google Workspace OAuth",
@@ -1007,6 +1029,11 @@ function ensureIntegrationSettings(node) {
     }
     if (!node.integrationSettings.outputMode) node.integrationSettings.outputMode = "object";
   }
+  if (node.name === "Gmail" || node.name === "Outlook Email" || String(node.action || "").includes("/mail") || String(node.action || "").includes("/gmail/send")) {
+    if (!node.integrationSettings.deliveryMode) node.integrationSettings.deliveryMode = "preview";
+    if (!node.integrationSettings.subjectTemplate) node.integrationSettings.subjectTemplate = "{{email.subject}}";
+    if (!node.integrationSettings.bodyTemplate) node.integrationSettings.bodyTemplate = "{{email.body}}";
+  }
   if (node.type === "cellx-db") {
     if (!node.integrationSettings.operation) node.integrationSettings.operation = operationFromCellXNode(node);
     if (!node.integrationSettings.tableName) node.integrationSettings.tableName = tableFromCellXNode(node);
@@ -1022,7 +1049,7 @@ function ensureIntegrationSettings(node) {
 }
 
 function isOptionalIntegrationField(key, placeholder = "") {
-  return /optional/i.test(placeholder) || ["baseUrl", "projectId", "accountId", "webhookSecret", "serviceAccountJson", "authHeader", "retryPolicy", "dataPolicy", "chatUrl", "manualResult", "args"].includes(key);
+  return /optional/i.test(placeholder) || ["baseUrl", "projectId", "accountId", "apiToken", "webhookSecret", "serviceAccountJson", "authHeader", "retryPolicy", "dataPolicy", "chatUrl", "manualResult", "args"].includes(key);
 }
 
 function requiredIntegrationFields(spec, node) {
@@ -1246,6 +1273,12 @@ function buildNodeTestInput(node) {
     base.sourcePath = node.integrationSettings?.sourcePath || "previous_step";
     base.transformMapping = node.integrationSettings?.transformMapping || "";
     base.outputMode = node.integrationSettings?.outputMode || "object";
+    base.previousOutput = previousStepPayload(node);
+  } else if (node.type === "communication") {
+    base.deliveryMode = node.integrationSettings?.deliveryMode || "preview";
+    base.to = node.integrationSettings?.to || "";
+    base.subjectTemplate = node.integrationSettings?.subjectTemplate || "";
+    base.bodyTemplate = node.integrationSettings?.bodyTemplate || "";
     base.previousOutput = previousStepPayload(node);
   }
   return base;

@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 import json
 import os
+import re
 import shlex
 import subprocess
 import sys
@@ -401,6 +402,52 @@ def json_transform_preview(payload):
     }, 200
 
 
+def render_template_text(template, context):
+    template = str(template or "")
+
+    def replace(match):
+        value = resolve_json_path(context, match.group(1).strip())
+        if value is None and isinstance(context, dict) and "result" in context:
+            value = resolve_json_path(context.get("result"), match.group(1).strip())
+        if isinstance(value, (dict, list)):
+            return json.dumps(value, ensure_ascii=False, indent=2)
+        return "" if value is None else str(value)
+
+    return re.sub(r"\{\{\s*([^}]+?)\s*\}\}", replace, template)
+
+
+def email_preview(payload):
+    settings = payload.get("settings") or {}
+    previous_output = first_previous_output(payload)
+    recipient = settings.get("to") or resolve_json_path(previous_output, "email.to") or ""
+    subject = render_template_text(settings.get("subjectTemplate") or "{{email.subject}}", previous_output)
+    body = render_template_text(settings.get("bodyTemplate") or "{{email.body}}", previous_output)
+    mode = settings.get("deliveryMode") or "preview"
+    provider = payload.get("nodeName") or "Email"
+
+    return {
+        "ok": True,
+        "status": "success" if mode == "preview" else "manual",
+        "message": "Email preview generated. Connect Gmail/Outlook credentials to send automatically." if mode == "preview" else "Email is ready for connected-provider sending once credentials are configured.",
+        "input": {
+            "deliveryMode": mode,
+            "to": recipient,
+            "subjectTemplate": settings.get("subjectTemplate") or "{{email.subject}}",
+            "bodyTemplate": settings.get("bodyTemplate") or "{{email.body}}",
+        },
+        "output": {
+            "ok": True,
+            "mode": "email_preview" if mode == "preview" else "email_ready",
+            "provider": provider,
+            "to": recipient,
+            "subject": subject,
+            "body": body,
+            "attachmentHint": "Use Export Results to download the listing rows as Excel, or connect a real mail provider to attach files automatically.",
+        },
+        "checkedAt": datetime.now(timezone.utc).isoformat(),
+    }, 200
+
+
 def safe_script_path(script_name):
     name = os.path.basename(str(script_name or "").strip())
     if not name or name != str(script_name or "").strip():
@@ -571,6 +618,9 @@ def integration_test(payload):
 
     if node_name == "JSON Transform" or "json-transform" in str(payload.get("action") or ""):
         return json_transform_preview(payload)
+
+    if node_type == "communication" and ("mail" in str(payload.get("action") or "") or "gmail/send" in str(payload.get("action") or "")):
+        return email_preview(payload)
 
     if settings.get("authMode") == "manual_web_handoff":
         return {
