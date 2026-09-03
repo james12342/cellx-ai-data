@@ -32,7 +32,7 @@
       "y": 120,
       "integrationSettings": {
         "scriptName": "zillow_irvine_price_cuts.py",
-        "inputJson": "{\"location\":\"Irvine, CA\",\"source_url\":\"https://www.zillow.com/homes/Irvine,-CA_rb/\",\"min_price_cut_percent\":10,\"limit\":25,\"detail_limit\":8,\"customer_email\":\"customer@example.com\"}",
+        "inputJson": "{\"location\":\"Irvine, CA\",\"source_url\":\"https://www.zillow.com/homes/Irvine,-CA_rb/\",\"include_all_active_listings\":true,\"min_price_cut_percent\":10,\"limit\":50,\"detail_limit\":10,\"customer_email\":\"customer@example.com\"}",
         "timeout": "30",
         "args": ""
       },
@@ -50,7 +50,7 @@
       "y": 120,
       "integrationSettings": {
         "sourcePath": "previous_step",
-        "transformMapping": "listing_count <- {{row_count}}\nemail_subject <- {{email.subject}}\nemail_body <- {{email.body}}\nsource_url <- {{source_url}}\nfirst_listing_address <- {{rows.0.address}}\nfirst_listing_price <- {{rows.0.price}}\nfirst_listing_image <- {{rows.0.primary_image}}",
+        "transformMapping": "listing_count <- {{row_count}}\nmode <- {{mode}}\nemail_subject <- {{email.subject}}\nemail_body <- {{email.body}}\nsource_url <- {{source_url}}\nfirst_listing_address <- {{rows.0.address}}\nfirst_listing_price <- {{rows.0.price}}\nfirst_listing_image <- {{rows.0.primary_image}}",
         "outputMode": "rows"
       },
       "connection": null,
@@ -66,12 +66,16 @@
       "x": 850,
       "y": 120,
       "integrationSettings": {
-        "deliveryMode": "preview",
+        "deliveryMode": "connected_provider",
         "to": "customer@example.com",
         "subjectTemplate": "{{row.email_subject}}",
         "bodyTemplate": "{{row.email_body}}\n\nFirst listing image: {{row.first_listing_image}}\nSource: {{row.source_url}}",
-        "accountId": "Cell AI Data Gmail",
-        "apiToken": ""
+        "smtpHost": "smtp.gmail.com",
+        "smtpPort": "587",
+        "smtpSecurity": "starttls",
+        "username": "sender@example.com",
+        "fromEmail": "sender@example.com",
+        "passwordSecretName": "GMAIL_APP_PASSWORD"
       },
       "connection": null,
       "testResult": null

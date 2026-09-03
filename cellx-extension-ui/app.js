@@ -7,17 +7,26 @@ const propType = document.getElementById("propType");
 const propAction = document.getElementById("propAction");
 const propNotes = document.getElementById("propNotes");
 const propIntegration = document.getElementById("integrationFields");
+const workflowTitleEl = document.getElementById("workflowTitle");
+const workflowDescriptionEl = document.getElementById("workflowDescription");
+const workflowTabsEl = document.getElementById("workflowTabs");
 
 let nodes = [];
 let links = [];
+let workflows = [];
+let activeWorkflowId = null;
 let selectedId = null;
 let connectMode = false;
 let connectFrom = null;
 let dragState = null;
 let nextId = 1;
 let cellxSchema = { tables: [] };
+let workflowTitle = "Order Fulfillment Flow";
+let workflowDescription = "Drag nodes, reposition them, then connect steps.";
 const templateVersion = "1.0";
-const sensitiveSettingPattern = /secret|password|token|apiKey|secretKey|clientSecret|authHeader|header/i;
+const workflowStoreKey = "cellx-workflows-draft";
+const legacyWorkflowStoreKey = "cellx-workflow-draft";
+const sensitiveSettingPattern = /^(apiKey|secretKey|clientSecret|authHeader|authToken|bearerToken|password|token)$/i;
 const nodeWidth = 188;
 const nodeHeight = 96;
 
@@ -438,10 +447,145 @@ function buildWorkflowTemplate() {
     templateType: "cellx-workflow-designer",
     version: templateVersion,
     exportedAt: new Date().toISOString(),
-    name: "CellX Workflow Template",
+    name: workflowTitle || "CellX Workflow Template",
+    description: workflowDescription || "",
     nodes: safeWorkflowNodes(nodes),
     links: links.map((link) => ({ from: String(link.from || ""), to: String(link.to || "") })),
   };
+}
+
+function workflowSnapshot(stripSecrets = false) {
+  return {
+    id: activeWorkflowId || `workflow-${Date.now()}`,
+    name: workflowTitle || "Untitled Workflow",
+    description: workflowDescription || "Drag nodes, reposition them, then connect steps.",
+    nodes: safeWorkflowNodes(nodes, stripSecrets),
+    links: links.map((link) => ({ from: String(link.from || ""), to: String(link.to || "") })),
+  };
+}
+
+function syncActiveWorkflow() {
+  if (!activeWorkflowId) return;
+  const index = workflows.findIndex((workflow) => workflow.id === activeWorkflowId);
+  const snapshot = workflowSnapshot(false);
+  if (index >= 0) {
+    workflows[index] = { ...workflows[index], ...snapshot };
+  }
+}
+
+function persistWorkflowStore() {
+  syncActiveWorkflow();
+  localStorage.setItem(workflowStoreKey, JSON.stringify({
+    version: templateVersion,
+    activeWorkflowId,
+    workflows,
+  }));
+}
+
+function uniqueWorkflowId() {
+  return `workflow-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`;
+}
+
+function normalizeWorkflow(draft, fallbackName = "Untitled Workflow") {
+  const valid = validateWorkflowTemplate({
+    name: draft?.name || fallbackName,
+    description: draft?.description || draft?.workflowDescription || "Drag nodes, reposition them, then connect steps.",
+    nodes: Array.isArray(draft?.nodes) ? draft.nodes : [],
+    links: Array.isArray(draft?.links) ? draft.links : [],
+  });
+  return {
+    id: String(draft?.id || uniqueWorkflowId()),
+    name: valid.name,
+    description: valid.description,
+    nodes: valid.nodes,
+    links: valid.links,
+  };
+}
+
+function loadWorkflow(workflowId) {
+  const workflow = workflows.find((item) => item.id === workflowId) || workflows[0];
+  if (!workflow) return;
+  activeWorkflowId = workflow.id;
+  workflowTitle = workflow.name || "Untitled Workflow";
+  workflowDescription = workflow.description || "Drag nodes, reposition them, then connect steps.";
+  nodes = safeWorkflowNodes(workflow.nodes || [], true);
+  links = (workflow.links || []).map((link) => ({ from: String(link.from), to: String(link.to) }));
+  selectedId = nodes[0]?.id || null;
+  connectFrom = null;
+  connectMode = false;
+  connectBtn.classList.remove("active");
+  nextId = nextIdFromNodes(nodes);
+  fitNodesToCanvas();
+  render();
+  renderWorkflowTabs();
+  if (selectedId) {
+    selectNode(selectedId);
+  } else {
+    clearProperties();
+  }
+}
+
+function switchWorkflow(workflowId) {
+  if (workflowId === activeWorkflowId) return;
+  syncActiveWorkflow();
+  loadWorkflow(workflowId);
+  persistWorkflowStore();
+}
+
+function addWorkflowFromTemplate(template, makeActive = true) {
+  const workflow = normalizeWorkflow(template, template?.name || "New Workflow");
+  workflows.push(workflow);
+  if (makeActive) {
+    loadWorkflow(workflow.id);
+  } else {
+    renderWorkflowTabs();
+  }
+  persistWorkflowStore();
+  return workflow;
+}
+
+function seedStarterWorkflow() {
+  workflowTitle = "Order Fulfillment Flow";
+  workflowDescription = "Drag nodes, reposition them, then connect steps.";
+  nodes = [];
+  links = [];
+  nextId = 1;
+  const starterPositions = autoLayoutPositions();
+  addNode("trigger", ...starterPositions[0]);
+  addNode("condition", ...starterPositions[1]);
+  addNode("ai", ...starterPositions[2]);
+  addNode("carrier", ...starterPositions[3]);
+  addNode("action", ...starterPositions[4]);
+  addNode("log", ...starterPositions[5]);
+  links = [
+    { from: "node-1", to: "node-2" },
+    { from: "node-2", to: "node-3" },
+    { from: "node-2", to: "node-4" },
+    { from: "node-3", to: "node-5" },
+    { from: "node-4", to: "node-5" },
+    { from: "node-5", to: "node-6" },
+  ];
+  return workflowSnapshot(false);
+}
+
+function createBlankWorkflow(name = "Untitled Workflow") {
+  return {
+    id: uniqueWorkflowId(),
+    name,
+    description: "Drag nodes, reposition them, then connect steps.",
+    nodes: [],
+    links: [],
+  };
+}
+
+function renderWorkflowTabs() {
+  if (!workflowTabsEl) return;
+  workflowTabsEl.innerHTML = workflows.map((workflow) => `
+    <button class="workflow-tab${workflow.id === activeWorkflowId ? " active" : ""}" type="button" data-workflow-id="${escapeHtml(workflow.id)}" title="${escapeHtml(workflow.name || "Untitled Workflow")}">
+      <span class="workflow-tab-title">${escapeHtml(workflow.name || "Untitled Workflow")}</span>
+      <span class="workflow-tab-close" data-close-workflow-id="${escapeHtml(workflow.id)}" title="Close workflow">×</span>
+    </button>
+  `).join("");
 }
 
 function nextIdFromNodes(items) {
@@ -465,6 +609,8 @@ function validateWorkflowTemplate(template) {
   }
   const validLinks = template.links.filter((link) => ids.has(String(link.from)) && ids.has(String(link.to)));
   return {
+    name: String(template.name || "Imported Workflow"),
+    description: String(template.description || "Drag nodes, reposition them, then connect steps."),
     nodes: safeWorkflowNodes(template.nodes, true),
     links: validLinks.map((link) => ({ from: String(link.from), to: String(link.to) })),
   };
@@ -472,6 +618,8 @@ function validateWorkflowTemplate(template) {
 
 function applyWorkflowTemplate(template) {
   const draft = validateWorkflowTemplate(template);
+  workflowTitle = draft.name;
+  workflowDescription = draft.description;
   nodes = draft.nodes;
   links = draft.links;
   selectedId = nodes[0]?.id || null;
@@ -480,7 +628,7 @@ function applyWorkflowTemplate(template) {
   connectBtn.classList.remove("active");
   nextId = nextIdFromNodes(nodes);
   fitNodesToCanvas();
-  localStorage.setItem("cellx-workflow-draft", JSON.stringify({ nodes, links }));
+  persistWorkflowStore();
   render();
   if (selectedId) {
     selectNode(selectedId);
@@ -513,8 +661,8 @@ function importWorkflowTemplate(file) {
   const reader = new FileReader();
   reader.addEventListener("load", () => {
     try {
-      applyWorkflowTemplate(JSON.parse(String(reader.result || "{}")));
-      alert("Workflow template imported.");
+      addWorkflowFromTemplate(JSON.parse(String(reader.result || "{}")), true);
+      alert("Workflow template imported as a new tab.");
     } catch (error) {
       alert(error.message || "Could not import this workflow template.");
     }
@@ -574,9 +722,9 @@ function aiProviderFromNode(node) {
 
 function defaultModelName(node) {
   return {
-    "OpenAI GPT-5.6": "gpt-5.6",
+    "OpenAI GPT-5.6": "gpt-5",
     "OpenAI GPT-5": "gpt-5",
-    "OpenAI GPT-5 mini": "gpt-5-mini",
+    "OpenAI GPT-5 mini": "gpt-5",
     "Claude Sonnet 5": "claude-sonnet-5",
     "Claude Opus 5": "claude-opus-5",
     "Google Gemini": "gemini-2.5-pro",
@@ -586,6 +734,15 @@ function defaultModelName(node) {
     "Perplexity": "sonar-pro",
     "Ollama Local Model": "llama3.1",
   }[node.name] || "";
+}
+
+function normalizeAiModelName(model, node) {
+  const value = String(model || "").trim();
+  if (node.type !== "ai" || aiProviderFromNode(node) !== "OpenAI") return value;
+  if (!value || value.includes("/") || value.startsWith("OpenAI") || value === "gpt-5-mini" || value === "gpt-5.6-mini") {
+    return "gpt-5";
+  }
+  return value;
 }
 
 function buildAiModelSpec(node) {
@@ -605,8 +762,8 @@ function buildAiModelSpec(node) {
       field("baseUrl", "Compatible Base URL", "url", "optional OpenAI-compatible endpoint", null, (settings) => settings.authMode === "bring_your_own_api_key"),
       field("projectId", "Project / Org / Workspace ID", "text", "optional project, org, or workspace id", null, (settings) => settings.authMode === "bring_your_own_api_key"),
       field("chatUrl", "Manual Web URL", "url", provider === "OpenAI" ? "https://chatgpt.com/" : "provider chat console URL", null, (settings) => settings.authMode === "manual_web_handoff"),
-      field("promptTemplate", "Prompt Template", "textarea", "Use {{order}}, {{customer}}, {{previous_step}} placeholders", null, (settings) => settings.authMode === "manual_web_handoff"),
-      field("returnFormat", "Expected Return Format", "textarea", "JSON fields the operator should paste back into the next workflow step", null, (settings) => settings.authMode === "manual_web_handoff"),
+      field("promptTemplate", "Prompt Template", "textarea", "Use {{order}}, {{customer}}, {{previous_step}} placeholders"),
+      field("returnFormat", "Expected Return Format", "textarea", "JSON fields the model should return"),
       field("manualResult", "Pasted GPT Result", "textarea", "Paste ChatGPT JSON output here after running the copied prompt", null, (settings) => settings.authMode === "manual_web_handoff"),
       field("dataPolicy", "Data Policy", "text", "mask PII, customer consent, or internal-only context"),
     ],
@@ -714,7 +871,7 @@ function buildEmailSpec(node) {
   const provider = node.name.includes("Gmail") ? "Gmail" : node.name.includes("Outlook") ? "Outlook" : "Email";
   return {
     title: `${provider} Customer Email`,
-    summary: "Prepare a customer email from previous workflow output. Real sending requires connected Gmail/Outlook credentials; preview mode renders the message for review.",
+    summary: "Prepare or send a customer email from previous workflow output. SMTP credentials are read from backend secrets, not stored in the workflow template.",
     fields: [
       field("deliveryMode", "Delivery Mode", "select", "preview or connected provider", [
         ["preview", "Preview only"],
@@ -723,8 +880,12 @@ function buildEmailSpec(node) {
       field("to", "Customer Email", "text", "customer@example.com"),
       field("subjectTemplate", "Subject Template", "text", "{{email.subject}}"),
       field("bodyTemplate", "Body Template", "textarea", "{{email.body}}"),
-      field("accountId", "Connected Account ID", "text", "optional mailbox/account id"),
-      field("apiToken", "Provider Token", "password", "optional token or backend secret name", null, (settings) => settings.deliveryMode === "connected_provider"),
+      field("smtpHost", "SMTP Host", "text", "smtp.gmail.com", null, (settings) => settings.deliveryMode === "connected_provider"),
+      field("smtpPort", "SMTP Port", "text", "587", null, (settings) => settings.deliveryMode === "connected_provider"),
+      field("smtpSecurity", "Security", "select", "STARTTLS", [["starttls", "STARTTLS"], ["ssl", "SSL"], ["none", "None"]], (settings) => settings.deliveryMode === "connected_provider"),
+      field("username", "Gmail Username", "text", "your Gmail address", null, (settings) => settings.deliveryMode === "connected_provider"),
+      field("fromEmail", "From Email", "text", "same as Gmail username", null, (settings) => settings.deliveryMode === "connected_provider"),
+      field("passwordSecretName", "Backend Password Secret", "text", "GMAIL_APP_PASSWORD", null, (settings) => settings.deliveryMode === "connected_provider"),
     ],
   };
 }
@@ -797,7 +958,7 @@ function buildCellXDatabaseSpec(node) {
       field("limit", "Row Limit", "text", "200", null, (settings) => ["query", "export_excel"].includes(settings.operation || defaultOperation)),
       field("fieldMapping", "Field Mapping / Values", "textarea", "asin <- {{item.asin}}\ntitle <- {{item.title}}\nprice <- {{item.price}}", null, (settings) => ["insert", "update", "upsert", "bulk_import"].includes(settings.operation || defaultOperation)),
       field("inputPayload", "Input Payload Path", "text", "{{previous_step.rows}}", null, (settings) => ["insert", "upsert", "bulk_import"].includes(settings.operation || defaultOperation)),
-      field("softDelete", "Delete Mode", "select", "Prefer soft delete", [["soft", "Soft delete: set del_flag = 1"], ["hard", "Hard delete: DELETE row"]], null, (settings) => (settings.operation || defaultOperation) === "delete"),
+      field("softDelete", "Delete Mode", "select", "Prefer soft delete", [["soft", "Soft delete: set del_flag = 1"], ["hard", "Hard delete: DELETE row"]], (settings) => (settings.operation || defaultOperation) === "delete"),
       field("excelFileName", "Excel File Name", "text", "cellx_export.xlsx", null, (settings) => (settings.operation || defaultOperation) === "export_excel"),
       field("safetyMode", "Safety Mode", "select", "Execution guardrail", [
         ["read_only", "Read only"],
@@ -1007,14 +1168,21 @@ function ensureIntegrationSettings(node) {
   if (node.type === "ai" && !node.integrationSettings.model) {
     node.integrationSettings.model = defaultModelName(node);
   }
+  if (node.type === "ai") {
+    node.integrationSettings.model = normalizeAiModelName(node.integrationSettings.model, node);
+  }
+  if (node.type === "ai" && !node.integrationSettings.platformSecretName && node.integrationSettings.authMode === "platform_api_key") {
+    const provider = aiProviderFromNode(node);
+    node.integrationSettings.platformSecretName = provider === "OpenAI" ? "OPENAI_API_KEY" : `${provider.toLowerCase().replaceAll(" ", "_")}_api_key`;
+  }
+  if (node.type === "ai" && !node.integrationSettings.promptTemplate) {
+    node.integrationSettings.promptTemplate = "Analyze the previous workflow JSON data.\n\nTasks:\n1. Summarize the key information.\n2. Identify important patterns, risks, or opportunities.\n3. Recommend the next workflow action.\n\nPrevious workflow output:\n{{previous_step}}\n\nReturn only valid JSON that matches the expected return format.";
+  }
+  if (node.type === "ai" && !node.integrationSettings.returnFormat) {
+    node.integrationSettings.returnFormat = "{\n  \"summary\": \"short business summary\",\n  \"insights\": [\"insight 1\", \"insight 2\"],\n  \"recommended_action\": \"next action\",\n  \"confidence\": \"high | medium | low\"\n}";
+  }
   if (node.type === "ai" && node.integrationSettings.authMode === "manual_web_handoff") {
     if (!node.integrationSettings.chatUrl) node.integrationSettings.chatUrl = "https://chatgpt.com/";
-    if (!node.integrationSettings.promptTemplate) {
-      node.integrationSettings.promptTemplate = "Analyze the previous workflow JSON data.\n\nTasks:\n1. Summarize the key information.\n2. Identify important patterns, risks, or opportunities.\n3. Recommend the next workflow action.\n\nPrevious workflow output:\n{{previous_step}}\n\nReturn only valid JSON that matches the expected return format.";
-    }
-    if (!node.integrationSettings.returnFormat) {
-      node.integrationSettings.returnFormat = "{\n  \"summary\": \"short business summary\",\n  \"insights\": [\"insight 1\", \"insight 2\"],\n  \"recommended_action\": \"next action\",\n  \"confidence\": \"high | medium | low\"\n}";
-    }
   }
   if (node.name === "JSON Transform" || String(node.action || "").includes("/json-transform")) {
     if (!node.integrationSettings.sourcePath) node.integrationSettings.sourcePath = "previous_step";
@@ -1033,10 +1201,17 @@ function ensureIntegrationSettings(node) {
     if (!node.integrationSettings.deliveryMode) node.integrationSettings.deliveryMode = "preview";
     if (!node.integrationSettings.subjectTemplate) node.integrationSettings.subjectTemplate = "{{email.subject}}";
     if (!node.integrationSettings.bodyTemplate) node.integrationSettings.bodyTemplate = "{{email.body}}";
+    if (!node.integrationSettings.smtpHost) node.integrationSettings.smtpHost = "smtp.gmail.com";
+    if (!node.integrationSettings.smtpPort) node.integrationSettings.smtpPort = "587";
+    if (!node.integrationSettings.smtpSecurity) node.integrationSettings.smtpSecurity = "starttls";
+    if (!node.integrationSettings.username) node.integrationSettings.username = "sender@example.com";
+    if (!node.integrationSettings.fromEmail) node.integrationSettings.fromEmail = "sender@example.com";
+    if (!node.integrationSettings.passwordSecretName) node.integrationSettings.passwordSecretName = "GMAIL_APP_PASSWORD";
   }
   if (node.type === "cellx-db") {
     if (!node.integrationSettings.operation) node.integrationSettings.operation = operationFromCellXNode(node);
     if (!node.integrationSettings.tableName) node.integrationSettings.tableName = tableFromCellXNode(node);
+    if (!node.integrationSettings.softDelete) node.integrationSettings.softDelete = "soft";
     if (!node.integrationSettings.safetyMode) node.integrationSettings.safetyMode = "read_only";
     if (!node.integrationSettings.auditLog) node.integrationSettings.auditLog = "cx_workflow_log";
   }
@@ -1054,6 +1229,14 @@ function isOptionalIntegrationField(key, placeholder = "") {
 
 function requiredIntegrationFields(spec, node) {
   return visibleIntegrationFields(spec, node)
+    .filter(({ key }) => {
+      if (key === "to" && (node.name === "Gmail" || node.name === "Outlook Email" || String(node.action || "").includes("/gmail/send") || String(node.action || "").includes("/mail"))) {
+        return false;
+      }
+      if (key !== "softDelete") return true;
+      const operation = node.integrationSettings?.operation || operationFromCellXNode(node);
+      return operation === "delete";
+    })
     .filter(({ key, placeholder }) => !isOptionalIntegrationField(key, placeholder))
     .map(({ key }) => key);
 }
@@ -1400,7 +1583,8 @@ function renderIntegrationFields(node) {
     ${renderCellXMappingBuilder(node)}
     ${renderManualHandoffTools(node)}
     <div class="connection-actions">
-      <button id="testConnectionBtn" class="primary" type="button">Connect / Test</button>
+      <button id="testConnectionBtn" class="primary" type="button">Test Selected</button>
+      <button id="runWorkflowBtn" type="button">Run Workflow</button>
       <button id="exportResultsBtn" type="button">Export Results</button>
       <button id="saveCredentialBtn" type="button">Save Config</button>
     </div>
@@ -1462,7 +1646,8 @@ function renderIntegrationFields(node) {
     const url = current?.integrationSettings?.chatUrl || "https://chatgpt.com/";
     window.open(url, "_blank", "noopener,noreferrer");
   });
-  document.getElementById("testConnectionBtn").addEventListener("click", () => testWorkflowIntegrations());
+  document.getElementById("testConnectionBtn").addEventListener("click", () => testSelectedIntegration());
+  document.getElementById("runWorkflowBtn").addEventListener("click", () => testWorkflowIntegrations());
   document.getElementById("exportResultsBtn").addEventListener("click", () => exportWorkflowResults());
   document.getElementById("saveCredentialBtn").addEventListener("click", () => {
     const current = nodes.find((item) => item.id === selectedId);
@@ -1597,8 +1782,37 @@ async function testNodeIntegration(node) {
   }
 }
 
+async function testSelectedIntegration() {
+  const node = nodes.find((item) => item.id === selectedId);
+  if (!node) return;
+  const button = document.getElementById("testConnectionBtn");
+  if (button) {
+    button.disabled = true;
+    button.textContent = "Running...";
+  }
+  node.connection = { status: "testing", message: "Testing selected node..." };
+  node.testResult = {
+    status: "testing",
+    message: "Testing selected node...",
+    input: buildNodeTestInput(node),
+    output: { ok: null, message: "Testing..." },
+  };
+  renderIntegrationFields(node);
+  render();
+  await testNodeIntegration(node);
+  renderIntegrationFields(node);
+  render();
+  document.getElementById("nodeTestResults")?.scrollIntoView({ behavior: "smooth", block: "nearest" });
+}
+
 async function testWorkflowIntegrations() {
   if (!nodes.length) return;
+  const selected = nodes.find((item) => item.id === selectedId) || nodes[0];
+  const button = document.getElementById("runWorkflowBtn");
+  if (button) {
+    button.disabled = true;
+    button.textContent = "Running...";
+  }
   for (const node of nodes) {
     node.connection = { status: "testing", message: "Waiting for workflow test..." };
     node.testResult = {
@@ -1608,7 +1822,7 @@ async function testWorkflowIntegrations() {
       output: { ok: null, message: "Waiting..." },
     };
   }
-  renderIntegrationFields(nodes.find((item) => item.id === selectedId) || nodes[0]);
+  renderIntegrationFields(selected);
   render();
 
   for (const node of workflowOrder()) {
@@ -1619,12 +1833,12 @@ async function testWorkflowIntegrations() {
       input: buildNodeTestInput(node),
       output: { ok: null, message: "Testing..." },
     };
-    renderIntegrationFields(nodes.find((item) => item.id === selectedId) || nodes[0]);
+    renderIntegrationFields(selected);
     render();
     await testNodeIntegration(node);
   }
 
-  renderIntegrationFields(nodes.find((item) => item.id === selectedId) || nodes[0]);
+  renderIntegrationFields(selected);
   render();
   document.getElementById("nodeTestResults")?.scrollIntoView({ behavior: "smooth", block: "nearest" });
 }
@@ -1769,6 +1983,8 @@ function renderNodeLibrary(filter = "") {
 
 function render() {
   updateCanvasExtent();
+  if (workflowTitleEl) workflowTitleEl.textContent = workflowTitle || "Order Fulfillment Flow";
+  if (workflowDescriptionEl) workflowDescriptionEl.textContent = workflowDescription || "Drag nodes, reposition them, then connect steps.";
   canvas.querySelectorAll(".workflow-node").forEach((el) => el.remove());
   for (const node of nodes) {
     const nodeIcon = node.icon || appIcons[node.name] || null;
@@ -1976,13 +2192,66 @@ document.getElementById("clearBtn").addEventListener("click", () => {
   links = [];
   selectedId = null;
   connectFrom = null;
+  workflowTitle = "Untitled Workflow";
+  workflowDescription = "Drag nodes, reposition them, then connect steps.";
+  syncActiveWorkflow();
+  persistWorkflowStore();
   render();
 });
 
 document.getElementById("saveBtn").addEventListener("click", () => {
-  const safeNodes = safeWorkflowNodes(nodes);
-  localStorage.setItem("cellx-workflow-draft", JSON.stringify({ nodes: safeNodes, links }));
-  alert("Draft saved in this browser.");
+  persistWorkflowStore();
+  alert("All workflow tabs saved in this browser.");
+});
+
+document.getElementById("newWorkflowBtn").addEventListener("click", () => {
+  syncActiveWorkflow();
+  const name = window.prompt("Workflow name", `New Workflow ${workflows.length + 1}`) || `New Workflow ${workflows.length + 1}`;
+  const workflow = createBlankWorkflow(name.trim() || `New Workflow ${workflows.length + 1}`);
+  workflows.push(workflow);
+  loadWorkflow(workflow.id);
+  persistWorkflowStore();
+});
+
+workflowTabsEl?.addEventListener("click", (event) => {
+  const closeTarget = event.target.closest("[data-close-workflow-id]");
+  if (closeTarget) {
+    event.stopPropagation();
+    if (workflows.length <= 1) {
+      alert("Keep at least one workflow tab open.");
+      return;
+    }
+    const workflowId = closeTarget.dataset.closeWorkflowId;
+    const workflow = workflows.find((item) => item.id === workflowId);
+    if (!window.confirm(`Close "${workflow?.name || "this workflow"}"? Save Draft first if you need to keep it.`)) return;
+    const closingActive = workflowId === activeWorkflowId;
+    workflows = workflows.filter((item) => item.id !== workflowId);
+    if (closingActive) {
+      loadWorkflow(workflows[0].id);
+    } else {
+      renderWorkflowTabs();
+    }
+    persistWorkflowStore();
+    return;
+  }
+  const tab = event.target.closest("[data-workflow-id]");
+  if (tab) {
+    switchWorkflow(tab.dataset.workflowId);
+  }
+});
+
+workflowTabsEl?.addEventListener("dblclick", (event) => {
+  const tab = event.target.closest("[data-workflow-id]");
+  if (!tab) return;
+  const workflow = workflows.find((item) => item.id === tab.dataset.workflowId);
+  if (!workflow) return;
+  const nextName = window.prompt("Rename workflow", workflow.name || "Untitled Workflow");
+  if (!nextName) return;
+  workflow.name = nextName.trim() || workflow.name;
+  if (workflow.id === activeWorkflowId) workflowTitle = workflow.name;
+  persistWorkflowStore();
+  render();
+  renderWorkflowTabs();
 });
 
 document.getElementById("exportTemplateBtn").addEventListener("click", downloadWorkflowTemplate);
@@ -1996,40 +2265,37 @@ document.getElementById("templateFileInput").addEventListener("change", (event) 
   event.target.value = "";
 });
 
-const saved = localStorage.getItem("cellx-workflow-draft");
-if (saved) {
+const savedMulti = localStorage.getItem(workflowStoreKey);
+const savedLegacy = localStorage.getItem(legacyWorkflowStoreKey);
+if (savedMulti) {
   try {
-    const draft = JSON.parse(saved);
-    nodes = draft.nodes || [];
-    links = draft.links || [];
-    nextId = nodes.reduce((max, node) => Math.max(max, Number(node.id.replace("node-", "")) + 1), 1);
+    const draft = JSON.parse(savedMulti);
+    workflows = Array.isArray(draft.workflows) ? draft.workflows.map((item) => normalizeWorkflow(item, "Workflow")) : [];
+    activeWorkflowId = draft.activeWorkflowId || workflows[0]?.id || null;
   } catch {
-    nodes = [];
-    links = [];
+    workflows = [];
+  }
+} else if (savedLegacy) {
+  try {
+    const draft = JSON.parse(savedLegacy);
+    workflows = [normalizeWorkflow({
+      ...draft,
+      name: draft.name || draft.workflowTitle || workflowTitle,
+      description: draft.description || draft.workflowDescription || workflowDescription,
+    }, "Workflow 1")];
+    activeWorkflowId = workflows[0].id;
+  } catch {
+    workflows = [];
   }
 }
 
-if (!nodes.length) {
-  const starterPositions = autoLayoutPositions();
-  addNode("trigger", ...starterPositions[0]);
-  addNode("condition", ...starterPositions[1]);
-  addNode("ai", ...starterPositions[2]);
-  addNode("carrier", ...starterPositions[3]);
-  addNode("action", ...starterPositions[4]);
-  addNode("log", ...starterPositions[5]);
-  links = [
-    { from: "node-1", to: "node-2" },
-    { from: "node-2", to: "node-3" },
-    { from: "node-2", to: "node-4" },
-    { from: "node-3", to: "node-5" },
-    { from: "node-4", to: "node-5" },
-    { from: "node-5", to: "node-6" },
-  ];
+if (!workflows.length) {
+  activeWorkflowId = uniqueWorkflowId();
+  const starter = seedStarterWorkflow();
+  workflows = [starter];
 }
 
-fitNodesToCanvas();
-render();
-selectNode(nodes[0]?.id);
+loadWorkflow(activeWorkflowId || workflows[0]?.id);
 refreshStatus();
 renderNodeLibrary();
 

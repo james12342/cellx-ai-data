@@ -154,6 +154,63 @@ h1 {
   display: none;
 }
 
+.workflow-tabs-wrap {
+  display: flex;
+  align-items: center;
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-bottom: 0;
+  padding: 8px 10px 0;
+  min-height: 43px;
+  overflow-x: auto;
+  overflow-y: hidden;
+}
+
+.workflow-tabs {
+  display: flex;
+  gap: 6px;
+  min-width: 0;
+}
+
+.workflow-tab {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  height: 34px;
+  max-width: 260px;
+  border: 1px solid #b7cef4;
+  border-bottom-color: var(--line);
+  background: #f7fbff;
+  color: #23436f;
+  padding: 0 8px 0 12px;
+  white-space: nowrap;
+  cursor: pointer;
+}
+
+.workflow-tab.active {
+  background: var(--deep);
+  border-color: var(--deep);
+  color: #fff;
+}
+
+.workflow-tab-title {
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.workflow-tab-close {
+  display: inline-grid;
+  place-items: center;
+  width: 18px;
+  height: 18px;
+  border: 0;
+  background: transparent;
+  color: inherit;
+  padding: 0;
+  font-size: 16px;
+  line-height: 1;
+}
+
 button {
   height: 34px;
   border: 1px solid #b7cef4;
@@ -179,7 +236,7 @@ button.active {
   display: grid;
   grid-template-columns: 240px minmax(520px, 1fr) 296px;
   gap: 12px;
-  height: calc(100vh - 188px);
+  height: calc(100vh - 231px);
   min-height: 620px;
   align-items: stretch;
 }

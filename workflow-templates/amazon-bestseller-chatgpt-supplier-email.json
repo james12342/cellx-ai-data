@@ -147,13 +147,13 @@
       "type": "communication",
       "name": "Email Supplier Report",
       "action": "/ext-api/outlook/mail",
-      "notes": "Send the final bestseller supplier analysis report to workad_009@icloud.com.",
+      "notes": "Send the final bestseller supplier analysis report to client@example.com.",
       "icon": "material-symbols:mark-email-unread-outline-rounded",
       "x": 1370,
       "y": 260,
       "integrationSettings": {
         "accountId": "CellX Workflow Mailbox",
-        "to": "workad_009@icloud.com",
+        "to": "client@example.com",
         "subject": "Amazon Bestseller Supplier Analysis Report",
         "bodyTemplate": "Attached/Included below is the ChatGPT supplier analysis for the latest Amazon bestseller research workflow."
       },

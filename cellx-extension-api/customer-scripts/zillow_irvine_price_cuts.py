@@ -249,6 +249,8 @@ def main():
     limit = max(1, min(int(payload.get("limit") or 25), 100))
     detail_limit = max(0, min(int(payload.get("detail_limit") or 8), limit))
     min_cut_percent = float(payload.get("min_price_cut_percent") or 10)
+    include_all = bool(payload.get("include_all_active_listings"))
+    mode = "all_active_listings" if include_all else "price_cut_filter"
 
     errors = []
     rows = []
@@ -267,7 +269,7 @@ def main():
 
         for home in deduped:
             row = normalize_listing(home, len(rows) + 1)
-            if row["price_cut_percent"] is not None and row["price_cut_percent"] >= min_cut_percent:
+            if include_all or (row["price_cut_percent"] is not None and row["price_cut_percent"] >= min_cut_percent):
                 rows.append(row)
             if len(rows) >= limit:
                 break
@@ -277,22 +279,28 @@ def main():
     except Exception as exc:
         errors.append({"source": "zillow_public_page", "error": str(exc)})
 
-    email_subject = f"Irvine CA Zillow price-cut homes: {len(rows)} listing(s) at {min_cut_percent:.0f}%+ reduction"
+    if include_all:
+        email_subject = f"Irvine CA Zillow active listings: {len(rows)} home(s)"
+        summary_line = f"Found {len(rows)} Irvine, CA Zillow active sale listing(s)."
+    else:
+        email_subject = f"Irvine CA Zillow price-cut homes: {len(rows)} listing(s) at {min_cut_percent:.0f}%+ reduction"
+        summary_line = f"Found {len(rows)} Irvine, CA Zillow listing(s) with estimated price cuts of {min_cut_percent:.0f}% or more."
     email_lines = [
         "Hi,",
         "",
-        f"Found {len(rows)} Irvine, CA Zillow listing(s) with estimated price cuts of {min_cut_percent:.0f}% or more.",
+        summary_line,
         "",
     ]
     for row in rows[:10]:
+        cut_text = f"cut {row.get('price_cut_percent')}%" if row.get("price_cut_percent") is not None else "no price-cut data"
         email_lines.append(
             f"- {row.get('address')} | ${row.get('price'):,} | "
-            f"cut {row.get('price_cut_percent')}% | {row.get('beds')} bd / {row.get('baths')} ba | {row.get('detail_url')}"
+            f"{cut_text} | {row.get('beds')} bd / {row.get('baths')} ba | {row.get('detail_url')}"
         )
     if not rows and not errors:
         errors.append({
             "source": "zillow_public_page",
-            "error": "No embedded listing data with price-cut fields was found. Zillow may have served a JavaScript-only page, blocked automated access, or returned listings without price-reduction metadata.",
+            "error": "No embedded listing data was found. Zillow may have served a JavaScript-only page or blocked automated access.",
         })
     email_lines.extend(["", "Full structured rows and image URLs are attached in the workflow output."])
 
@@ -300,8 +308,10 @@ def main():
         "ok": bool(rows),
         "source_url": source_url,
         "source": "zillow_public_page",
+        "mode": mode,
         "location": payload.get("location") or "Irvine, CA",
         "scraped_at": datetime.now(timezone.utc).isoformat(),
+        "include_all_active_listings": include_all,
         "min_price_cut_percent": min_cut_percent,
         "row_count": len(rows),
         "rows": rows,
