@@ -114,10 +114,6 @@ Deployment helper:
 .\scripts\deploy_cellx_aws.ps1
 ```
 
-## Related Experiments
-
-The `US Stock/` folder contains a separate A-share stock radar experiment. It is kept as a related demo, not the main project.
-
 ## Safety
 
 This repository intentionally avoids committing API keys, Gmail app passwords, AWS private keys, real customer contact lists, and generated output files.
