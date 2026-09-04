@@ -13,6 +13,7 @@ const workflowTabsEl = document.getElementById("workflowTabs");
 const templateBrowser = document.getElementById("templateBrowser");
 const templateListEl = document.getElementById("templateList");
 const templateSearchEl = document.getElementById("templateSearch");
+const templateCategoryFilterEl = document.getElementById("templateCategoryFilter");
 const templateLibraryStatusEl = document.getElementById("templateLibraryStatus");
 
 let nodes = [];
@@ -690,18 +691,43 @@ async function loadTemplateLibrary(force = false) {
     if (templateLibraryStatusEl) {
       templateLibraryStatusEl.textContent = `${templateLibrary.length} template${templateLibrary.length === 1 ? "" : "s"} available`;
     }
+    renderTemplateCategoryFilter();
   } catch (error) {
     templateLibrary = [];
     if (templateLibraryStatusEl) templateLibraryStatusEl.textContent = "Template library unavailable";
     console.warn("Could not load workflow template library", error);
+    renderTemplateCategoryFilter();
   }
   renderTemplateLibrary();
   return templateLibrary;
 }
 
+function templateCategoryClass(category) {
+  const slug = String(category || "workflow")
+    .toLowerCase()
+    .replace(/&/g, "and")
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-+|-+$/g, "") || "workflow";
+  return `template-category-${slug}`;
+}
+
+function renderTemplateCategoryFilter() {
+  if (!templateCategoryFilterEl) return;
+  const previous = templateCategoryFilterEl.value;
+  const categories = Array.from(new Set(templateLibrary.map((template) => template.category || "Workflow"))).sort();
+  templateCategoryFilterEl.innerHTML = [
+    `<option value="">All categories</option>`,
+    ...categories.map((category) => `<option value="${escapeHtml(category)}">${escapeHtml(category)}</option>`),
+  ].join("");
+  if (categories.includes(previous)) {
+    templateCategoryFilterEl.value = previous;
+  }
+}
+
 function renderTemplateLibrary() {
   if (!templateListEl) return;
   const query = String(templateSearchEl?.value || "").trim().toLowerCase();
+  const categoryFilter = String(templateCategoryFilterEl?.value || "").trim();
   const filtered = templateLibrary.filter((template) => {
     const haystack = [
       template.name,
@@ -710,14 +736,16 @@ function renderTemplateLibrary() {
       template.demoUse,
       ...(Array.isArray(template.tags) ? template.tags : []),
     ].join(" ").toLowerCase();
-    return !query || haystack.includes(query);
+    const matchesCategory = !categoryFilter || (template.category || "Workflow") === categoryFilter;
+    const matchesQuery = !query || haystack.includes(query);
+    return matchesCategory && matchesQuery;
   });
   if (!filtered.length) {
     templateListEl.innerHTML = `<div class="template-empty">No templates found.</div>`;
     return;
   }
   templateListEl.innerHTML = filtered.map((template) => `
-    <article class="template-card">
+    <article class="template-card ${escapeHtml(templateCategoryClass(template.category))}">
       <div class="template-card-main">
         <div class="template-card-top">
           <span class="template-category">${escapeHtml(template.category || "Workflow")}</span>
@@ -2367,6 +2395,7 @@ document.getElementById("closeTemplatesBtn")?.addEventListener("click", () => {
 });
 
 templateSearchEl?.addEventListener("input", renderTemplateLibrary);
+templateCategoryFilterEl?.addEventListener("change", renderTemplateLibrary);
 
 templateListEl?.addEventListener("click", async (event) => {
   const importTarget = event.target.closest("[data-import-library-template]");

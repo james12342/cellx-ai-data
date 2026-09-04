@@ -64,7 +64,12 @@
             <button id="closeTemplatesBtn" type="button">Close</button>
           </div>
           <div class="template-browser-tools">
-            <input id="templateSearch" type="search" placeholder="Search workflow templates">
+            <div class="template-filter-row">
+              <input id="templateSearch" type="search" placeholder="Search workflow templates">
+              <select id="templateCategoryFilter" aria-label="Filter workflow templates by category">
+                <option value="">All categories</option>
+              </select>
+            </div>
             <span id="templateLibraryStatus">Loading templates...</span>
           </div>
           <div id="templateList" class="template-list"></div>

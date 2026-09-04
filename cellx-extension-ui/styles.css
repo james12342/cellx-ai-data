@@ -250,11 +250,25 @@ h1 {
   border-bottom: 1px solid var(--line);
 }
 
-.template-browser-tools input {
+.template-filter-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-width: min(680px, 100%);
+}
+
+.template-browser-tools input,
+.template-browser-tools select {
   width: min(420px, 100%);
   height: 34px;
   border: 1px solid var(--line-dark);
   padding: 0 10px;
+  background: #fff;
+}
+
+.template-browser-tools select {
+  width: 190px;
+  color: #1f365a;
 }
 
 .template-browser-tools span {
@@ -273,13 +287,46 @@ h1 {
 }
 
 .template-card {
+  --template-accent: #60a5fa;
+  --template-soft: #eff6ff;
+  --template-border: #bfdbfe;
+  --template-text: #1d4ed8;
   display: flex;
   flex-direction: column;
   justify-content: space-between;
   min-height: 218px;
   border: 1px solid var(--line);
+  border-left: 5px solid var(--template-accent);
   background: #fbfdff;
   padding: 13px;
+}
+
+.template-card.template-category-real-estate {
+  --template-accent: #f97316;
+  --template-soft: #fff7ed;
+  --template-border: #fed7aa;
+  --template-text: #9a3412;
+}
+
+.template-card.template-category-e-commerce {
+  --template-accent: #2563eb;
+  --template-soft: #eff6ff;
+  --template-border: #bfdbfe;
+  --template-text: #1d4ed8;
+}
+
+.template-card.template-category-finance {
+  --template-accent: #16a34a;
+  --template-soft: #f0fdf4;
+  --template-border: #bbf7d0;
+  --template-text: #166534;
+}
+
+.template-card.template-category-research {
+  --template-accent: #7c3aed;
+  --template-soft: #f5f3ff;
+  --template-border: #ddd6fe;
+  --template-text: #5b21b6;
 }
 
 .template-card-top {
@@ -291,9 +338,9 @@ h1 {
 }
 
 .template-category {
-  color: #075985;
-  background: #e0f2fe;
-  border: 1px solid #bae6fd;
+  color: var(--template-text);
+  background: var(--template-soft);
+  border: 1px solid var(--template-border);
   padding: 3px 7px;
   font-size: 12px;
   font-weight: 700;
@@ -330,9 +377,9 @@ h1 {
 }
 
 .template-tags span {
-  color: #23436f;
-  background: #eef6ff;
-  border: 1px solid #d7e8ff;
+  color: var(--template-text);
+  background: var(--template-soft);
+  border: 1px solid var(--template-border);
   padding: 3px 6px;
   font-size: 11px;
   font-weight: 700;
