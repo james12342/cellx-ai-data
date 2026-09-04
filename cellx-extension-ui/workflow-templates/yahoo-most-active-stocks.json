@@ -1,0 +1,27 @@
+{
+  "templateType": "cellx-workflow-designer",
+  "version": "1.0",
+  "exportedAt": "2026-09-01T00:00:00.000Z",
+  "name": "Yahoo Finance Most Active Stocks",
+  "nodes": [
+    {
+      "id": "node-1",
+      "type": "script",
+      "name": "Yahoo Most Active Stocks",
+      "action": "/ext-api/scripts/run",
+      "notes": "Fetch today's most active stocks from Yahoo Finance and return structured stock rows.",
+      "icon": null,
+      "x": 90,
+      "y": 110,
+      "integrationSettings": {
+        "scriptName": "yahoo_most_active_stocks.py",
+        "inputJson": "{\"count\":25,\"offset\":0}",
+        "timeout": "25",
+        "args": ""
+      },
+      "connection": null,
+      "testResult": null
+    }
+  ],
+  "links": []
+}

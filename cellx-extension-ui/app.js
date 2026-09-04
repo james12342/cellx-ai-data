@@ -10,10 +10,15 @@ const propIntegration = document.getElementById("integrationFields");
 const workflowTitleEl = document.getElementById("workflowTitle");
 const workflowDescriptionEl = document.getElementById("workflowDescription");
 const workflowTabsEl = document.getElementById("workflowTabs");
+const templateBrowser = document.getElementById("templateBrowser");
+const templateListEl = document.getElementById("templateList");
+const templateSearchEl = document.getElementById("templateSearch");
+const templateLibraryStatusEl = document.getElementById("templateLibraryStatus");
 
 let nodes = [];
 let links = [];
 let workflows = [];
+let templateLibrary = [];
 let activeWorkflowId = null;
 let selectedId = null;
 let connectMode = false;
@@ -24,6 +29,7 @@ let cellxSchema = { tables: [] };
 let workflowTitle = "Order Fulfillment Flow";
 let workflowDescription = "Drag nodes, reposition them, then connect steps.";
 const templateVersion = "1.0";
+const templateManifestPath = "./workflow-templates/manifest.json";
 const workflowStoreKey = "cellx-workflows-draft";
 const legacyWorkflowStoreKey = "cellx-workflow-draft";
 const sensitiveSettingPattern = /^(apiKey|secretKey|clientSecret|authHeader|authToken|bearerToken|password|token)$/i;
@@ -671,6 +677,97 @@ function importWorkflowTemplate(file) {
     alert("Could not read this template file.");
   });
   reader.readAsText(file);
+}
+
+async function loadTemplateLibrary(force = false) {
+  if (templateLibrary.length && !force) return templateLibrary;
+  if (templateLibraryStatusEl) templateLibraryStatusEl.textContent = "Loading templates...";
+  try {
+    const response = await fetch(`${templateManifestPath}?v=${Date.now()}`, { cache: "no-store" });
+    if (!response.ok) throw new Error(`Template manifest returned ${response.status}`);
+    const manifest = await response.json();
+    templateLibrary = Array.isArray(manifest.templates) ? manifest.templates : [];
+    if (templateLibraryStatusEl) {
+      templateLibraryStatusEl.textContent = `${templateLibrary.length} template${templateLibrary.length === 1 ? "" : "s"} available`;
+    }
+  } catch (error) {
+    templateLibrary = [];
+    if (templateLibraryStatusEl) templateLibraryStatusEl.textContent = "Template library unavailable";
+    console.warn("Could not load workflow template library", error);
+  }
+  renderTemplateLibrary();
+  return templateLibrary;
+}
+
+function renderTemplateLibrary() {
+  if (!templateListEl) return;
+  const query = String(templateSearchEl?.value || "").trim().toLowerCase();
+  const filtered = templateLibrary.filter((template) => {
+    const haystack = [
+      template.name,
+      template.description,
+      template.category,
+      template.demoUse,
+      ...(Array.isArray(template.tags) ? template.tags : []),
+    ].join(" ").toLowerCase();
+    return !query || haystack.includes(query);
+  });
+  if (!filtered.length) {
+    templateListEl.innerHTML = `<div class="template-empty">No templates found.</div>`;
+    return;
+  }
+  templateListEl.innerHTML = filtered.map((template) => `
+    <article class="template-card">
+      <div class="template-card-main">
+        <div class="template-card-top">
+          <span class="template-category">${escapeHtml(template.category || "Workflow")}</span>
+          <span class="template-file">${escapeHtml(template.file || "")}</span>
+        </div>
+        <h2>${escapeHtml(template.name || "Workflow Template")}</h2>
+        <p>${escapeHtml(template.description || "Generated workflow JSON template.")}</p>
+        <div class="template-tags">
+          ${(Array.isArray(template.tags) ? template.tags : []).map((tag) => `<span>${escapeHtml(tag)}</span>`).join("")}
+        </div>
+      </div>
+      <div class="template-card-actions">
+        <button type="button" data-preview-template="${escapeHtml(template.file || "")}">Preview JSON</button>
+        <button class="primary" type="button" data-import-library-template="${escapeHtml(template.file || "")}">Import</button>
+      </div>
+    </article>
+  `).join("");
+}
+
+async function fetchLibraryTemplate(template) {
+  if (!template?.file) throw new Error("Template file is missing.");
+  const response = await fetch(`./workflow-templates/${encodeURIComponent(template.file)}?v=${Date.now()}`, { cache: "no-store" });
+  if (!response.ok) throw new Error(`Could not load ${template.file}.`);
+  return response.json();
+}
+
+async function importLibraryTemplate(template) {
+  try {
+    const workflow = addWorkflowFromTemplate(await fetchLibraryTemplate(template), true);
+    alert(`Imported "${workflow.name}" as a new workflow tab.`);
+    if (templateBrowser) templateBrowser.hidden = true;
+  } catch (error) {
+    alert(error.message || "Could not import this template.");
+  }
+}
+
+async function previewLibraryTemplate(template) {
+  try {
+    const data = await fetchLibraryTemplate(template);
+    const preview = JSON.stringify(data, null, 2);
+    const win = window.open("", "_blank", "width=920,height=720");
+    if (!win) {
+      alert(preview.slice(0, 4000));
+      return;
+    }
+    win.document.write(`<pre style="white-space:pre-wrap;font:13px/1.45 Consolas,monospace;padding:18px;color:#14213d;">${escapeHtml(preview)}</pre>`);
+    win.document.title = data.name || template.name || "Workflow Template JSON";
+  } catch (error) {
+    alert(error.message || "Could not preview this template.");
+  }
 }
 
 const commonIntegrationFields = {
@@ -2255,6 +2352,33 @@ workflowTabsEl?.addEventListener("dblclick", (event) => {
 });
 
 document.getElementById("exportTemplateBtn").addEventListener("click", downloadWorkflowTemplate);
+
+document.getElementById("browseTemplatesBtn")?.addEventListener("click", async () => {
+  if (!templateBrowser) return;
+  templateBrowser.hidden = !templateBrowser.hidden;
+  if (!templateBrowser.hidden) {
+    await loadTemplateLibrary();
+    templateSearchEl?.focus();
+  }
+});
+
+document.getElementById("closeTemplatesBtn")?.addEventListener("click", () => {
+  if (templateBrowser) templateBrowser.hidden = true;
+});
+
+templateSearchEl?.addEventListener("input", renderTemplateLibrary);
+
+templateListEl?.addEventListener("click", async (event) => {
+  const importTarget = event.target.closest("[data-import-library-template]");
+  if (importTarget) {
+    await importLibraryTemplate(templateLibrary.find((template) => template.file === importTarget.dataset.importLibraryTemplate));
+    return;
+  }
+  const previewTarget = event.target.closest("[data-preview-template]");
+  if (previewTarget) {
+    await previewLibraryTemplate(templateLibrary.find((template) => template.file === previewTarget.dataset.previewTemplate));
+  }
+});
 
 document.getElementById("importTemplateBtn").addEventListener("click", () => {
   document.getElementById("templateFileInput").click();

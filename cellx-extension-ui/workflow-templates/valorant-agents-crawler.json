@@ -1,0 +1,27 @@
+{
+  "templateType": "cellx-workflow-designer",
+  "version": "1.0",
+  "exportedAt": "2026-09-01T00:00:00.000Z",
+  "name": "VALORANT Agents Crawler",
+  "nodes": [
+    {
+      "id": "node-1",
+      "type": "script",
+      "name": "VALORANT Agents Crawler",
+      "action": "/ext-api/scripts/run",
+      "notes": "Fetch all public agent information from the official VALORANT agents page.",
+      "icon": null,
+      "x": 90,
+      "y": 110,
+      "integrationSettings": {
+        "scriptName": "valorant_agents_crawler.py",
+        "inputJson": "{\"url\":\"https://playvalorant.com/en-us/agents/\",\"max_agents\":40,\"delay_seconds\":0.2}",
+        "timeout": "25",
+        "args": ""
+      },
+      "connection": null,
+      "testResult": null
+    }
+  ],
+  "links": []
+}

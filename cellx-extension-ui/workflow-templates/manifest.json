@@ -1,0 +1,70 @@
+{
+  "version": "1.0",
+  "updatedAt": "2026-09-04T00:00:00.000Z",
+  "templates": [
+    {
+      "name": "RentCast Irvine AI Property Recommendations Email",
+      "description": "Fetch Irvine sale listings, analyze them with OpenAI, write rows into cx_property, query client records, and email recommendations through Gmail.",
+      "file": "rentcast-irvine-ai-property-recommendations-email.json",
+      "category": "Real Estate",
+      "tags": ["RentCast", "OpenAI", "Gmail", "CellX DB"],
+      "demoUse": "AI property recommendation workflow"
+    },
+    {
+      "name": "RentCast Irvine Active Listings Email",
+      "description": "Fetch active Irvine sale listings from RentCast, normalize listing data, and send a customer email.",
+      "file": "rentcast-irvine-active-listings-email.json",
+      "category": "Real Estate",
+      "tags": ["RentCast", "Gmail", "Listings"],
+      "demoUse": "Active listing alert workflow"
+    },
+    {
+      "name": "Zillow Irvine Price Cut Lead Alert",
+      "description": "Demo template for finding Irvine listings with large price reductions and sending lead alerts.",
+      "file": "zillow-irvine-price-cut-lead-alert.json",
+      "category": "Real Estate",
+      "tags": ["Price Cut", "Lead Alert", "Gmail"],
+      "demoUse": "Price-cut listing lead alert"
+    },
+    {
+      "name": "Amazon Bestseller Supplier Research to ChatGPT and Email",
+      "description": "Find Amazon bestseller products, export workbook data, hand off to ChatGPT, transform results, and email a supplier report.",
+      "file": "amazon-bestseller-chatgpt-supplier-email.json",
+      "category": "E-Commerce",
+      "tags": ["Amazon", "ChatGPT", "Excel", "Email"],
+      "demoUse": "Supplier research workflow"
+    },
+    {
+      "name": "Amazon Best Sellers Script Demo",
+      "description": "Run an Amazon Best Sellers script and return product rows as a simple script-node demo.",
+      "file": "amazon-bestsellers-script-demo.json",
+      "category": "E-Commerce",
+      "tags": ["Amazon", "Script", "Demo"],
+      "demoUse": "Custom script runner demo"
+    },
+    {
+      "name": "Yahoo Finance Most Active Stocks",
+      "description": "Fetch Yahoo Finance most-active stocks and hand the result to an AI analysis step.",
+      "file": "yahoo-most-active-stocks.json",
+      "category": "Finance",
+      "tags": ["Yahoo Finance", "Stocks", "AI"],
+      "demoUse": "Financial market analysis workflow"
+    },
+    {
+      "name": "TVT Tarbut Website Crawler",
+      "description": "Crawl selected public content from the TVT website and return structured page information.",
+      "file": "tarbut-site-crawler.json",
+      "category": "Research",
+      "tags": ["Website", "Crawler", "School"],
+      "demoUse": "Website information extraction"
+    },
+    {
+      "name": "VALORANT Agents Crawler",
+      "description": "Fetch public VALORANT agents page data and convert it into structured workflow output.",
+      "file": "valorant-agents-crawler.json",
+      "category": "Research",
+      "tags": ["Website", "Crawler", "Game Data"],
+      "demoUse": "Public page extraction demo"
+    }
+  ]
+}

@@ -1,0 +1,118 @@
+{
+  "templateType": "cellx-workflow-designer",
+  "version": "1.0",
+  "exportedAt": "2026-09-01T00:00:00.000Z",
+  "name": "Zillow Irvine Price Cut Lead Alert",
+  "description": "Fetch Irvine, CA Zillow public sale listings, keep homes with estimated price reductions of 10% or more, collect detail/image URLs, normalize the email payload, then prepare a customer email alert.",
+  "nodes": [
+    {
+      "id": "node-1",
+      "type": "trigger",
+      "name": "Schedule",
+      "action": "cron",
+      "notes": "Run daily or manually when a customer wants fresh Irvine price-cut listings.",
+      "icon": "material-symbols:schedule-rounded",
+      "x": 70,
+      "y": 120,
+      "integrationSettings": {
+        "owner": "Real Estate Lead Alerts",
+        "timeout": "30"
+      },
+      "connection": null,
+      "testResult": null
+    },
+    {
+      "id": "node-2",
+      "type": "script",
+      "name": "Zillow Irvine Price Cuts",
+      "action": "/ext-api/scripts/run",
+      "notes": "Fetch public Zillow Irvine sale listings, filter estimated price cuts >= 10%, and collect detail data plus image URLs.",
+      "icon": "material-symbols:real-estate-agent-outline-rounded",
+      "x": 330,
+      "y": 120,
+      "integrationSettings": {
+        "scriptName": "zillow_irvine_price_cuts.py",
+        "inputJson": "{\"location\":\"Irvine, CA\",\"source_url\":\"https://www.zillow.com/homes/Irvine,-CA_rb/\",\"include_all_active_listings\":true,\"min_price_cut_percent\":10,\"limit\":50,\"detail_limit\":10,\"customer_email\":\"customer@example.com\"}",
+        "timeout": "30",
+        "args": ""
+      },
+      "connection": null,
+      "testResult": null
+    },
+    {
+      "id": "node-3",
+      "type": "tool",
+      "name": "JSON Transform",
+      "action": "/ext-api/tools/json-transform",
+      "notes": "Prepare the email subject/body and a compact summary from the Zillow script output.",
+      "icon": "vscode-icons:file-type-json",
+      "x": 590,
+      "y": 120,
+      "integrationSettings": {
+        "sourcePath": "previous_step",
+        "transformMapping": "listing_count <- {{row_count}}\nmode <- {{mode}}\nemail_subject <- {{email.subject}}\nemail_body <- {{email.body}}\nsource_url <- {{source_url}}\nfirst_listing_address <- {{rows.0.address}}\nfirst_listing_price <- {{rows.0.price}}\nfirst_listing_image <- {{rows.0.primary_image}}",
+        "outputMode": "rows"
+      },
+      "connection": null,
+      "testResult": null
+    },
+    {
+      "id": "node-4",
+      "type": "communication",
+      "name": "Gmail",
+      "action": "/ext-api/gmail/send",
+      "notes": "Preview or send the Irvine price-cut lead alert to a customer email address.",
+      "icon": "logos:google-gmail",
+      "x": 850,
+      "y": 120,
+      "integrationSettings": {
+        "deliveryMode": "connected_provider",
+        "to": "customer@example.com",
+        "subjectTemplate": "{{row.email_subject}}",
+        "bodyTemplate": "{{row.email_body}}\n\nFirst listing image: {{row.first_listing_image}}\nSource: {{row.source_url}}",
+        "smtpHost": "smtp.gmail.com",
+        "smtpPort": "587",
+        "smtpSecurity": "starttls",
+        "username": "sender@example.com",
+        "fromEmail": "sender@example.com",
+        "passwordSecretName": "GMAIL_APP_PASSWORD"
+      },
+      "connection": null,
+      "testResult": null
+    },
+    {
+      "id": "node-5",
+      "type": "log",
+      "name": "Write History Log",
+      "action": "cx_workflow_log",
+      "notes": "Record that the Zillow Irvine price-cut alert was generated.",
+      "icon": null,
+      "x": 1110,
+      "y": 120,
+      "integrationSettings": {
+        "owner": "Real Estate Lead Alerts",
+        "timeout": "30"
+      },
+      "connection": null,
+      "testResult": null
+    }
+  ],
+  "links": [
+    {
+      "from": "node-1",
+      "to": "node-2"
+    },
+    {
+      "from": "node-2",
+      "to": "node-3"
+    },
+    {
+      "from": "node-3",
+      "to": "node-4"
+    },
+    {
+      "from": "node-4",
+      "to": "node-5"
+    }
+  ]
+}

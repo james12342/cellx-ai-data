@@ -4,7 +4,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>CellX Workflow Designer</title>
-  <link rel="stylesheet" href="./styles.css?v=20260903-workflow-tabs">
+  <link rel="stylesheet" href="./styles.css?v=20260904-template-library">
 </head>
 <body>
   <div class="app-shell">
@@ -43,7 +43,8 @@
             <button id="connectModeBtn" type="button">Connect Mode</button>
             <button id="autoLayoutBtn" type="button">Auto Layout</button>
             <button id="newWorkflowBtn" type="button">New Workflow</button>
-            <button id="importTemplateBtn" type="button">Import Template</button>
+            <button id="browseTemplatesBtn" type="button">Browse Templates</button>
+            <button id="importTemplateBtn" type="button">Import JSON</button>
             <button id="exportTemplateBtn" type="button">Export Template</button>
             <button id="saveBtn" class="primary" type="button">Save Draft</button>
             <input id="templateFileInput" class="template-file-input" type="file" accept="application/json,.json">
@@ -52,6 +53,21 @@
 
         <section class="workflow-tabs-wrap" aria-label="Workflow tabs">
           <div id="workflowTabs" class="workflow-tabs"></div>
+        </section>
+
+        <section id="templateBrowser" class="template-browser" aria-label="Workflow template browser" hidden>
+          <div class="template-browser-head">
+            <div>
+              <strong>Workflow Template Library</strong>
+              <span>Browse generated JSON templates and import them as new workflow tabs.</span>
+            </div>
+            <button id="closeTemplatesBtn" type="button">Close</button>
+          </div>
+          <div class="template-browser-tools">
+            <input id="templateSearch" type="search" placeholder="Search workflow templates">
+            <span id="templateLibraryStatus">Loading templates...</span>
+          </div>
+          <div id="templateList" class="template-list"></div>
         </section>
 
         <section class="designer-grid">
@@ -111,6 +127,6 @@
     </section>
   </div>
 
-  <script src="./app.js?v=20260903-workflow-tabs"></script>
+  <script src="./app.js?v=20260904-template-library"></script>
 </body>
 </html>

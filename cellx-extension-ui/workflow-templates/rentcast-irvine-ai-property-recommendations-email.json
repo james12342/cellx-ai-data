@@ -1,0 +1,198 @@
+{
+  "templateType": "cellx-workflow-designer",
+  "version": "1.0",
+  "exportedAt": "2026-09-02T00:00:00.000Z",
+  "name": "RentCast Irvine AI Property Recommendations Email",
+  "description": "Fetch active Irvine sale listings from RentCast, analyze listings with OpenAI, write AI-enriched rows into cx_property, then email customer recommendations through Gmail.",
+  "nodes": [
+    {
+      "id": "node-1",
+      "type": "trigger",
+      "name": "Schedule",
+      "action": "cron",
+      "notes": "Run manually or daily for fresh Irvine active sale listings.",
+      "icon": "material-symbols:schedule-rounded",
+      "x": 60,
+      "y": 170,
+      "integrationSettings": {
+        "owner": "Real Estate AI Alerts",
+        "timeout": "30"
+      },
+      "connection": null,
+      "testResult": null
+    },
+    {
+      "id": "node-2",
+      "type": "script",
+      "name": "RentCast Irvine Sale Listings",
+      "action": "/ext-api/scripts/run",
+      "notes": "Fetch active for-sale listings in Irvine, CA from RentCast. Requires RENTCAST_API_KEY in the backend environment.",
+      "icon": "material-symbols:real-estate-agent-outline-rounded",
+      "x": 300,
+      "y": 170,
+      "integrationSettings": {
+        "scriptName": "rentcast_irvine_sale_listings.py",
+        "inputJson": "{\"city\":\"Irvine\",\"state\":\"CA\",\"status\":\"Active\",\"include_all_active_listings\":true,\"min_price_cut_percent\":0,\"limit\":3,\"page_size\":3,\"include_total_count\":true,\"include_raw_listing\":false,\"customer_email\":\"client@example.com\",\"output_fields\":[\"id\",\"formatted_address\",\"address_line_1\",\"address_line_2\",\"city\",\"state\",\"zip_code\",\"county\",\"latitude\",\"longitude\",\"property_type\",\"bedrooms\",\"bathrooms\",\"square_footage\",\"lot_size\",\"year_built\",\"hoa_fee\",\"status\",\"listing_type\",\"price\",\"original_price\",\"highest_previous_price\",\"price_cut_amount\",\"price_cut_percent\",\"listed_date\",\"last_seen_date\",\"days_on_market\",\"mls_name\",\"mls_number\",\"listing_agent_name\",\"listing_agent_phone\",\"listing_agent_email\",\"listing_office_name\",\"listing_office_phone\",\"listing_office_email\",\"builder_name\",\"builder_development\",\"builder_phone\",\"photo_1\",\"photo_2\",\"photo_3\",\"photo_4\",\"photo_5\",\"image_note\",\"landing_page_slug\",\"landing_page_url\"]}",
+        "timeout": "30",
+        "args": ""
+      },
+      "connection": null,
+      "testResult": null
+    },
+    {
+      "id": "node-3",
+      "type": "ai",
+      "name": "OpenAI GPT-5 Property Analyst",
+      "action": "/ext-api/ai/openai/gpt-5",
+      "notes": "Analyze each RentCast listing using address, price, market signals, and price-cut data. Returns rows with ai_* fields plus an email summary.",
+      "icon": "logos:openai-icon",
+      "x": 545,
+      "y": 170,
+      "integrationSettings": {
+        "authMode": "platform_api_key",
+        "model": "gpt-5",
+        "maxInputRows": "3",
+        "compactInputFields": "id,formatted_address,city,state,zip_code,property_type,bedrooms,bathrooms,square_footage,lot_size,year_built,hoa_fee,price,original_price,price_cut_amount,price_cut_percent,days_on_market,listed_date,mls_name,photo_1,landing_page_url",
+        "platformSecretName": "OPENAI_API_KEY",
+        "promptTemplate": "Analyze up to 3 Irvine home listings. Use only the JSON below. For each listing, return short buyer guidance, not legal/tax/mortgage advice.\\n\\nFor each row return only: id, ai_score 1-100, ai_summary, ai_strengths, ai_weaknesses, ai_risks, ai_recommended_buyer_profile.\\n\\nAlso write one customer email summarizing the best listings.\\n\\nListings JSON:\\n{{previous_step}}",
+        "returnFormat": "{\n  \"summary\": \"1 short overall summary\",\n  \"rows\": [\n    {\n      \"id\": \"listing id\",\n      \"ai_score\": 85,\n      \"ai_summary\": \"one sentence\",\n      \"ai_strengths\": \"short; short\",\n      \"ai_weaknesses\": \"short; short\",\n      \"ai_risks\": \"short diligence items\",\n      \"ai_recommended_buyer_profile\": \"who may fit\"\n    }\n  ],\n  \"email\": {\n    \"subject\": \"Irvine property recommendations\",\n    \"body\": \"short customer email\"\n  }\n}",
+        "dataPolicy": "Use listing data only; no sensitive customer PII beyond configured recipient email; AI output is buyer guidance, not legal, tax, mortgage, or appraisal advice."
+      },
+      "connection": null,
+      "testResult": null
+    },
+    {
+      "id": "node-4",
+      "type": "cellx-db",
+      "name": "CellX Bulk Import AI Properties",
+      "action": "/ext-api/cellx-db/bulk-import",
+      "notes": "Write OpenAI-enriched listing rows into the CellX cx_property table.",
+      "icon": "material-symbols:database-outline-rounded",
+      "x": 805,
+      "y": 70,
+      "integrationSettings": {
+        "operation": "bulk_import",
+        "tableName": "cx_property",
+        "inputPayload": "{{previous_step.rows}}",
+        "softDelete": "soft",
+        "fieldMapping": "provider_listing_id <- {{item.id}}\nformatted_address <- {{item.formatted_address}}\naddress_line_1 <- {{item.address_line_1}}\naddress_line_2 <- {{item.address_line_2}}\ncity <- {{item.city}}\nstate <- {{item.state}}\nzip_code <- {{item.zip_code}}\ncounty <- {{item.county}}\nlatitude <- {{item.latitude}}\nlongitude <- {{item.longitude}}\nproperty_type <- {{item.property_type}}\nbedrooms <- {{item.bedrooms}}\nbathrooms <- {{item.bathrooms}}\nsquare_footage <- {{item.square_footage}}\nlot_size <- {{item.lot_size}}\nyear_built <- {{item.year_built}}\nhoa_fee <- {{item.hoa_fee}}\nlisting_status <- {{item.status}}\nlisting_type <- {{item.listing_type}}\nprice <- {{item.price}}\noriginal_price <- {{item.original_price}}\nhighest_previous_price <- {{item.highest_previous_price}}\nprice_cut_amount <- {{item.price_cut_amount}}\nprice_cut_percent <- {{item.price_cut_percent}}\nlisted_date <- {{item.listed_date}}\nlast_seen_date <- {{item.last_seen_date}}\ndays_on_market <- {{item.days_on_market}}\nmls_name <- {{item.mls_name}}\nmls_number <- {{item.mls_number}}\nlisting_agent_name <- {{item.listing_agent_name}}\nlisting_agent_phone <- {{item.listing_agent_phone}}\nlisting_agent_email <- {{item.listing_agent_email}}\nlisting_office_name <- {{item.listing_office_name}}\nlisting_office_phone <- {{item.listing_office_phone}}\nlisting_office_email <- {{item.listing_office_email}}\nbuilder_name <- {{item.builder_name}}\nbuilder_development <- {{item.builder_development}}\nbuilder_phone <- {{item.builder_phone}}\nphoto_1 <- {{item.photo_1}}\nphoto_2 <- {{item.photo_2}}\nphoto_3 <- {{item.photo_3}}\nphoto_4 <- {{item.photo_4}}\nphoto_5 <- {{item.photo_5}}\nimage_note <- {{item.image_note}}\nlanding_page_slug <- {{item.landing_page_slug}}\nlanding_page_url <- {{item.landing_page_url}}\nai_summary <- {{item.ai_summary}}\nai_strengths <- {{item.ai_strengths}}\nai_weaknesses <- {{item.ai_weaknesses}}\nai_risks <- {{item.ai_risks}}\nai_recommended_buyer_profile <- {{item.ai_recommended_buyer_profile}}\nai_score <- {{item.ai_score}}\npush_status <- {{item.push_status}}\nlast_pushed_at <- {{item.last_pushed_at}}",
+        "safetyMode": "approved_write",
+        "auditLog": "cx_workflow_log"
+      },
+      "connection": null,
+      "testResult": null
+    },
+    {
+      "id": "node-5",
+      "type": "tool",
+      "name": "JSON Transform",
+      "action": "/ext-api/tools/json-transform",
+      "notes": "Extract OpenAI email subject/body and customer summary for Gmail.",
+      "icon": "vscode-icons:file-type-json",
+      "x": 805,
+      "y": 270,
+      "integrationSettings": {
+        "sourcePath": "previous_step",
+        "transformMapping": "summary <- {{summary}}\nemail_subject <- {{email.subject}}\nemail_body <- {{email.body}}\nlisting_count <- {{rows.length}}\ntop_address <- {{rows.0.formatted_address}}\ntop_price <- {{rows.0.price}}\ntop_score <- {{rows.0.ai_score}}",
+        "outputMode": "object"
+      },
+      "connection": null,
+      "testResult": null
+    },
+    {
+      "id": "node-6",
+      "type": "communication",
+      "name": "Gmail",
+      "action": "/ext-api/gmail/send",
+      "notes": "Send OpenAI-generated property recommendations to customer email recipients.",
+      "icon": "logos:google-gmail",
+      "x": 1055,
+      "y": 270,
+      "integrationSettings": {
+        "deliveryMode": "connected_provider",
+        "to": "",
+        "subjectTemplate": "{{row.email_subject}}",
+        "bodyTemplate": "Hi {{client.name}},\n\n{{row.email_body}}",
+        "smtpHost": "smtp.gmail.com",
+        "smtpPort": "587",
+        "smtpSecurity": "starttls",
+        "username": "sender@example.com",
+        "fromEmail": "sender@example.com",
+        "passwordSecretName": "GMAIL_APP_PASSWORD"
+      },
+      "connection": null,
+      "testResult": null
+    },
+    {
+      "id": "node-8",
+      "type": "cellx-db",
+      "name": "CellX Query Property Clients",
+      "action": "/ext-api/cellx-db/query",
+      "notes": "Read real estate client names and email addresses from cx_property_clients before sending recommendations.",
+      "icon": "material-symbols:database-outline-rounded",
+      "x": 805,
+      "y": 470,
+      "integrationSettings": {
+        "operation": "query",
+        "tableName": "cx_property_clients",
+        "whereClause": "del_flag = '0' AND email IS NOT NULL AND email <> ''",
+        "sortBy": "id asc",
+        "limit": "100",
+        "safetyMode": "read_only",
+        "auditLog": "cx_workflow_log"
+      },
+      "connection": null,
+      "testResult": null
+    },
+    {
+      "id": "node-7",
+      "type": "log",
+      "name": "Write History Log",
+      "action": "cx_workflow_log",
+      "notes": "Append an audit event after the AI property recommendation email workflow runs.",
+      "icon": "vscode-icons:file-type-word",
+      "x": 1300,
+      "y": 470,
+      "integrationSettings": {
+        "owner": "Real Estate AI Alerts",
+        "timeout": "30"
+      },
+      "connection": null,
+      "testResult": null
+    }
+  ],
+  "links": [
+    {
+      "from": "node-1",
+      "to": "node-2"
+    },
+    {
+      "from": "node-2",
+      "to": "node-3"
+    },
+    {
+      "from": "node-3",
+      "to": "node-4"
+    },
+    {
+      "from": "node-3",
+      "to": "node-5"
+    },
+    {
+      "from": "node-5",
+      "to": "node-6"
+    },
+    {
+      "from": "node-1",
+      "to": "node-8"
+    },
+    {
+      "from": "node-8",
+      "to": "node-6"
+    },
+    {
+      "from": "node-6",
+      "to": "node-7"
+    }
+  ]
+}
