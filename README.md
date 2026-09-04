@@ -1,74 +1,123 @@
-# A股板块资金雷达
+# Cell AI Data
 
-这个小工具用于观察 A 股里“资金流入较强的板块”和“疑似龙头股”，并叠加龙虎榜机构专用席位的最新净买入线索。
+Cell AI Data is a CellX workflow automation demo project for building AI-assisted business workflows, custom data pipelines, and customer-facing automation experiences.
 
-它适合做盘后/盘中观察，不构成投资建议。
+The project includes:
 
-## 安装
+- A browser-based Workflow Designer
+- A Python backend for workflow testing and integration previews
+- Customer script runners for approved automation scripts
+- CellX database query/import/export workflow nodes
+- OpenAI, Gmail, RentCast, Amazon, Yahoo Finance, and website crawler demo workflows
+- A Codex plugin package for sharing the workflow kit with other Codex users
 
-```powershell
-python -m venv .venv
-.\.venv\Scripts\Activate.ps1
-pip install -r requirements.txt
-```
+## Live Demo
 
-## 运行
+- Workflow app: https://app.cellaidata.com/workflow/
+- Website: https://cellaidata.com
 
-```powershell
-python .\a_stock_sector_radar.py
-```
-
-常用参数：
-
-```powershell
-python .\a_stock_sector_radar.py --top-sectors 15 --leaders-per-sector 3 --lookback-days 10
-python .\a_stock_sector_radar.py --industry-only
-python .\a_stock_sector_radar.py --date 20260515
-```
-
-## 输出
-
-结果会写入 `reports/`：
-
-- `sectors_*.csv`：板块热度排行
-- `leaders_*.csv`：每个高热度板块的龙头候选
-- `institutions_*.csv`：最近窗口内龙虎榜机构席位净买入
-- `radar_*.md`：方便阅读的汇总报告
-
-## 评分口径
-
-脚本会优先使用东方财富资金流接口；如果该接口临时返回 502、空数据或 AKShare 解析失败，会自动切换到同花顺/新浪的行业资金与成分股数据。fallback 模式下，5 日/10 日资金连续性会暂时置为 0，龙头候选会优先使用行业领涨股和可取得的个股资金数据。
-
-板块热度分综合：
-
-- 今日主力净流入
-- 5 日主力净流入
-- 10 日主力净流入
-- 今日板块涨跌幅
-- 资金连续性
-
-龙头候选分综合：
-
-- 个股主力净流入
-- 个股涨跌幅
-- 成交额
-- 换手率
-- 龙虎榜机构净买入
-
-## 注意
-
-“机构最新买入”使用的是公开龙虎榜里的机构专用席位数据，只覆盖上榜个股，不代表全部机构真实交易。北向资金盘中实时净买入数据已经不再像以前那样完整披露，因此这里不把北向实时资金作为核心信号。
-
-## 排错
-
-如果运行时看到类似下面的错误：
+## Main Project Structure
 
 ```text
-Data fetch failed. The public Eastmoney/AKShare endpoint may be throttled...
+cellx-extension-ui/
+  index.html
+  app.js
+  styles.css
+  workflow-templates/
+
+cellx-extension-api/
+  server.py
+  customer-scripts/
+
+workflow-templates/
+  *.json
+
+plugins/cell-ai-data-workflow-kit/
+  .codex-plugin/plugin.json
+  skills/
+  scripts/
+  workflow-templates/
+
+scripts/
+  deploy_cellx_aws.ps1
+  package_cell_ai_data_plugin.ps1
+  property_promo_video.py
 ```
 
-通常是东方财富公开接口临时返回空数据、502，或 AKShare 尚未适配上游页面变化。可以稍后重试，或先升级 AKShare：
+## Workflow Templates
+
+The workflow page includes a template browser for quickly importing generated JSON workflows.
+
+Included templates:
+
+- RentCast Irvine AI Property Recommendations Email
+- RentCast Irvine Active Listings Email
+- Amazon Bestseller Supplier Research to ChatGPT and Email
+- Amazon Best Sellers Script Demo
+- Yahoo Finance Most Active Stocks
+- TVT Tarbut Website Crawler
+- VALORANT Agents Crawler
+- Zillow Irvine Price Cut Lead Alert
+
+## Codex Plugin
+
+This repository includes a Codex plugin:
+
+```text
+plugins/cell-ai-data-workflow-kit/
+```
+
+It packages workflow templates, reusable scripts, and a Codex skill for creating Cell AI Data workflows.
+
+Install from the repo-local marketplace:
 
 ```powershell
-pip install -U akshare
+codex plugin marketplace add .agents/plugins
+codex plugin add cell-ai-data-workflow-kit@cell-ai-data
 ```
+
+Open a new Codex task after installation so the plugin skill is loaded.
+
+## Backend Secrets
+
+Do not store live credentials in GitHub or workflow templates. Configure them on the backend or AWS host:
+
+```text
+OPENAI_API_KEY
+RENTCAST_API_KEY
+GMAIL_APP_PASSWORD
+ATTOM_API_KEY
+BRIDGE_API_KEY
+```
+
+Templates should reference backend secret names only.
+
+## AWS Deployment
+
+The current AWS layout is:
+
+```text
+/opt/cellx-extension-api/
+  server.py
+  customer-scripts/
+
+/var/www/cellx-extension-ui/
+  index.html
+  app.js
+  styles.css
+  workflow-templates/
+```
+
+Deployment helper:
+
+```powershell
+.\scripts\deploy_cellx_aws.ps1
+```
+
+## Related Experiments
+
+The `US Stock/` folder contains a separate A-share stock radar experiment. It is kept as a related demo, not the main project.
+
+## Safety
+
+This repository intentionally avoids committing API keys, Gmail app passwords, AWS private keys, real customer contact lists, and generated output files.
