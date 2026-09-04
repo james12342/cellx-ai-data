@@ -31,25 +31,27 @@ textarea {
 .app-shell {
   min-height: 100vh;
   display: grid;
-  grid-template-columns: 224px minmax(0, 1fr);
+  grid-template-columns: 118px minmax(0, 1fr);
 }
 
 .side-nav {
   background: linear-gradient(180deg, #f4f9ff, #e7f1ff);
   border-right: 1px solid var(--line);
-  padding: 22px 14px;
+  padding: 16px 8px;
 }
 
 .brand {
   display: flex;
-  gap: 10px;
+  flex-direction: column;
+  gap: 7px;
   align-items: center;
-  margin-bottom: 26px;
+  margin-bottom: 24px;
+  text-align: center;
 }
 
 .brand-logo {
-  width: 34px;
-  height: 34px;
+  width: 31px;
+  height: 31px;
   object-fit: contain;
   background: #fff;
 }
@@ -58,7 +60,7 @@ textarea {
 .brand span {
   display: block;
   line-height: 1.1;
-  font-size: 18px;
+  font-size: 13px;
 }
 
 .brand span {
@@ -67,10 +69,12 @@ textarea {
 
 .side-nav a {
   display: block;
-  padding: 13px 16px;
-  margin: 6px 0;
+  padding: 11px 6px;
+  margin: 5px 0;
   color: #243044;
   text-decoration: none;
+  text-align: center;
+  font-size: 13px;
 }
 
 .side-nav a.active {
@@ -117,7 +121,7 @@ textarea {
 }
 
 .designer {
-  padding: 18px 22px 24px;
+  padding: 18px 16px 24px;
 }
 
 .toolbar {
@@ -428,7 +432,7 @@ button.active {
 
 .designer-grid {
   display: grid;
-  grid-template-columns: 240px minmax(520px, 1fr) 296px;
+  grid-template-columns: 260px minmax(600px, 1fr) 320px;
   gap: 12px;
   height: calc(100vh - 231px);
   min-height: 620px;
