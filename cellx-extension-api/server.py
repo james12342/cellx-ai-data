@@ -1662,7 +1662,7 @@ def script_runner_env():
         "PATH": os.getenv("PATH", "/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin"),
         "PYTHONIOENCODING": "utf-8",
     }
-    for key in ("RENTCAST_API_KEY", "ATTOM_API_KEY", "ESTATED_API_KEY", "BRIDGE_API_KEY"):
+    for key in ("RENTCAST_API_KEY", "ATTOM_API_KEY", "ESTATED_API_KEY", "BRIDGE_API_KEY", "ORDERDESK_STORE_ID", "ORDERDESK_API_KEY"):
         if os.getenv(key):
             env[key] = os.getenv(key)
     return env

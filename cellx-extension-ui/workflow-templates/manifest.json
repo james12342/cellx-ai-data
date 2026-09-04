@@ -35,6 +35,14 @@
       "demoUse": "Supplier research workflow"
     },
     {
+      "name": "Order Desk UPS FedEx Fulfillment",
+      "description": "Fetch ecommerce orders from Order Desk, route by requested carrier, prepare UPS or FedEx shipment payloads, and write a fulfillment audit log.",
+      "file": "orderdesk-ups-fedex-fulfillment.json",
+      "category": "E-Commerce",
+      "tags": ["Order Desk", "UPS", "FedEx", "Shipping"],
+      "demoUse": "Order fulfillment carrier routing workflow"
+    },
+    {
       "name": "Amazon Best Sellers Script Demo",
       "description": "Run an Amazon Best Sellers script and return product rows as a simple script-node demo.",
       "file": "amazon-bestsellers-script-demo.json",

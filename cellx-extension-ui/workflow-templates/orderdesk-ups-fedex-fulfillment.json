@@ -1,0 +1,168 @@
+{
+  "templateType": "cellx-workflow-designer",
+  "version": "1.0",
+  "exportedAt": "2026-09-04T00:00:00.000Z",
+  "name": "Order Desk UPS FedEx Fulfillment",
+  "description": "Fetch ecommerce orders from Order Desk, route each order by requested carrier, prepare UPS or FedEx shipment payloads, and write a fulfillment audit log.",
+  "nodes": [
+    {
+      "id": "node-1",
+      "type": "trigger",
+      "name": "Schedule",
+      "action": "cron",
+      "notes": "Run manually or on a schedule to process new Order Desk orders.",
+      "icon": "material-symbols:schedule-rounded",
+      "x": 70,
+      "y": 160,
+      "integrationSettings": {
+        "owner": "Ecommerce Fulfillment",
+        "timeout": "30"
+      },
+      "connection": null,
+      "testResult": null
+    },
+    {
+      "id": "node-2",
+      "type": "script",
+      "name": "Order Desk Fetch Orders",
+      "action": "/ext-api/scripts/run",
+      "notes": "Fetch orders through the Order Desk API and prepare normalized UPS/FedEx shipment payloads. Put credentials in backend env ORDERDESK_STORE_ID and ORDERDESK_API_KEY, or paste them into this node for a private demo only.",
+      "icon": "material-symbols:orders-outline-rounded",
+      "x": 330,
+      "y": 160,
+      "integrationSettings": {
+        "scriptName": "orderdesk_orders_to_carriers.py",
+        "inputJson": "{\"limit\":10,\"order_by\":\"date_added\",\"order\":\"desc\",\"dry_run\":true,\"folder_id\":\"\",\"modified_start_date\":\"\",\"modified_end_date\":\"\",\"ship_from\":{\"name\":\"Majestic Pet Products\",\"address1\":\"Warehouse address\",\"city\":\"Irvine\",\"state\":\"CA\",\"postal_code\":\"92620\",\"country\":\"US\"},\"default_package\":{\"weight_lbs\":1,\"length_in\":10,\"width_in\":8,\"height_in\":4}}",
+        "timeout": "25",
+        "args": ""
+      },
+      "connection": null,
+      "testResult": null
+    },
+    {
+      "id": "node-3",
+      "type": "condition",
+      "name": "Switch Carrier",
+      "action": "switch",
+      "notes": "Route orders by carrier: UPS, FedEx, or manual review when the shipping method is unclear.",
+      "icon": "material-symbols:fork-right-rounded",
+      "x": 590,
+      "y": 160,
+      "integrationSettings": {
+        "fieldPath": "carrier",
+        "cases": "UPS -> UPS Shipment\nFEDEX -> FedEx Shipment\nMANUAL_REVIEW -> Manual Review",
+        "collectionPath": "{{previous_step.rows}}",
+        "outputMode": "rows"
+      },
+      "connection": null,
+      "testResult": null
+    },
+    {
+      "id": "node-4",
+      "type": "carrier",
+      "name": "UPS Shipment",
+      "action": "/ext-api/ups",
+      "notes": "Use UPS credentials to rate or create a label from each UPS carrier_payload. Keep dry-run until UPS OAuth and shipper number are configured.",
+      "icon": "simple-icons:ups",
+      "x": 850,
+      "y": 80,
+      "integrationSettings": {
+        "mode": "dry_run_payload",
+        "sourcePath": "{{previous_step.ups_rows}}",
+        "credentialsMode": "backend_secret",
+        "clientIdSecretName": "UPS_CLIENT_ID",
+        "clientSecretName": "UPS_CLIENT_SECRET",
+        "shipperNumberSecretName": "UPS_SHIPPER_NUMBER"
+      },
+      "connection": null,
+      "testResult": null
+    },
+    {
+      "id": "node-5",
+      "type": "carrier",
+      "name": "FedEx Shipment",
+      "action": "/ext-api/fedex",
+      "notes": "Use FedEx credentials to rate or create a label from each FedEx carrier_payload. Keep dry-run until FedEx account credentials are configured.",
+      "icon": "simple-icons:fedex",
+      "x": 850,
+      "y": 240,
+      "integrationSettings": {
+        "mode": "dry_run_payload",
+        "sourcePath": "{{previous_step.fedex_rows}}",
+        "credentialsMode": "backend_secret",
+        "accountNumberSecretName": "FEDEX_ACCOUNT_NUMBER",
+        "apiKeySecretName": "FEDEX_API_KEY",
+        "apiSecretName": "FEDEX_API_SECRET"
+      },
+      "connection": null,
+      "testResult": null
+    },
+    {
+      "id": "node-6",
+      "type": "tool",
+      "name": "Manual Review List",
+      "action": "/ext-api/tools/json-transform",
+      "notes": "Collect orders that do not clearly match UPS or FedEx so the operator can review the shipping method.",
+      "icon": "vscode-icons:file-type-json",
+      "x": 850,
+      "y": 400,
+      "integrationSettings": {
+        "sourcePath": "{{previous_step.manual_review_rows}}",
+        "transformMapping": "order_id <- {{item.order_id}}\ncustomer_name <- {{item.customer_name}}\nrequested_shipping <- {{item.requested_shipping}}\nroute_status <- {{item.route_status}}",
+        "outputMode": "rows"
+      },
+      "connection": null,
+      "testResult": null
+    },
+    {
+      "id": "node-7",
+      "type": "log",
+      "name": "Write Fulfillment Log",
+      "action": "cx_workflow_log",
+      "notes": "Record fetched order count, carrier routing, and dry-run shipment payload status.",
+      "icon": null,
+      "x": 1110,
+      "y": 160,
+      "integrationSettings": {
+        "owner": "Ecommerce Fulfillment",
+        "timeout": "30"
+      },
+      "connection": null,
+      "testResult": null
+    }
+  ],
+  "links": [
+    {
+      "from": "node-1",
+      "to": "node-2"
+    },
+    {
+      "from": "node-2",
+      "to": "node-3"
+    },
+    {
+      "from": "node-3",
+      "to": "node-4"
+    },
+    {
+      "from": "node-3",
+      "to": "node-5"
+    },
+    {
+      "from": "node-3",
+      "to": "node-6"
+    },
+    {
+      "from": "node-4",
+      "to": "node-7"
+    },
+    {
+      "from": "node-5",
+      "to": "node-7"
+    },
+    {
+      "from": "node-6",
+      "to": "node-7"
+    }
+  ]
+}
