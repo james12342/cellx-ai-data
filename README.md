@@ -72,11 +72,15 @@ It packages workflow templates, reusable scripts, and a Codex skill for creating
 Install from the repo-local marketplace:
 
 ```powershell
+git clone https://github.com/james12342/cellx-ai-data.git
+cd cellx-ai-data
 codex plugin marketplace add .agents/plugins
 codex plugin add cell-ai-data-workflow-kit@cell-ai-data
 ```
 
 Open a new Codex task after installation so the plugin skill is loaded.
+
+For publishing and sharing instructions, see `PUBLISHING.md`.
 
 ## Backend Secrets
 

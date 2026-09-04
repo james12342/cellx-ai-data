@@ -2,7 +2,14 @@
 
 This plugin is designed to be distributed from the `cellx-ai-data` repository.
 
-## Option A: Install From This Repo Marketplace
+## Option A: Install From GitHub Repo Marketplace
+
+Clone the repository:
+
+```powershell
+git clone https://github.com/james12342/cellx-ai-data.git
+cd cellx-ai-data
+```
 
 From the repository root, add the marketplace folder in Codex:
 
@@ -48,3 +55,12 @@ python <path-to-plugin-creator>\scripts\validate_plugin.py plugins\cell-ai-data-
 ```
 
 When working inside Codex, use the bundled `plugin-creator` validation script if available.
+
+## Sharing
+
+This plugin can be shared in two practical ways:
+
+- Share the GitHub repository and ask users to install from `.agents/plugins`.
+- Run `.\scripts\package_cell_ai_data_plugin.ps1` from the repository root and attach the zip in `dist/` to a release.
+
+An official Codex marketplace listing, if available, should use this repository as the source and must not include live secrets.
