@@ -1,0 +1,216 @@
+{
+  "templateType": "cellx-workflow-designer",
+  "version": "1.0",
+  "exportedAt": "2026-08-31T00:00:00.000Z",
+  "name": "Amazon Bestseller Supplier Research to ChatGPT and Email",
+  "description": "Find Amazon bestseller products, enrich SKU/price/brand data, export an Excel workbook, manually hand it to ChatGPT for supplier analysis, then email the copied result.",
+  "nodes": [
+    {
+      "id": "node-1",
+      "type": "trigger",
+      "name": "Schedule",
+      "action": "cron",
+      "notes": "Run this research workflow on demand or daily. Suggested schedule: every weekday morning.",
+      "icon": "material-symbols:schedule-rounded",
+      "x": 70,
+      "y": 90,
+      "integrationSettings": {
+        "owner": "Product Research",
+        "timeout": "30"
+      },
+      "connection": null
+    },
+    {
+      "id": "node-2",
+      "type": "tool",
+      "name": "Amazon Bestseller Search",
+      "action": "/ext-api/tools/http",
+      "notes": "Call an approved Amazon data source, such as Amazon SP-API, Keepa, Rainforest API, or an internal crawler, to collect bestseller candidates by category.",
+      "icon": "logos:aws",
+      "x": 330,
+      "y": 90,
+      "integrationSettings": {
+        "endpoint": "https://api.example.com/amazon/bestsellers?category={{category}}&marketplace=US",
+        "timeout": "60",
+        "retryPolicy": "3 retries, exponential backoff"
+      },
+      "connection": null
+    },
+    {
+      "id": "node-3",
+      "type": "amazon",
+      "name": "Amazon SP-API",
+      "action": "/ext-api/amazon/orders/sync",
+      "notes": "Enrich each bestseller candidate with ASIN/SKU, title, brand, category, current price, rating, review count, sales rank, and marketplace.",
+      "icon": "logos:aws",
+      "x": 590,
+      "y": 90,
+      "integrationSettings": {
+        "marketplaceId": "ATVPDKIKX0DER",
+        "awsRegion": "us-east-1"
+      },
+      "connection": null
+    },
+    {
+      "id": "node-4",
+      "type": "condition",
+      "name": "Filter Records",
+      "action": "filter records where rule is true",
+      "notes": "Keep only products that look like potential winners before exporting.",
+      "icon": "material-symbols:filter-alt-outline-rounded",
+      "x": 850,
+      "y": 90,
+      "integrationSettings": {
+        "inputSource": "previous_step",
+        "fieldPath": "sales_rank",
+        "operator": "less_than",
+        "filterExpression": "sales_rank <= 5000 && review_count >= 100 && price >= 10 && price <= 150",
+        "trueLabel": "Qualified",
+        "falseLabel": "Ignore",
+        "expressionPreview": "Keep products with strong sales rank, enough reviews, and a practical price range."
+      },
+      "connection": null
+    },
+    {
+      "id": "node-5",
+      "type": "tool",
+      "name": "JSON Transform",
+      "action": "/ext-api/tools/json-transform",
+      "notes": "Normalize product rows into the Excel output schema: ASIN, SKU, title, brand, price, rating, reviews, category, rank, estimated demand, product URL, notes.",
+      "icon": "vscode-icons:file-type-json",
+      "x": 1110,
+      "y": 90,
+      "integrationSettings": {
+        "endpoint": "/ext-api/tools/json-transform",
+        "timeout": "30",
+        "retryPolicy": "2 retries"
+      },
+      "connection": null
+    },
+    {
+      "id": "node-6",
+      "type": "tool",
+      "name": "Excel Export",
+      "action": "/ext-api/tools/excel-export",
+      "notes": "Create an Excel workbook named amazon_bestseller_research.xlsx with one row per product and a second sheet for ChatGPT prompt instructions.",
+      "icon": "vscode-icons:file-type-excel",
+      "x": 1370,
+      "y": 90,
+      "integrationSettings": {
+        "endpoint": "/ext-api/tools/excel-export",
+        "timeout": "60",
+        "retryPolicy": "2 retries"
+      },
+      "connection": null
+    },
+    {
+      "id": "node-7",
+      "type": "ai",
+      "name": "OpenAI GPT-5",
+      "action": "/ext-api/ai/openai/gpt-5",
+      "notes": "Manual ChatGPT handoff. Upload or paste the exported Excel data into ChatGPT, ask it to analyze supplier opportunities, then copy the result back to this workflow.",
+      "icon": "logos:openai-icon",
+      "x": 850,
+      "y": 260,
+      "integrationSettings": {
+        "authMode": "manual_web_handoff",
+        "chatUrl": "https://chatgpt.com/",
+        "promptTemplate": "You are a sourcing and ecommerce analyst. I will provide an Excel file or table of Amazon bestseller products with ASIN/SKU, price, brand, rating, review count, category, sales rank, and URLs. Analyze which products are attractive for sourcing. For each product, infer likely supplier type, manufacturing region, sourcing keywords, possible supplier channels, risk level, MOQ considerations, margin observations, compliance concerns, and suggested next action. Return a concise supplier research table plus a prioritized shortlist.",
+        "returnFormat": "Return Markdown and JSON. Markdown: executive summary, top 10 product shortlist, supplier search terms, risks, next actions. JSON array fields: asin, sku, title, brand, price, supplier_type, likely_region, sourcing_keywords, risk_level, margin_notes, next_action.",
+        "dataPolicy": "Mask customer/private data. Only share public product research data with ChatGPT."
+      },
+      "connection": {
+        "status": "manual",
+        "message": "Manual ChatGPT handoff. Upload Excel to ChatGPT, then paste the supplier analysis into the next step."
+      }
+    },
+    {
+      "id": "node-8",
+      "type": "control",
+      "name": "Human Approval",
+      "action": "/ext-api/tools/approval",
+      "notes": "Paste ChatGPT's supplier analysis here, review it, then approve sending it by email.",
+      "icon": "material-symbols:approval-delegation-outline-rounded",
+      "x": 1110,
+      "y": 260,
+      "integrationSettings": {
+        "approverRole": "Admin",
+        "approvalMessage": "Paste ChatGPT supplier analysis, check the shortlist, then approve email delivery.",
+        "approveLabel": "Send Email",
+        "rejectLabel": "Revise",
+        "timeout": "24 hours"
+      },
+      "connection": null
+    },
+    {
+      "id": "node-9",
+      "type": "communication",
+      "name": "Email Supplier Report",
+      "action": "/ext-api/outlook/mail",
+      "notes": "Send the final bestseller supplier analysis report to client@example.com.",
+      "icon": "material-symbols:mark-email-unread-outline-rounded",
+      "x": 1370,
+      "y": 260,
+      "integrationSettings": {
+        "accountId": "CellX Workflow Mailbox",
+        "to": "client@example.com",
+        "subject": "Amazon Bestseller Supplier Analysis Report",
+        "bodyTemplate": "Attached/Included below is the ChatGPT supplier analysis for the latest Amazon bestseller research workflow."
+      },
+      "connection": null
+    },
+    {
+      "id": "node-10",
+      "type": "log",
+      "name": "Write History Log",
+      "action": "cx_order_history",
+      "notes": "Record that the Amazon bestseller supplier research report was generated and emailed.",
+      "icon": null,
+      "x": 1630,
+      "y": 260,
+      "integrationSettings": {
+        "owner": "Product Research",
+        "timeout": "30"
+      },
+      "connection": null
+    }
+  ],
+  "links": [
+    {
+      "from": "node-1",
+      "to": "node-2"
+    },
+    {
+      "from": "node-2",
+      "to": "node-3"
+    },
+    {
+      "from": "node-3",
+      "to": "node-4"
+    },
+    {
+      "from": "node-4",
+      "to": "node-5"
+    },
+    {
+      "from": "node-5",
+      "to": "node-6"
+    },
+    {
+      "from": "node-6",
+      "to": "node-7"
+    },
+    {
+      "from": "node-7",
+      "to": "node-8"
+    },
+    {
+      "from": "node-8",
+      "to": "node-9"
+    },
+    {
+      "from": "node-9",
+      "to": "node-10"
+    }
+  ]
+}

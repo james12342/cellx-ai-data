@@ -1,0 +1,143 @@
+{
+  "templateType": "cellx-workflow-designer",
+  "version": "1.0",
+  "exportedAt": "2026-09-02T00:00:00.000Z",
+  "name": "RentCast Irvine Active Listings Email",
+  "description": "Fetch all active Irvine, CA sale listings from RentCast, normalize listing data, then send a customer email through Gmail SMTP.",
+  "nodes": [
+    {
+      "id": "node-1",
+      "type": "trigger",
+      "name": "Schedule",
+      "action": "cron",
+      "notes": "Run manually or daily for fresh Irvine active sale listings.",
+      "icon": "material-symbols:schedule-rounded",
+      "x": 70,
+      "y": 120,
+      "integrationSettings": {
+        "owner": "Real Estate Lead Alerts",
+        "timeout": "30"
+      },
+      "connection": null,
+      "testResult": null
+    },
+    {
+      "id": "node-2",
+      "type": "script",
+      "name": "RentCast Irvine Sale Listings",
+      "action": "/ext-api/scripts/run",
+      "notes": "Fetch active for-sale listings in Irvine, CA from RentCast. Requires RENTCAST_API_KEY in the backend environment.",
+      "icon": "material-symbols:real-estate-agent-outline-rounded",
+      "x": 330,
+      "y": 120,
+      "integrationSettings": {
+        "scriptName": "rentcast_irvine_sale_listings.py",
+        "inputJson": "{\"city\":\"Irvine\",\"state\":\"CA\",\"status\":\"Active\",\"include_all_active_listings\":true,\"min_price_cut_percent\":10,\"limit\":3,\"page_size\":3,\"include_total_count\":true,\"include_raw_listing\":false,\"customer_email\":\"client@example.com\",\"output_fields\":[\"id\",\"formatted_address\",\"address_line_1\",\"address_line_2\",\"city\",\"state\",\"zip_code\",\"county\",\"latitude\",\"longitude\",\"property_type\",\"bedrooms\",\"bathrooms\",\"square_footage\",\"lot_size\",\"year_built\",\"hoa_fee\",\"status\",\"listing_type\",\"price\",\"original_price\",\"highest_previous_price\",\"price_cut_amount\",\"price_cut_percent\",\"listed_date\",\"last_seen_date\",\"days_on_market\",\"mls_name\",\"mls_number\",\"listing_agent_name\",\"listing_agent_phone\",\"listing_agent_email\",\"listing_office_name\",\"listing_office_phone\",\"listing_office_email\",\"builder_name\",\"builder_development\",\"builder_phone\",\"photo_1\",\"photo_2\",\"photo_3\",\"photo_4\",\"photo_5\",\"image_note\",\"landing_page_slug\",\"landing_page_url\",\"ai_summary\",\"ai_strengths\",\"ai_weaknesses\",\"ai_risks\",\"ai_recommended_buyer_profile\",\"ai_score\",\"push_status\",\"last_pushed_at\"]}",
+        "timeout": "30",
+        "args": ""
+      },
+      "connection": null,
+      "testResult": null
+    },
+    {
+      "id": "node-6",
+      "type": "cellx-db",
+      "name": "CellX Bulk Import Properties",
+      "action": "/ext-api/cellx-db/bulk-import",
+      "notes": "Write RentCast listing rows into the CellX cx_property table.",
+      "icon": "material-symbols:database-outline-rounded",
+      "x": 590,
+      "y": 270,
+      "integrationSettings": {
+        "operation": "bulk_import",
+        "tableName": "cx_property",
+        "inputPayload": "{{previous_step.rows}}",
+        "softDelete": "soft",
+        "fieldMapping": "provider_listing_id <- {{item.id}}\nformatted_address <- {{item.formatted_address}}\naddress_line_1 <- {{item.address_line_1}}\naddress_line_2 <- {{item.address_line_2}}\ncity <- {{item.city}}\nstate <- {{item.state}}\nzip_code <- {{item.zip_code}}\ncounty <- {{item.county}}\nlatitude <- {{item.latitude}}\nlongitude <- {{item.longitude}}\nproperty_type <- {{item.property_type}}\nbedrooms <- {{item.bedrooms}}\nbathrooms <- {{item.bathrooms}}\nsquare_footage <- {{item.square_footage}}\nlot_size <- {{item.lot_size}}\nyear_built <- {{item.year_built}}\nhoa_fee <- {{item.hoa_fee}}\nlisting_status <- {{item.status}}\nlisting_type <- {{item.listing_type}}\nprice <- {{item.price}}\noriginal_price <- {{item.original_price}}\nhighest_previous_price <- {{item.highest_previous_price}}\nprice_cut_amount <- {{item.price_cut_amount}}\nprice_cut_percent <- {{item.price_cut_percent}}\nlisted_date <- {{item.listed_date}}\nlast_seen_date <- {{item.last_seen_date}}\ndays_on_market <- {{item.days_on_market}}\nmls_name <- {{item.mls_name}}\nmls_number <- {{item.mls_number}}\nlisting_agent_name <- {{item.listing_agent_name}}\nlisting_agent_phone <- {{item.listing_agent_phone}}\nlisting_agent_email <- {{item.listing_agent_email}}\nlisting_office_name <- {{item.listing_office_name}}\nlisting_office_phone <- {{item.listing_office_phone}}\nlisting_office_email <- {{item.listing_office_email}}\nbuilder_name <- {{item.builder_name}}\nbuilder_development <- {{item.builder_development}}\nbuilder_phone <- {{item.builder_phone}}\nphoto_1 <- {{item.photo_1}}\nphoto_2 <- {{item.photo_2}}\nphoto_3 <- {{item.photo_3}}\nphoto_4 <- {{item.photo_4}}\nphoto_5 <- {{item.photo_5}}\nimage_note <- {{item.image_note}}\nlanding_page_slug <- {{item.landing_page_slug}}\nlanding_page_url <- {{item.landing_page_url}}\nai_summary <- {{item.ai_summary}}\nai_strengths <- {{item.ai_strengths}}\nai_weaknesses <- {{item.ai_weaknesses}}\nai_risks <- {{item.ai_risks}}\nai_recommended_buyer_profile <- {{item.ai_recommended_buyer_profile}}\nai_score <- {{item.ai_score}}\npush_status <- {{item.push_status}}\nlast_pushed_at <- {{item.last_pushed_at}}",
+        "safetyMode": "approved_write",
+        "auditLog": "cx_workflow_log"
+      },
+      "connection": null,
+      "testResult": null
+    },
+    {
+      "id": "node-3",
+      "type": "tool",
+      "name": "JSON Transform",
+      "action": "/ext-api/tools/json-transform",
+      "notes": "Create compact fields for the Gmail email while keeping listing rows available for Excel export.",
+      "icon": "vscode-icons:file-type-json",
+      "x": 590,
+      "y": 120,
+      "integrationSettings": {
+        "sourcePath": "previous_step",
+        "transformMapping": "provider <- {{provider}}\nlisting_count <- {{row_count}}\ntotal_count <- {{total_count}}\nmode <- {{mode}}\nemail_subject <- {{email.subject}}\nemail_body <- {{email.body}}\nfirst_listing_address <- {{rows.0.formatted_address}}\nfirst_listing_price <- {{rows.0.price}}\nfirst_listing_mls <- {{rows.0.mls_number}}",
+        "outputMode": "rows"
+      },
+      "connection": null,
+      "testResult": null
+    },
+    {
+      "id": "node-4",
+      "type": "communication",
+      "name": "Gmail",
+      "action": "/ext-api/gmail/send",
+      "notes": "Send the RentCast listing alert through configured Gmail SMTP.",
+      "icon": "logos:google-gmail",
+      "x": 850,
+      "y": 120,
+      "integrationSettings": {
+        "deliveryMode": "connected_provider",
+        "to": "client@example.com",
+        "subjectTemplate": "{{row.email_subject}}",
+        "bodyTemplate": "{{row.email_body}}",
+        "smtpHost": "smtp.gmail.com",
+        "smtpPort": "587",
+        "smtpSecurity": "starttls",
+        "username": "sender@example.com",
+        "fromEmail": "sender@example.com",
+        "passwordSecretName": "GMAIL_APP_PASSWORD"
+      },
+      "connection": null,
+      "testResult": null
+    },
+    {
+      "id": "node-5",
+      "type": "log",
+      "name": "Write History Log",
+      "action": "cx_workflow_log",
+      "notes": "Record that the RentCast Irvine listing email was generated.",
+      "icon": null,
+      "x": 1110,
+      "y": 120,
+      "integrationSettings": {
+        "owner": "Real Estate Lead Alerts",
+        "timeout": "30"
+      },
+      "connection": null,
+      "testResult": null
+    }
+  ],
+  "links": [
+    {
+      "from": "node-1",
+      "to": "node-2"
+    },
+    {
+      "from": "node-2",
+      "to": "node-6"
+    },
+    {
+      "from": "node-2",
+      "to": "node-3"
+    },
+    {
+      "from": "node-3",
+      "to": "node-4"
+    },
+    {
+      "from": "node-4",
+      "to": "node-5"
+    }
+  ]
+}

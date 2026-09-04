@@ -1,0 +1,20 @@
+{
+  "name": "cell-ai-data",
+  "interface": {
+    "displayName": "Cell AI Data"
+  },
+  "plugins": [
+    {
+      "name": "cell-ai-data-workflow-kit",
+      "source": {
+        "source": "local",
+        "path": "./plugins/cell-ai-data-workflow-kit"
+      },
+      "policy": {
+        "installation": "AVAILABLE",
+        "authentication": "ON_INSTALL"
+      },
+      "category": "Productivity"
+    }
+  ]
+}

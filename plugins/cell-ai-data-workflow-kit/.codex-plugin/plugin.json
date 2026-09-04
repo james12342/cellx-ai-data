@@ -1,0 +1,44 @@
+{
+  "name": "cell-ai-data-workflow-kit",
+  "version": "0.1.0",
+  "description": "Workflow templates, scripts, and Codex guidance for building Cell AI Data automation demos.",
+  "author": {
+    "name": "Harrison Huang and David Cai",
+    "url": "https://github.com/james12342"
+  },
+  "homepage": "https://cellaidata.com",
+  "repository": "https://github.com/james12342/cellx-ai-data",
+  "license": "MIT",
+  "keywords": [
+    "cell-ai-data",
+    "workflow",
+    "automation",
+    "real-estate",
+    "openai",
+    "gmail",
+    "rentcast"
+  ],
+  "skills": "./skills/",
+  "interface": {
+    "displayName": "Cell AI Data Workflow Kit",
+    "shortDescription": "Build Cell AI Data workflow demos with ready-made templates and scripts.",
+    "longDescription": "Cell AI Data Workflow Kit helps Codex create, customize, and deploy workflow automation demos. It includes templates for real estate listing alerts, AI property recommendations, Gmail delivery, Amazon bestseller research, Yahoo Finance analysis, website crawling, and property promo video generation.",
+    "developerName": "Cell AI Data",
+    "category": "Productivity",
+    "capabilities": [
+      "Write",
+      "Interactive"
+    ],
+    "websiteURL": "https://cellaidata.com",
+    "privacyPolicyURL": "https://cellaidata.com/privacy",
+    "termsOfServiceURL": "https://cellaidata.com/terms",
+    "defaultPrompt": [
+      "Create a Cell AI Data real estate workflow.",
+      "Import a workflow template into CellX.",
+      "Generate a property promo video workflow."
+    ],
+    "brandColor": "#2686FF",
+    "composerIcon": "./assets/logo.png",
+    "logo": "./assets/logo.png"
+  }
+}
