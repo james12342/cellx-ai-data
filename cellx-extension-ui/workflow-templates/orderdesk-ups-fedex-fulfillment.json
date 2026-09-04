@@ -32,6 +32,8 @@
       "y": 160,
       "integrationSettings": {
         "scriptName": "orderdesk_orders_to_carriers.py",
+        "orderdeskStoreId": "",
+        "orderdeskApiKey": "",
         "inputJson": "{\"limit\":10,\"order_by\":\"date_added\",\"order\":\"desc\",\"dry_run\":true,\"folder_id\":\"\",\"modified_start_date\":\"\",\"modified_end_date\":\"\",\"ship_from\":{\"name\":\"Majestic Pet Products\",\"address1\":\"Warehouse address\",\"city\":\"Irvine\",\"state\":\"CA\",\"postal_code\":\"92620\",\"country\":\"US\"},\"default_package\":{\"weight_lbs\":1,\"length_in\":10,\"width_in\":8,\"height_in\":4}}",
         "timeout": "25",
         "args": ""

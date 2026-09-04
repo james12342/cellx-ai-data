@@ -1668,6 +1668,21 @@ def script_runner_env():
     return env
 
 
+def redact_sensitive(value):
+    if isinstance(value, dict):
+        redacted = {}
+        for key, child in value.items():
+            key_text = str(key).lower()
+            if any(token in key_text for token in ("api_key", "apikey", "token", "secret", "password")):
+                redacted[key] = "***"
+            else:
+                redacted[key] = redact_sensitive(child)
+        return redacted
+    if isinstance(value, list):
+        return [redact_sensitive(item) for item in value]
+    return value
+
+
 def run_customer_script(payload):
     settings = payload.get("settings") or {}
     script_name = settings.get("scriptName") or payload.get("scriptName")
@@ -1690,6 +1705,12 @@ def run_customer_script(payload):
             }, 400
     else:
         input_payload = input_json
+
+    if isinstance(input_payload, dict):
+        if settings.get("orderdeskStoreId") and not input_payload.get("store_id"):
+            input_payload["store_id"] = settings.get("orderdeskStoreId")
+        if settings.get("orderdeskApiKey") and not input_payload.get("api_key"):
+            input_payload["api_key"] = settings.get("orderdeskApiKey")
 
     try:
         script_path = safe_script_path(script_name)
@@ -1745,7 +1766,7 @@ def run_customer_script(payload):
         "message": f"{script_name} completed." if ok else f"{script_name} exited with code {result.returncode}.",
         "input": {
             "scriptName": script_name,
-            "payload": input_payload,
+            "payload": redact_sensitive(input_payload),
             "timeout": timeout,
         },
         "output": parsed or {

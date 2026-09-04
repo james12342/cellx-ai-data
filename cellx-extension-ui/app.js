@@ -1589,6 +1589,21 @@ function buildIntegrationSpec(node) {
     };
   }
   if (node.type === "script") {
+    const isOrderDeskScript = String(node.integrationSettings?.scriptName || "").includes("orderdesk_orders_to_carriers.py") || /order desk/i.test(node.name || "");
+    if (isOrderDeskScript) {
+      return {
+        title: "Order Desk Order API",
+        summary: "Fetch ecommerce orders from Order Desk and prepare carrier routing payloads. Credentials are used for this workflow step and should be kept private.",
+        fields: [
+          ["scriptName", "Script Name", "text", "orderdesk_orders_to_carriers.py"],
+          ["orderdeskStoreId", "ORDERDESK_STORE_ID", "text", "Store ID from Order Desk API settings"],
+          ["orderdeskApiKey", "ORDERDESK_API_KEY", "password", "API Key from Order Desk API settings"],
+          ["inputJson", "Input JSON", "textarea", "{\"limit\":10,\"order_by\":\"date_added\",\"order\":\"desc\",\"dry_run\":true}"],
+          ["timeout", "Timeout Seconds", "text", "25"],
+          ["args", "Arguments", "text", "optional space-separated args"],
+        ],
+      };
+    }
     return {
       title: "Custom Script Runner",
       summary: "Run an approved customer script from the backend script folder. The script receives the Input JSON through stdin and should print JSON to stdout.",
@@ -1671,6 +1686,13 @@ function ensureIntegrationSettings(node) {
     if (!node.integrationSettings.scriptName) node.integrationSettings.scriptName = "amazon_bestsellers_demo.py";
     if (!node.integrationSettings.inputJson) node.integrationSettings.inputJson = '{"source_url":"https://www.amazon.com/Best-Sellers/zgbs","limit":20}';
     if (!node.integrationSettings.timeout) node.integrationSettings.timeout = "20";
+    if (String(node.integrationSettings.scriptName || "").includes("orderdesk_orders_to_carriers.py") || /order desk/i.test(node.name || "")) {
+      node.integrationSettings.scriptName = "orderdesk_orders_to_carriers.py";
+      if (!node.integrationSettings.inputJson || node.integrationSettings.inputJson.includes("amazon_bestsellers_demo.py")) {
+        node.integrationSettings.inputJson = '{"limit":10,"order_by":"date_added","order":"desc","dry_run":true}';
+      }
+      if (!node.integrationSettings.timeout || node.integrationSettings.timeout === "20") node.integrationSettings.timeout = "25";
+    }
   }
   return spec;
 }
