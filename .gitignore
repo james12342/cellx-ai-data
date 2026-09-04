@@ -6,6 +6,7 @@ __pycache__/
 reports/
 node_modules/
 outputs/
+dist/
 *.pem
 key.txt
 *.xlsx

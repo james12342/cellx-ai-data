@@ -11,8 +11,12 @@ It includes ready-made workflow JSON templates, reusable scripts, and a Codex sk
 - `workflow-templates/`: Importable CellX workflow JSON templates
 - `scripts/`: Reusable helper scripts
 - `assets/logo.png`: Plugin logo
+- `examples/`: Example prompts and safe sample configuration
 
 ## Safety
 
 This plugin intentionally does not include API keys, Gmail app passwords, AWS private keys, or real customer contact data. Configure those values through backend secrets or environment variables.
 
+## Quick Start
+
+See `INSTALL.md` for local Codex installation and demo prompts.
