@@ -79,29 +79,51 @@
           <div class="template-browser-head">
             <div>
               <strong>Workflow Template Marketplace</strong>
-              <span>Publish, buy, and import reusable workflow templates. Demo trading uses a 25% platform commission.</span>
+              <span>Publish, review, sell, and import reusable workflow templates. Stripe Checkout and Connect are supported when configured.</span>
             </div>
             <button id="closeMarketplaceBtn" type="button">Close</button>
           </div>
           <div class="marketplace-grid">
-            <form id="developerPublishForm" class="developer-card">
-              <strong>Developer listing</strong>
-              <span>Publish the active workflow as a sellable template.</span>
-              <label>Template name<input id="marketplaceName" type="text" placeholder="AI property recommendations workflow"></label>
-              <label>Category
-                <select id="marketplaceCategory">
-                  <option>Real Estate</option>
-                  <option>E-Commerce</option>
-                  <option>Finance</option>
-                  <option>Research</option>
-                  <option>Operations</option>
-                </select>
-              </label>
-              <label>Price USD<input id="marketplacePrice" type="number" min="0" step="1" value="49"></label>
-              <label>Developer name<input id="marketplaceDeveloper" type="text" value="Cell AI Data Developer"></label>
-              <label>Description<textarea id="marketplaceDescription" rows="3" placeholder="What business problem does this workflow solve?"></textarea></label>
-              <button class="primary" type="submit">Publish Template</button>
-            </form>
+            <div class="marketplace-left">
+              <form id="marketplaceAccountForm" class="developer-card">
+                <strong>Marketplace account</strong>
+                <span id="marketplaceAccountStatus">Login or register before publishing and buying.</span>
+                <label>Name<input id="marketplaceAccountName" type="text" placeholder="Developer name"></label>
+                <label>Email<input id="marketplaceAccountEmail" type="email" placeholder="you@company.com" required></label>
+                <label>Password<input id="marketplaceAccountPassword" type="password" placeholder="At least 8 characters" required></label>
+                <label>Role
+                  <select id="marketplaceAccountRole">
+                    <option value="developer_member">Developer member</option>
+                    <option value="business_buyer">Business buyer</option>
+                    <option value="agency_partner">Agency partner</option>
+                  </select>
+                </label>
+                <div class="button-row">
+                  <button class="primary" type="submit" data-marketplace-auth="login">Login</button>
+                  <button type="submit" data-marketplace-auth="register">Register</button>
+                </div>
+                <button id="connectStripeBtn" type="button">Connect Stripe Payout</button>
+              </form>
+              <form id="developerPublishForm" class="developer-card">
+                <strong>Developer listing</strong>
+                <span>Submit the active workflow for review before it becomes sellable.</span>
+                <label>Template name<input id="marketplaceName" type="text" placeholder="AI property recommendations workflow"></label>
+                <label>Category
+                  <select id="marketplaceCategory">
+                    <option>Real Estate</option>
+                    <option>E-Commerce</option>
+                    <option>Finance</option>
+                    <option>Research</option>
+                    <option>Operations</option>
+                  </select>
+                </label>
+                <label>Price USD<input id="marketplacePrice" type="number" min="0" step="1" value="49"></label>
+                <label>Developer name<input id="marketplaceDeveloper" type="text" value="Cell AI Data Developer"></label>
+                <label>Developer email<input id="marketplaceDeveloperEmail" type="email" placeholder="developer@company.com"></label>
+                <label>Description<textarea id="marketplaceDescription" rows="3" placeholder="What business problem does this workflow solve?"></textarea></label>
+                <button class="primary" type="submit">Submit For Review</button>
+              </form>
+            </div>
             <div>
               <div class="marketplace-tools">
                 <input id="marketplaceSearch" type="search" placeholder="Search marketplace templates">

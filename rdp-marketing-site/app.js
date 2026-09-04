@@ -115,13 +115,29 @@ document.querySelector("[data-close-auth]").addEventListener("click", closeAuth)
 authModal.addEventListener("click", event => {
   if (event.target === authModal) closeAuth();
 });
-document.querySelector("[data-auth-form]").addEventListener("submit", event => {
+document.querySelector("[data-auth-form]").addEventListener("submit", async event => {
   event.preventDefault();
+  const name = document.querySelector("[data-auth-name]").value || "";
   const email = document.querySelector("[data-auth-email]").value || "demo@company.com";
-  const role = document.querySelector("[data-auth-role]").value || "Developer member";
-  localStorage.setItem("cell-ai-data-demo-account", JSON.stringify({ email, role, mode: authMode, signedInAt: new Date().toISOString() }));
-  closeAuth();
-  showToast(`${role} ${authMode === "register" ? "registered" : "logged in"}: marketplace access enabled.`);
+  const password = document.querySelector("[data-auth-password]").value || "";
+  const role = document.querySelector("[data-auth-role]").value || "developer_member";
+  try {
+    const response = await fetch("https://app.cellaidata.com/ext-api/marketplace/" + authMode, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ name, email, password, role }),
+    });
+    const data = await response.json();
+    if (!response.ok || !data.ok) throw new Error(data.message || "Account request failed.");
+    localStorage.setItem("cell-ai-data-marketplace-user", JSON.stringify(data.user));
+    if (data.sessionToken) localStorage.setItem("cell-ai-data-marketplace-token", data.sessionToken);
+    closeAuth();
+    showToast(`${data.user.email} ${authMode === "register" ? "registered" : "logged in"}: marketplace access enabled.`);
+  } catch (error) {
+    localStorage.setItem("cell-ai-data-demo-account", JSON.stringify({ email, role, mode: authMode, signedInAt: new Date().toISOString() }));
+    closeAuth();
+    showToast(`Demo account saved locally. API note: ${error.message}`);
+  }
 });
 
 document.querySelector("[data-nav-toggle]").addEventListener("click", () => {

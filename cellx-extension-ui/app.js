@@ -20,6 +20,7 @@ const marketplaceListEl = document.getElementById("marketplaceList");
 const marketplaceStatusEl = document.getElementById("marketplaceStatus");
 const marketplaceSearchEl = document.getElementById("marketplaceSearch");
 const marketplaceCategoryFilterEl = document.getElementById("marketplaceCategoryFilter");
+const marketplaceAccountStatusEl = document.getElementById("marketplaceAccountStatus");
 
 let nodes = [];
 let links = [];
@@ -40,6 +41,8 @@ const templateManifestPath = "./workflow-templates/manifest.json";
 const workflowStoreKey = "cellx-workflows-draft";
 const legacyWorkflowStoreKey = "cellx-workflow-draft";
 const marketplaceStoreKey = "cellx-workflow-marketplace-draft";
+const marketplaceUserStoreKey = "cellx-marketplace-user";
+const marketplaceTokenStoreKey = "cellx-marketplace-token";
 const sensitiveSettingPattern = /^(apiKey|secretKey|clientSecret|authHeader|authToken|bearerToken|password|token)$/i;
 const nodeWidth = 188;
 const nodeHeight = 96;
@@ -819,6 +822,97 @@ function saveLocalMarketplaceItem(item) {
   localStorage.setItem(marketplaceStoreKey, JSON.stringify(items.slice(0, 100)));
 }
 
+function marketplaceUser() {
+  try {
+    return JSON.parse(localStorage.getItem(marketplaceUserStoreKey) || localStorage.getItem("cell-ai-data-marketplace-user") || "null");
+  } catch {
+    return null;
+  }
+}
+
+function setMarketplaceUser(user) {
+  if (user) {
+    localStorage.setItem(marketplaceUserStoreKey, JSON.stringify(user));
+    localStorage.setItem("cell-ai-data-marketplace-user", JSON.stringify(user));
+  }
+  renderMarketplaceAccount();
+}
+
+function marketplaceToken() {
+  return localStorage.getItem(marketplaceTokenStoreKey) || localStorage.getItem("cell-ai-data-marketplace-token") || "";
+}
+
+function setMarketplaceToken(token) {
+  if (!token) return;
+  localStorage.setItem(marketplaceTokenStoreKey, token);
+  localStorage.setItem("cell-ai-data-marketplace-token", token);
+}
+
+function renderMarketplaceAccount() {
+  const user = marketplaceUser();
+  const developerEmail = document.getElementById("marketplaceDeveloperEmail");
+  if (user && developerEmail && !developerEmail.value) developerEmail.value = user.email || "";
+  if (!marketplaceAccountStatusEl) return;
+  if (!user) {
+    marketplaceAccountStatusEl.textContent = "Login or register before publishing and buying.";
+    return;
+  }
+  const connectState = user.stripeConnectedAccountId ? "Stripe account linked" : "Stripe payout not linked";
+  marketplaceAccountStatusEl.textContent = `${user.name || user.email} signed in as ${user.role || "user"}. ${connectState}.`;
+}
+
+async function submitMarketplaceAuth(event) {
+  event.preventDefault();
+  const submitter = event.submitter;
+  const mode = submitter?.dataset.marketplaceAuth || "login";
+  const payload = {
+    name: document.getElementById("marketplaceAccountName")?.value || "",
+    email: document.getElementById("marketplaceAccountEmail")?.value || "",
+    password: document.getElementById("marketplaceAccountPassword")?.value || "",
+    role: document.getElementById("marketplaceAccountRole")?.value || "developer_member",
+  };
+  try {
+    const response = await fetch(`${apiBase}/marketplace/${mode}`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(payload),
+    });
+    const data = await response.json();
+    if (!response.ok || !data.ok) throw new Error(data.message || "Marketplace account request failed.");
+    setMarketplaceUser(data.user);
+    setMarketplaceToken(data.sessionToken);
+    alert(`${mode === "register" ? "Registered" : "Logged in"}: ${data.user.email}`);
+  } catch (error) {
+    alert(error.message || "Marketplace account request failed.");
+  }
+}
+
+async function connectStripePayout() {
+  const user = marketplaceUser();
+  const email = user?.email || document.getElementById("marketplaceAccountEmail")?.value || document.getElementById("marketplaceDeveloperEmail")?.value;
+  if (!email) {
+    alert("Enter or login with a developer email first.");
+    return;
+  }
+  try {
+    const response = await fetch(`${apiBase}/marketplace/developer/onboarding`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ email, marketplaceToken: marketplaceToken() }),
+    });
+    const data = await response.json();
+    if (!response.ok || !data.ok) throw new Error(data.message || "Could not start Stripe onboarding.");
+    if (data.user) setMarketplaceUser(data.user);
+    if (data.onboardingUrl) {
+      window.open(data.onboardingUrl, "_blank", "noopener");
+    } else {
+      alert(data.message || "Stripe Connect requires STRIPE_SECRET_KEY on the backend.");
+    }
+  } catch (error) {
+    alert(error.message || "Could not start Stripe onboarding.");
+  }
+}
+
 function marketplaceCategories() {
   return Array.from(new Set(marketplaceItems.map((item) => item.category || "Workflow"))).sort();
 }
@@ -848,6 +942,7 @@ function marketplaceSeedItems() {
       platformFee: Math.round(price * 25) / 100,
       developerShare: Math.round(price * 75) / 100,
       sales: 0,
+      status: "listed",
       source: "library",
       file: template.file,
     };
@@ -893,6 +988,8 @@ function renderMarketplace() {
     const price = Number(item.price || 0);
     const platformFee = Number(item.platformFee ?? price * 0.25).toFixed(2);
     const developerShare = Number(item.developerShare ?? price * 0.75).toFixed(2);
+    const status = item.status || item.reviewStatus || "listed";
+    const canBuy = status === "listed" || status === "approved" || item.source === "library";
     return `
       <article class="template-card marketplace-card ${escapeHtml(templateCategoryClass(item.category))}">
         <div class="template-card-main">
@@ -902,6 +999,7 @@ function renderMarketplace() {
           </div>
           <h2>${escapeHtml(item.name || "Marketplace Template")}</h2>
           <p>${escapeHtml(item.description || "Reusable workflow template.")}</p>
+          <span class="marketplace-status-pill status-${escapeHtml(status)}">${escapeHtml(status.replaceAll("_", " "))}</span>
           <div class="marketplace-meta">
             <span>Developer: ${escapeHtml(item.developerName || "Developer")}</span>
             <span>Platform fee: $${escapeHtml(platformFee)}</span>
@@ -909,7 +1007,8 @@ function renderMarketplace() {
           </div>
         </div>
         <div class="template-card-actions">
-          <button type="button" data-buy-marketplace-template="${escapeHtml(item.id)}">${price ? "Buy" : "Install"}</button>
+          ${status === "pending_review" ? `<button type="button" data-review-marketplace-template="${escapeHtml(item.id)}">Approve</button>` : ""}
+          <button type="button" data-buy-marketplace-template="${escapeHtml(item.id)}" ${canBuy ? "" : "disabled"}>${price ? "Checkout" : "Install"}</button>
           <button class="primary" type="button" data-import-marketplace-template="${escapeHtml(item.id)}">Import</button>
         </div>
       </article>
@@ -925,8 +1024,10 @@ async function publishMarketplaceTemplate(event) {
     category: document.getElementById("marketplaceCategory")?.value || "Workflow",
     price: document.getElementById("marketplacePrice")?.value || 0,
     developerName: document.getElementById("marketplaceDeveloper")?.value || "Cell AI Data Developer",
+    developerEmail: document.getElementById("marketplaceDeveloperEmail")?.value || marketplaceUser()?.email || "",
     description: document.getElementById("marketplaceDescription")?.value || template.description,
     license: "Single business workspace",
+    marketplaceToken: marketplaceToken(),
     template,
   };
   try {
@@ -938,7 +1039,7 @@ async function publishMarketplaceTemplate(event) {
     const data = await response.json();
     if (!response.ok || !data.ok) throw new Error(data.message || "Could not publish template.");
     marketplaceItems.unshift(data.item);
-    alert(`Published "${data.item.name}". Platform fee: $${Number(data.item.platformFee || 0).toFixed(2)}.`);
+    alert(`Submitted "${data.item.name}" for review. Approve it before paid checkout.`);
   } catch (error) {
     const price = Number(payload.price || 0);
     const item = {
@@ -948,6 +1049,8 @@ async function publishMarketplaceTemplate(event) {
       currency: "USD",
       platformFee: Math.round(price * 25) / 100,
       developerShare: Math.round(price * 75) / 100,
+      status: "pending_review",
+      reviewStatus: "pending_review",
       createdAt: new Date().toISOString(),
     };
     saveLocalMarketplaceItem(item);
@@ -977,20 +1080,49 @@ async function buyMarketplaceTemplate(item) {
   let purchase = null;
   if (!String(item.id || "").startsWith("library-") && !String(item.id || "").startsWith("local-")) {
     try {
-      const response = await fetch(`${apiBase}/marketplace/purchase`, {
+      const user = marketplaceUser();
+      const response = await fetch(`${apiBase}/marketplace/checkout`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ templateId: item.id, buyerEmail: "demo-buyer@company.com" }),
+        body: JSON.stringify({ templateId: item.id, buyerEmail: user?.email || "demo-buyer@company.com" }),
       });
       const data = await response.json();
+      if (data.checkoutUrl) {
+        window.open(data.checkoutUrl, "_blank", "noopener");
+        return;
+      }
+      if (data.mode === "setup_required") {
+        alert(`${data.message}\nPlatform commission: $${Number(data.platformFee || 0).toFixed(2)}\nDeveloper payout: $${Number(data.developerPayout || 0).toFixed(2)}`);
+        return;
+      }
       if (response.ok && data.ok) purchase = data.purchase;
     } catch (error) {
-      console.warn("Marketplace purchase API unavailable.", error);
+      console.warn("Marketplace checkout API unavailable.", error);
     }
   }
   const fee = Number(purchase?.platformFee ?? price * 0.25).toFixed(2);
   const payout = Number(purchase?.developerPayout ?? price * 0.75).toFixed(2);
-  alert(`${price ? "Demo purchase complete" : "Free install ready"}.\nPlatform commission: $${fee}\nDeveloper payout: $${payout}`);
+  alert(`${price ? "Checkout ready" : "Free install ready"}.\nPlatform commission: $${fee}\nDeveloper payout: $${payout}`);
+}
+
+async function approveMarketplaceTemplate(item) {
+  const adminToken = window.prompt("Enter marketplace admin review token");
+  if (!adminToken) return;
+  try {
+    const response = await fetch(`${apiBase}/marketplace/templates/review`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ templateId: item.id, status: "listed", adminToken, reviewedBy: marketplaceUser()?.email || "Cell AI Data admin" }),
+    });
+    const data = await response.json();
+    if (!response.ok || !data.ok) throw new Error(data.message || "Could not approve template.");
+    const index = marketplaceItems.findIndex((entry) => entry.id === item.id);
+    if (index >= 0) marketplaceItems[index] = data.item;
+    renderMarketplace();
+    alert(`Approved "${data.item.name}". It is now available for checkout.`);
+  } catch (error) {
+    alert(error.message || "Could not approve template.");
+  }
 }
 
 const commonIntegrationFields = {
@@ -2608,10 +2740,19 @@ document.getElementById("closeMarketplaceBtn")?.addEventListener("click", () => 
 
 document.getElementById("refreshMarketplaceBtn")?.addEventListener("click", () => loadMarketplace(true));
 document.getElementById("developerPublishForm")?.addEventListener("submit", publishMarketplaceTemplate);
+document.getElementById("marketplaceAccountForm")?.addEventListener("submit", submitMarketplaceAuth);
+document.getElementById("connectStripeBtn")?.addEventListener("click", connectStripePayout);
 marketplaceSearchEl?.addEventListener("input", renderMarketplace);
 marketplaceCategoryFilterEl?.addEventListener("change", renderMarketplace);
 
 marketplaceListEl?.addEventListener("click", async (event) => {
+  const reviewTarget = event.target.closest("[data-review-marketplace-template]");
+  if (reviewTarget) {
+    const item = marketplaceItems.find((entry) => entry.id === reviewTarget.dataset.reviewMarketplaceTemplate);
+    if (item) await approveMarketplaceTemplate(item);
+    return;
+  }
+
   const importTarget = event.target.closest("[data-import-marketplace-template]");
   if (importTarget) {
     const item = marketplaceItems.find((entry) => entry.id === importTarget.dataset.importMarketplaceTemplate);
@@ -2624,6 +2765,8 @@ marketplaceListEl?.addEventListener("click", async (event) => {
     if (item) await buyMarketplaceTemplate(item);
   }
 });
+
+renderMarketplaceAccount();
 
 templateListEl?.addEventListener("click", async (event) => {
   const importTarget = event.target.closest("[data-import-library-template]");

@@ -422,6 +422,12 @@ h1 {
   padding: 14px 16px 16px;
 }
 
+.marketplace-left {
+  display: grid;
+  gap: 12px;
+  align-content: start;
+}
+
 .developer-card {
   display: grid;
   gap: 10px;
@@ -465,6 +471,12 @@ h1 {
   resize: vertical;
 }
 
+.button-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+}
+
 .marketplace-tools {
   display: grid;
   grid-template-columns: minmax(180px, 1fr) 170px auto;
@@ -491,6 +503,40 @@ h1 {
   margin-top: 12px;
   color: #51617c;
   font-size: 12px;
+}
+
+.marketplace-status-pill {
+  justify-self: start;
+  display: inline-flex;
+  align-items: center;
+  min-height: 24px;
+  margin-top: 8px;
+  padding: 3px 8px;
+  border: 1px solid #bdd2f3;
+  background: #eef6ff;
+  color: #213f7a;
+  font-size: 12px;
+  font-weight: 800;
+  text-transform: capitalize;
+}
+
+.marketplace-status-pill.status-pending_review {
+  border-color: #f5c56b;
+  background: #fff5d9;
+  color: #7a4b00;
+}
+
+.marketplace-status-pill.status-listed,
+.marketplace-status-pill.status-approved {
+  border-color: #9ce8b6;
+  background: #e6fff0;
+  color: #087333;
+}
+
+.marketplace-status-pill.status-rejected {
+  border-color: #ffb3b3;
+  background: #fff0f0;
+  color: #b11212;
 }
 
 button {

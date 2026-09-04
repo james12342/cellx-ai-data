@@ -1,7 +1,10 @@
 #!/usr/bin/env python3
 import json
+import base64
+import hashlib
 import os
 import re
+import secrets
 import shlex
 import smtplib
 import subprocess
@@ -11,7 +14,7 @@ from email.message import EmailMessage
 from io import BytesIO
 from datetime import datetime, timezone
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
-from urllib.parse import urlparse
+from urllib.parse import urlencode, urlparse
 from urllib.error import HTTPError, URLError
 from urllib.request import Request, urlopen
 from xml.sax.saxutils import escape as xml_escape
@@ -27,6 +30,12 @@ MAX_SCRIPT_TIMEOUT = int(os.getenv("MAX_SCRIPT_TIMEOUT", "30"))
 MAX_SCRIPT_OUTPUT = int(os.getenv("MAX_SCRIPT_OUTPUT", "200000"))
 MARKETPLACE_STORE = os.getenv("MARKETPLACE_STORE", os.path.join(os.path.dirname(__file__), "marketplace-store.json"))
 PLATFORM_COMMISSION_RATE = float(os.getenv("PLATFORM_COMMISSION_RATE", "0.25"))
+STRIPE_SECRET_KEY = os.getenv("STRIPE_SECRET_KEY", "")
+STRIPE_SUCCESS_URL = os.getenv("STRIPE_SUCCESS_URL", "https://app.cellaidata.com/workflow/?checkout=success&session_id={CHECKOUT_SESSION_ID}")
+STRIPE_CANCEL_URL = os.getenv("STRIPE_CANCEL_URL", "https://app.cellaidata.com/workflow/?checkout=cancel")
+STRIPE_CONNECT_RETURN_URL = os.getenv("STRIPE_CONNECT_RETURN_URL", "https://app.cellaidata.com/workflow/?connect=return")
+STRIPE_CONNECT_REFRESH_URL = os.getenv("STRIPE_CONNECT_REFRESH_URL", "https://app.cellaidata.com/workflow/?connect=refresh")
+MARKETPLACE_ADMIN_TOKEN = os.getenv("MARKETPLACE_ADMIN_TOKEN", "")
 
 
 def response(payload, status=200):
@@ -35,7 +44,7 @@ def response(payload, status=200):
 
 
 def marketplace_store_default():
-    return {"templates": [], "purchases": []}
+    return {"users": [], "templates": [], "purchases": [], "payouts": [], "reviewEvents": []}
 
 
 def load_marketplace_store():
@@ -48,8 +57,11 @@ def load_marketplace_store():
         return marketplace_store_default()
     if not isinstance(data, dict):
         return marketplace_store_default()
+    data.setdefault("users", [])
     data.setdefault("templates", [])
     data.setdefault("purchases", [])
+    data.setdefault("payouts", [])
+    data.setdefault("reviewEvents", [])
     return data
 
 
@@ -69,12 +81,281 @@ def clean_marketplace_text(value, fallback="", limit=300):
     return text[:limit]
 
 
+def hash_password(password, salt=None):
+    salt = salt or secrets.token_hex(16)
+    digest = hashlib.pbkdf2_hmac("sha256", str(password).encode("utf-8"), salt.encode("utf-8"), 120000)
+    return salt, digest.hex()
+
+
+def verify_password(password, user):
+    salt = user.get("passwordSalt") or ""
+    stored = user.get("passwordHash") or ""
+    if not salt or not stored:
+        return False
+    _, digest = hash_password(password, salt)
+    return secrets.compare_digest(digest, stored)
+
+
+def public_marketplace_user(user):
+    return {key: value for key, value in user.items() if key not in {"passwordHash", "passwordSalt", "sessionTokenHash"}}
+
+
+def find_marketplace_user(data, email):
+    email = clean_marketplace_text(email, "", 180).lower()
+    return next((user for user in data.get("users", []) if user.get("email", "").lower() == email), None)
+
+
+def issue_marketplace_session(user):
+    token = secrets.token_urlsafe(32)
+    user["sessionTokenHash"] = hashlib.sha256(token.encode("utf-8")).hexdigest()
+    user["sessionIssuedAt"] = datetime.now(timezone.utc).isoformat()
+    return token
+
+
+def authenticate_marketplace_user(data, payload):
+    token = str(payload.get("marketplaceToken") or payload.get("sessionToken") or "").strip()
+    if not token:
+        return None
+    digest = hashlib.sha256(token.encode("utf-8")).hexdigest()
+    return next((user for user in data.get("users", []) if secrets.compare_digest(user.get("sessionTokenHash", ""), digest)), None)
+
+
+def register_marketplace_user(payload):
+    email = clean_marketplace_text(payload.get("email"), "", 180).lower()
+    password = str(payload.get("password") or "")
+    name = clean_marketplace_text(payload.get("name"), email.split("@")[0] if email else "Marketplace user", 120)
+    role = clean_marketplace_text(payload.get("role"), "developer_member", 80).lower().replace(" ", "_")
+    if role not in {"developer_member", "business_buyer", "agency_partner", "admin"}:
+        role = "developer_member"
+    if not email or "@" not in email:
+        return {"ok": False, "message": "A valid email is required."}, 400
+    if len(password) < 8:
+        return {"ok": False, "message": "Password must be at least 8 characters."}, 400
+
+    data = load_marketplace_store()
+    if find_marketplace_user(data, email):
+        return {"ok": False, "message": "This marketplace account already exists."}, 409
+
+    salt, password_hash = hash_password(password)
+    now = datetime.now(timezone.utc).isoformat()
+    user = {
+        "id": f"user-{int(datetime.now(timezone.utc).timestamp())}-{len(data.get('users', [])) + 1}",
+        "email": email,
+        "name": name,
+        "role": role,
+        "status": "active",
+        "developerStatus": "approved" if role in {"developer_member", "agency_partner", "admin"} else "buyer",
+        "stripeConnectedAccountId": clean_marketplace_text(payload.get("stripeConnectedAccountId"), "", 120),
+        "stripeChargesEnabled": False,
+        "createdAt": now,
+        "updatedAt": now,
+        "passwordSalt": salt,
+        "passwordHash": password_hash,
+    }
+    token = issue_marketplace_session(user)
+    data["users"].append(user)
+    save_marketplace_store(data)
+    return {"ok": True, "user": public_marketplace_user(user), "sessionToken": token}, 201
+
+
+def login_marketplace_user(payload):
+    email = clean_marketplace_text(payload.get("email"), "", 180).lower()
+    password = str(payload.get("password") or "")
+    data = load_marketplace_store()
+    user = find_marketplace_user(data, email)
+    if not user or not verify_password(password, user):
+        return {"ok": False, "message": "Email or password is incorrect."}, 401
+    user["lastLoginAt"] = datetime.now(timezone.utc).isoformat()
+    token = issue_marketplace_session(user)
+    save_marketplace_store(data)
+    return {"ok": True, "user": public_marketplace_user(user), "sessionToken": token}, 200
+
+
+def stripe_post(path, params):
+    if not STRIPE_SECRET_KEY:
+        raise RuntimeError("STRIPE_SECRET_KEY is not configured.")
+    encoded = urlencode(params).encode("utf-8")
+    auth = base64.b64encode(f"{STRIPE_SECRET_KEY}:".encode("utf-8")).decode("ascii")
+    request = Request(
+        f"https://api.stripe.com/v1/{path.lstrip('/')}",
+        data=encoded,
+        headers={
+            "Authorization": f"Basic {auth}",
+            "Content-Type": "application/x-www-form-urlencoded",
+            "User-Agent": "CellAIDataMarketplace/0.1",
+        },
+        method="POST",
+    )
+    try:
+        with urlopen(request, timeout=25) as handle:
+            return json.loads(handle.read().decode("utf-8"))
+    except HTTPError as error:
+        body = error.read().decode("utf-8", errors="replace")
+        raise RuntimeError(body[:1000]) from error
+
+
+def marketplace_developer_onboarding(payload):
+    email = clean_marketplace_text(payload.get("email"), "", 180).lower()
+    if not email:
+        return {"ok": False, "message": "Developer email is required."}, 400
+    data = load_marketplace_store()
+    user = find_marketplace_user(data, email)
+    auth_user = authenticate_marketplace_user(data, payload)
+    if not auth_user or auth_user.get("email", "").lower() != email:
+        return {"ok": False, "message": "Login is required before connecting Stripe payouts."}, 401
+    if not user:
+        return {"ok": False, "message": "Register or login as a developer first."}, 404
+    if not STRIPE_SECRET_KEY:
+        return {
+            "ok": True,
+            "mode": "setup_required",
+            "message": "STRIPE_SECRET_KEY is not configured on the backend yet. Add it on AWS to enable real Stripe Connect onboarding.",
+            "dashboardUrl": "https://dashboard.stripe.com/connect/accounts/overview",
+            "user": public_marketplace_user(user),
+        }, 200
+
+    account_id = user.get("stripeConnectedAccountId")
+    try:
+        if not account_id:
+            account = stripe_post("accounts", {
+                "type": "express",
+                "email": email,
+                "business_type": "individual",
+                "capabilities[card_payments][requested]": "true",
+                "capabilities[transfers][requested]": "true",
+                "metadata[cell_ai_data_user_id]": user.get("id", ""),
+            })
+            account_id = account.get("id")
+            user["stripeConnectedAccountId"] = account_id
+        link = stripe_post("account_links", {
+            "account": account_id,
+            "refresh_url": STRIPE_CONNECT_REFRESH_URL,
+            "return_url": STRIPE_CONNECT_RETURN_URL,
+            "type": "account_onboarding",
+        })
+    except RuntimeError as error:
+        return {"ok": False, "message": str(error)}, 502
+
+    user["updatedAt"] = datetime.now(timezone.utc).isoformat()
+    save_marketplace_store(data)
+    return {"ok": True, "mode": "stripe_connect", "onboardingUrl": link.get("url"), "user": public_marketplace_user(user)}, 200
+
+
+def review_marketplace_template(payload):
+    admin_token = str(payload.get("adminToken") or "").strip()
+    if not MARKETPLACE_ADMIN_TOKEN or not secrets.compare_digest(admin_token, MARKETPLACE_ADMIN_TOKEN):
+        return {"ok": False, "message": "Marketplace admin token is required for template review."}, 401
+    template_id = clean_marketplace_text(payload.get("templateId"), "", 120)
+    status = clean_marketplace_text(payload.get("status"), "listed", 40).lower()
+    if status not in {"pending_review", "listed", "rejected"}:
+        return {"ok": False, "message": "Template status must be pending_review, listed, or rejected."}, 400
+    data = load_marketplace_store()
+    template = next((item for item in data.get("templates", []) if item.get("id") == template_id), None)
+    if not template:
+        return {"ok": False, "message": "Marketplace template not found."}, 404
+    now = datetime.now(timezone.utc).isoformat()
+    template["status"] = status
+    template["reviewStatus"] = status
+    template["reviewNote"] = clean_marketplace_text(payload.get("note"), "", 300)
+    template["updatedAt"] = now
+    data["reviewEvents"].append({
+        "templateId": template_id,
+        "status": status,
+        "note": template.get("reviewNote", ""),
+        "reviewedBy": clean_marketplace_text(payload.get("reviewedBy"), "Cell AI Data admin", 120),
+        "createdAt": now,
+    })
+    save_marketplace_store(data)
+    return {"ok": True, "item": template}, 200
+
+
+def create_marketplace_checkout(payload):
+    template_id = clean_marketplace_text(payload.get("templateId"), "", 120)
+    buyer_email = clean_marketplace_text(payload.get("buyerEmail"), "buyer@example.com", 180).lower()
+    data = load_marketplace_store()
+    template = next((item for item in data.get("templates", []) if item.get("id") == template_id), None)
+    if not template:
+        return {"ok": False, "message": "Marketplace template not found."}, 404
+    if template.get("status") not in {"listed", "approved"}:
+        return {"ok": False, "message": "Template must be approved/listed before checkout."}, 409
+
+    price = max(0, round(float(template.get("price") or 0), 2))
+    platform_fee = round(price * PLATFORM_COMMISSION_RATE, 2)
+    developer_share = round(price - platform_fee, 2)
+    if not price:
+        return purchase_marketplace_template({"templateId": template_id, "buyerEmail": buyer_email})
+    if not STRIPE_SECRET_KEY:
+        return {
+            "ok": True,
+            "mode": "setup_required",
+            "message": "STRIPE_SECRET_KEY is not configured on AWS yet. The listing is ready, but real Checkout is disabled.",
+            "templateId": template_id,
+            "price": price,
+            "platformFee": platform_fee,
+            "developerPayout": developer_share,
+        }, 200
+
+    cents = int(round(price * 100))
+    fee_cents = int(round(platform_fee * 100))
+    params = {
+        "mode": "payment",
+        "success_url": STRIPE_SUCCESS_URL,
+        "cancel_url": STRIPE_CANCEL_URL,
+        "client_reference_id": template_id,
+        "customer_email": buyer_email,
+        "line_items[0][price_data][currency]": "usd",
+        "line_items[0][price_data][unit_amount]": str(cents),
+        "line_items[0][price_data][product_data][name]": template.get("name") or "Workflow template",
+        "line_items[0][quantity]": "1",
+        "metadata[template_id]": template_id,
+        "metadata[developer_email]": template.get("developerEmail", ""),
+        "metadata[buyer_email]": buyer_email,
+    }
+    destination = template.get("stripeConnectedAccountId")
+    if destination:
+        params["payment_intent_data[application_fee_amount]"] = str(fee_cents)
+        params["payment_intent_data[transfer_data][destination]"] = destination
+    try:
+        session = stripe_post("checkout/sessions", params)
+    except RuntimeError as error:
+        return {"ok": False, "message": str(error)}, 502
+
+    purchase = {
+        "id": f"purchase-{int(datetime.now(timezone.utc).timestamp())}-{len(data.get('purchases', [])) + 1}",
+        "templateId": template_id,
+        "templateName": template.get("name"),
+        "buyerEmail": buyer_email,
+        "price": price,
+        "currency": "USD",
+        "platformFee": platform_fee,
+        "developerPayout": developer_share,
+        "stripeCheckoutSessionId": session.get("id"),
+        "stripeConnectedAccountId": destination or "",
+        "status": "checkout_created",
+        "createdAt": datetime.now(timezone.utc).isoformat(),
+    }
+    data["purchases"].append(purchase)
+    if destination:
+        data["payouts"].append({
+            "purchaseId": purchase["id"],
+            "templateId": template_id,
+            "developerEmail": template.get("developerEmail", ""),
+            "amount": developer_share,
+            "currency": "USD",
+            "status": "pending_stripe_settlement",
+            "createdAt": purchase["createdAt"],
+        })
+    save_marketplace_store(data)
+    return {"ok": True, "mode": "stripe_checkout", "checkoutUrl": session.get("url"), "sessionId": session.get("id"), "purchase": purchase}, 200
+
+
 def marketplace_templates():
     data = load_marketplace_store()
     templates = sorted(data.get("templates", []), key=lambda item: item.get("createdAt", ""), reverse=True)
     return {
         "ok": True,
         "commissionRate": PLATFORM_COMMISSION_RATE,
+        "stripeConfigured": bool(STRIPE_SECRET_KEY),
         "items": templates,
     }
 
@@ -83,6 +364,10 @@ def create_marketplace_template(payload):
     template = payload.get("template")
     if not isinstance(template, dict) or not isinstance(template.get("nodes"), list) or not isinstance(template.get("links"), list):
         return {"ok": False, "message": "A valid workflow template with nodes and links is required."}, 400
+    data = load_marketplace_store()
+    auth_user = authenticate_marketplace_user(data, payload)
+    if not auth_user:
+        return {"ok": False, "message": "Developer login is required before publishing templates."}, 401
 
     price = payload.get("price")
     try:
@@ -91,16 +376,25 @@ def create_marketplace_template(payload):
         price = 0
 
     now = datetime.now(timezone.utc).isoformat()
+    developer_email = clean_marketplace_text(payload.get("developerEmail") or auth_user.get("email"), "", 180).lower()
+    connected_account_id = clean_marketplace_text(payload.get("stripeConnectedAccountId"), "", 120)
+    if developer_email:
+        user = find_marketplace_user(data, developer_email)
+        if user and user.get("stripeConnectedAccountId"):
+            connected_account_id = user.get("stripeConnectedAccountId")
     item = {
         "id": f"tmpl-{int(datetime.now(timezone.utc).timestamp())}-{abs(hash(json.dumps(template, sort_keys=True, default=str))) % 100000}",
         "name": clean_marketplace_text(payload.get("name") or template.get("name"), "Untitled workflow template", 120),
         "description": clean_marketplace_text(payload.get("description") or template.get("description"), "Reusable workflow template.", 500),
         "category": clean_marketplace_text(payload.get("category"), "Workflow", 80),
         "developerName": clean_marketplace_text(payload.get("developerName"), "Cell AI Data Developer", 120),
+        "developerEmail": developer_email,
+        "stripeConnectedAccountId": connected_account_id,
         "price": price,
         "currency": "USD",
         "license": clean_marketplace_text(payload.get("license"), "Single business workspace", 120),
-        "status": "listed",
+        "status": "pending_review",
+        "reviewStatus": "pending_review",
         "commissionRate": PLATFORM_COMMISSION_RATE,
         "developerShare": round(price * (1 - PLATFORM_COMMISSION_RATE), 2),
         "platformFee": round(price * PLATFORM_COMMISSION_RATE, 2),
@@ -110,7 +404,6 @@ def create_marketplace_template(payload):
         "template": template,
     }
 
-    data = load_marketplace_store()
     data["templates"].append(item)
     save_marketplace_store(data)
     return {"ok": True, "item": item}, 201
@@ -1622,8 +1915,23 @@ class Handler(BaseHTTPRequestHandler):
         if path == "/integrations/test":
             body, status = integration_test(payload)
             status, data = response(body, status)
+        elif path == "/marketplace/register":
+            body, status = register_marketplace_user(payload)
+            status, data = response(body, status)
+        elif path == "/marketplace/login":
+            body, status = login_marketplace_user(payload)
+            status, data = response(body, status)
+        elif path == "/marketplace/developer/onboarding":
+            body, status = marketplace_developer_onboarding(payload)
+            status, data = response(body, status)
         elif path == "/marketplace/templates":
             body, status = create_marketplace_template(payload)
+            status, data = response(body, status)
+        elif path == "/marketplace/templates/review":
+            body, status = review_marketplace_template(payload)
+            status, data = response(body, status)
+        elif path == "/marketplace/checkout":
+            body, status = create_marketplace_checkout(payload)
             status, data = response(body, status)
         elif path == "/marketplace/purchase":
             body, status = purchase_marketplace_template(payload)
