@@ -38,6 +38,28 @@ button { border: 0; cursor: pointer; }
 .brand img { width: 32px; height: 32px; object-fit: contain; }
 .site-nav { display: flex; justify-content: center; gap: 24px; color: #344054; font-size: 14px; }
 .site-nav a:hover { color: var(--brand); }
+.header-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.header-link {
+  min-height: 36px;
+  padding: 0 11px;
+  color: #344054;
+  background: #fff;
+  border: 1px solid var(--line);
+  border-radius: 7px;
+  font-weight: 750;
+}
+
+.header-link:hover {
+  color: var(--brand);
+  border-color: #bcd3ff;
+  background: #f7fbff;
+}
+
 .header-cta, .btn {
   display: inline-flex;
   align-items: center;
@@ -52,6 +74,45 @@ button { border: 0; cursor: pointer; }
 .btn.secondary { color: var(--brand); background: #eef5ff; border: 1px solid #cfe0ff; }
 .btn.full { width: 100%; }
 .nav-toggle { display: none; padding: 8px 10px; border-radius: 7px; background: #eef5ff; color: var(--brand); }
+
+.auth-tabs {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+  margin: 16px 0;
+}
+
+.auth-tabs button {
+  min-height: 40px;
+  border-radius: 7px;
+  color: #344054;
+  background: #f3f6fb;
+  border: 1px solid var(--line);
+  font-weight: 750;
+}
+
+.auth-tabs button.active {
+  color: #fff;
+  background: var(--brand);
+  border-color: var(--brand);
+}
+
+.developer-benefits {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 7px;
+  margin: 2px 0 12px;
+}
+
+.developer-benefits span {
+  padding: 6px 8px;
+  border-radius: 999px;
+  color: #0f5e46;
+  background: #e9fbf4;
+  border: 1px solid #b8efd9;
+  font-size: 12px;
+  font-weight: 750;
+}
 
 .hero {
   display: grid;

@@ -15,11 +15,17 @@ const templateListEl = document.getElementById("templateList");
 const templateSearchEl = document.getElementById("templateSearch");
 const templateCategoryFilterEl = document.getElementById("templateCategoryFilter");
 const templateLibraryStatusEl = document.getElementById("templateLibraryStatus");
+const marketplacePanel = document.getElementById("marketplacePanel");
+const marketplaceListEl = document.getElementById("marketplaceList");
+const marketplaceStatusEl = document.getElementById("marketplaceStatus");
+const marketplaceSearchEl = document.getElementById("marketplaceSearch");
+const marketplaceCategoryFilterEl = document.getElementById("marketplaceCategoryFilter");
 
 let nodes = [];
 let links = [];
 let workflows = [];
 let templateLibrary = [];
+let marketplaceItems = [];
 let activeWorkflowId = null;
 let selectedId = null;
 let connectMode = false;
@@ -33,6 +39,7 @@ const templateVersion = "1.0";
 const templateManifestPath = "./workflow-templates/manifest.json";
 const workflowStoreKey = "cellx-workflows-draft";
 const legacyWorkflowStoreKey = "cellx-workflow-draft";
+const marketplaceStoreKey = "cellx-workflow-marketplace-draft";
 const sensitiveSettingPattern = /^(apiKey|secretKey|clientSecret|authHeader|authToken|bearerToken|password|token)$/i;
 const nodeWidth = 188;
 const nodeHeight = 96;
@@ -796,6 +803,194 @@ async function previewLibraryTemplate(template) {
   } catch (error) {
     alert(error.message || "Could not preview this template.");
   }
+}
+
+function localMarketplaceItems() {
+  try {
+    return JSON.parse(localStorage.getItem(marketplaceStoreKey) || "[]");
+  } catch {
+    return [];
+  }
+}
+
+function saveLocalMarketplaceItem(item) {
+  const items = localMarketplaceItems();
+  items.unshift(item);
+  localStorage.setItem(marketplaceStoreKey, JSON.stringify(items.slice(0, 100)));
+}
+
+function marketplaceCategories() {
+  return Array.from(new Set(marketplaceItems.map((item) => item.category || "Workflow"))).sort();
+}
+
+function renderMarketplaceCategoryFilter() {
+  if (!marketplaceCategoryFilterEl) return;
+  const previous = marketplaceCategoryFilterEl.value;
+  const categories = marketplaceCategories();
+  marketplaceCategoryFilterEl.innerHTML = [
+    `<option value="">All categories</option>`,
+    ...categories.map((category) => `<option value="${escapeHtml(category)}">${escapeHtml(category)}</option>`),
+  ].join("");
+  if (categories.includes(previous)) marketplaceCategoryFilterEl.value = previous;
+}
+
+function marketplaceSeedItems() {
+  return templateLibrary.map((template, index) => {
+    const price = index < 3 ? 49 : 19;
+    return {
+      id: `library-${template.file || index}`,
+      name: template.name || "Workflow Template",
+      description: template.description || "Reusable workflow template.",
+      category: template.category || "Workflow",
+      developerName: "Cell AI Data",
+      price,
+      currency: "USD",
+      platformFee: Math.round(price * 25) / 100,
+      developerShare: Math.round(price * 75) / 100,
+      sales: 0,
+      source: "library",
+      file: template.file,
+    };
+  });
+}
+
+async function loadMarketplace(force = false) {
+  if (marketplaceItems.length && !force) return marketplaceItems;
+  if (marketplaceStatusEl) marketplaceStatusEl.textContent = "Loading marketplace...";
+  await loadTemplateLibrary();
+  let apiItems = [];
+  try {
+    const response = await fetch(`${apiBase}/marketplace/templates?v=${Date.now()}`, { cache: "no-store" });
+    if (response.ok) {
+      const data = await response.json();
+      apiItems = Array.isArray(data.items) ? data.items : [];
+    }
+  } catch (error) {
+    console.warn("Marketplace API unavailable, using local demo listings.", error);
+  }
+  marketplaceItems = [...apiItems, ...localMarketplaceItems(), ...marketplaceSeedItems()];
+  renderMarketplaceCategoryFilter();
+  renderMarketplace();
+  if (marketplaceStatusEl) {
+    marketplaceStatusEl.textContent = `${marketplaceItems.length} marketplace template${marketplaceItems.length === 1 ? "" : "s"} available`;
+  }
+  return marketplaceItems;
+}
+
+function renderMarketplace() {
+  if (!marketplaceListEl) return;
+  const query = String(marketplaceSearchEl?.value || "").trim().toLowerCase();
+  const category = String(marketplaceCategoryFilterEl?.value || "").trim();
+  const filtered = marketplaceItems.filter((item) => {
+    const haystack = [item.name, item.description, item.category, item.developerName].join(" ").toLowerCase();
+    return (!query || haystack.includes(query)) && (!category || item.category === category);
+  });
+  if (!filtered.length) {
+    marketplaceListEl.innerHTML = `<div class="template-empty">No marketplace templates found.</div>`;
+    return;
+  }
+  marketplaceListEl.innerHTML = filtered.map((item) => {
+    const price = Number(item.price || 0);
+    const platformFee = Number(item.platformFee ?? price * 0.25).toFixed(2);
+    const developerShare = Number(item.developerShare ?? price * 0.75).toFixed(2);
+    return `
+      <article class="template-card marketplace-card ${escapeHtml(templateCategoryClass(item.category))}">
+        <div class="template-card-main">
+          <div class="template-card-top">
+            <span class="template-category">${escapeHtml(item.category || "Workflow")}</span>
+            <span class="template-file">${price ? `$${price.toFixed(2)}` : "Free"}</span>
+          </div>
+          <h2>${escapeHtml(item.name || "Marketplace Template")}</h2>
+          <p>${escapeHtml(item.description || "Reusable workflow template.")}</p>
+          <div class="marketplace-meta">
+            <span>Developer: ${escapeHtml(item.developerName || "Developer")}</span>
+            <span>Platform fee: $${escapeHtml(platformFee)}</span>
+            <span>Developer share: $${escapeHtml(developerShare)}</span>
+          </div>
+        </div>
+        <div class="template-card-actions">
+          <button type="button" data-buy-marketplace-template="${escapeHtml(item.id)}">${price ? "Buy" : "Install"}</button>
+          <button class="primary" type="button" data-import-marketplace-template="${escapeHtml(item.id)}">Import</button>
+        </div>
+      </article>
+    `;
+  }).join("");
+}
+
+async function publishMarketplaceTemplate(event) {
+  event.preventDefault();
+  const template = buildWorkflowTemplate();
+  const payload = {
+    name: document.getElementById("marketplaceName")?.value || template.name,
+    category: document.getElementById("marketplaceCategory")?.value || "Workflow",
+    price: document.getElementById("marketplacePrice")?.value || 0,
+    developerName: document.getElementById("marketplaceDeveloper")?.value || "Cell AI Data Developer",
+    description: document.getElementById("marketplaceDescription")?.value || template.description,
+    license: "Single business workspace",
+    template,
+  };
+  try {
+    const response = await fetch(`${apiBase}/marketplace/templates`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(payload),
+    });
+    const data = await response.json();
+    if (!response.ok || !data.ok) throw new Error(data.message || "Could not publish template.");
+    marketplaceItems.unshift(data.item);
+    alert(`Published "${data.item.name}". Platform fee: $${Number(data.item.platformFee || 0).toFixed(2)}.`);
+  } catch (error) {
+    const price = Number(payload.price || 0);
+    const item = {
+      id: `local-${Date.now()}`,
+      ...payload,
+      price,
+      currency: "USD",
+      platformFee: Math.round(price * 25) / 100,
+      developerShare: Math.round(price * 75) / 100,
+      createdAt: new Date().toISOString(),
+    };
+    saveLocalMarketplaceItem(item);
+    marketplaceItems.unshift(item);
+    alert(`Published locally for demo. API note: ${error.message}`);
+  }
+  renderMarketplaceCategoryFilter();
+  renderMarketplace();
+}
+
+async function marketplaceTemplateData(item) {
+  if (item.template) return item.template;
+  if (item.source === "library" && item.file) {
+    return fetchLibraryTemplate({ file: item.file });
+  }
+  throw new Error("Template JSON is not available for this listing.");
+}
+
+async function importMarketplaceTemplate(item) {
+  const workflow = addWorkflowFromTemplate(await marketplaceTemplateData(item), true);
+  alert(`Imported marketplace template "${workflow.name}" as a workflow tab.`);
+  if (marketplacePanel) marketplacePanel.hidden = true;
+}
+
+async function buyMarketplaceTemplate(item) {
+  const price = Number(item.price || 0);
+  let purchase = null;
+  if (!String(item.id || "").startsWith("library-") && !String(item.id || "").startsWith("local-")) {
+    try {
+      const response = await fetch(`${apiBase}/marketplace/purchase`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ templateId: item.id, buyerEmail: "demo-buyer@company.com" }),
+      });
+      const data = await response.json();
+      if (response.ok && data.ok) purchase = data.purchase;
+    } catch (error) {
+      console.warn("Marketplace purchase API unavailable.", error);
+    }
+  }
+  const fee = Number(purchase?.platformFee ?? price * 0.25).toFixed(2);
+  const payout = Number(purchase?.developerPayout ?? price * 0.75).toFixed(2);
+  alert(`${price ? "Demo purchase complete" : "Free install ready"}.\nPlatform commission: $${fee}\nDeveloper payout: $${payout}`);
 }
 
 const commonIntegrationFields = {
@@ -2396,6 +2591,39 @@ document.getElementById("closeTemplatesBtn")?.addEventListener("click", () => {
 
 templateSearchEl?.addEventListener("input", renderTemplateLibrary);
 templateCategoryFilterEl?.addEventListener("change", renderTemplateLibrary);
+
+document.getElementById("marketplaceBtn")?.addEventListener("click", async () => {
+  if (!marketplacePanel) return;
+  marketplacePanel.hidden = !marketplacePanel.hidden;
+  if (!marketplacePanel.hidden) {
+    if (templateBrowser) templateBrowser.hidden = true;
+    await loadMarketplace(true);
+    marketplaceSearchEl?.focus();
+  }
+});
+
+document.getElementById("closeMarketplaceBtn")?.addEventListener("click", () => {
+  if (marketplacePanel) marketplacePanel.hidden = true;
+});
+
+document.getElementById("refreshMarketplaceBtn")?.addEventListener("click", () => loadMarketplace(true));
+document.getElementById("developerPublishForm")?.addEventListener("submit", publishMarketplaceTemplate);
+marketplaceSearchEl?.addEventListener("input", renderMarketplace);
+marketplaceCategoryFilterEl?.addEventListener("change", renderMarketplace);
+
+marketplaceListEl?.addEventListener("click", async (event) => {
+  const importTarget = event.target.closest("[data-import-marketplace-template]");
+  if (importTarget) {
+    const item = marketplaceItems.find((entry) => entry.id === importTarget.dataset.importMarketplaceTemplate);
+    if (item) await importMarketplaceTemplate(item);
+    return;
+  }
+  const buyTarget = event.target.closest("[data-buy-marketplace-template]");
+  if (buyTarget) {
+    const item = marketplaceItems.find((entry) => entry.id === buyTarget.dataset.buyMarketplaceTemplate);
+    if (item) await buyMarketplaceTemplate(item);
+  }
+});
 
 templateListEl?.addEventListener("click", async (event) => {
   const importTarget = event.target.closest("[data-import-library-template]");

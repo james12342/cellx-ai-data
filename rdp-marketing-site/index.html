@@ -6,7 +6,7 @@
   <title>Cell AI Data | Rapid Development Platform</title>
   <meta name="description" content="Cell AI Data is an enterprise low-code platform for configuration-driven CRUD apps, workflow extensions, AI-assisted page building, permissions, import/export, and one-click deployment.">
   <link rel="icon" href="./assets/logo.png">
-  <link rel="stylesheet" href="./styles.css?v=20260901-workflow-ai-logos">
+  <link rel="stylesheet" href="./styles.css?v=20260904-marketplace-auth">
 </head>
 <body>
   <header class="site-header">
@@ -23,7 +23,11 @@
       <a href="#ai-workflow">AI Workflow</a>
       <a href="#demo">Demo</a>
     </nav>
-    <a class="header-cta" href="https://app.cellaidata.com/workflow/">AI Workflow</a>
+    <div class="header-actions">
+      <button class="header-link" type="button" data-open-auth="login">Login</button>
+      <button class="header-link" type="button" data-open-auth="register">Register</button>
+      <a class="header-cta" href="https://app.cellaidata.com/workflow/">AI Workflow</a>
+    </div>
   </header>
 
   <main id="top">
@@ -377,8 +381,40 @@
     </div>
   </div>
 
+  <div class="modal-backdrop" data-auth-modal hidden>
+    <div class="modal auth-modal" role="dialog" aria-modal="true" aria-labelledby="authTitle">
+      <button class="modal-close" data-close-auth aria-label="Close account dialog">Close</button>
+      <p class="eyebrow">Developer ecosystem</p>
+      <h2 id="authTitle">Join Cell AI Data Marketplace</h2>
+      <p>Register as a business user or developer member. Developer members can publish paid workflow templates and earn revenue after platform commission.</p>
+      <div class="auth-tabs" role="group" aria-label="Account mode">
+        <button class="active" type="button" data-auth-tab="login">Login</button>
+        <button type="button" data-auth-tab="register">Register</button>
+      </div>
+      <form data-auth-form>
+        <label>Name<input data-auth-name placeholder="Harrison Huang"></label>
+        <label>Email<input data-auth-email type="email" placeholder="you@company.com" required></label>
+        <label>Password<input data-auth-password type="password" placeholder="Demo password" required></label>
+        <label>Account type
+          <select data-auth-role>
+            <option>Developer member</option>
+            <option>Business buyer</option>
+            <option>Agency partner</option>
+          </select>
+        </label>
+        <div class="developer-benefits">
+          <span>Upload workflow templates</span>
+          <span>Sell paid automation packs</span>
+          <span>75% demo developer payout</span>
+        </div>
+        <button class="btn primary full" type="submit">Continue</button>
+      </form>
+      <p class="fine-print">Demo account flow: production login should connect to your CellX user table, OAuth, and Stripe Connect.</p>
+    </div>
+  </div>
+
   <div class="toast" data-toast hidden></div>
-  <script src="./app.js?v=20260901-workflow-ai-logos"></script>
+  <script src="./app.js?v=20260904-marketplace-auth"></script>
 </body>
 </html>
 

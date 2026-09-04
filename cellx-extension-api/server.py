@@ -25,11 +25,123 @@ SCRIPT_DIR = os.getenv("SCRIPT_DIR", "/opt/cellx-extension-api/customer-scripts"
 SCRIPT_RUNNER_USER = os.getenv("SCRIPT_RUNNER_USER", "cellxrunner")
 MAX_SCRIPT_TIMEOUT = int(os.getenv("MAX_SCRIPT_TIMEOUT", "30"))
 MAX_SCRIPT_OUTPUT = int(os.getenv("MAX_SCRIPT_OUTPUT", "200000"))
+MARKETPLACE_STORE = os.getenv("MARKETPLACE_STORE", os.path.join(os.path.dirname(__file__), "marketplace-store.json"))
+PLATFORM_COMMISSION_RATE = float(os.getenv("PLATFORM_COMMISSION_RATE", "0.25"))
 
 
 def response(payload, status=200):
     data = json.dumps(payload, ensure_ascii=False).encode("utf-8")
     return status, data
+
+
+def marketplace_store_default():
+    return {"templates": [], "purchases": []}
+
+
+def load_marketplace_store():
+    if not os.path.exists(MARKETPLACE_STORE):
+        return marketplace_store_default()
+    try:
+        with open(MARKETPLACE_STORE, "r", encoding="utf-8") as handle:
+            data = json.load(handle)
+    except Exception:
+        return marketplace_store_default()
+    if not isinstance(data, dict):
+        return marketplace_store_default()
+    data.setdefault("templates", [])
+    data.setdefault("purchases", [])
+    return data
+
+
+def save_marketplace_store(data):
+    folder = os.path.dirname(MARKETPLACE_STORE)
+    if folder:
+        os.makedirs(folder, exist_ok=True)
+    tmp_path = MARKETPLACE_STORE + ".tmp"
+    with open(tmp_path, "w", encoding="utf-8") as handle:
+        json.dump(data, handle, ensure_ascii=False, indent=2)
+    os.replace(tmp_path, MARKETPLACE_STORE)
+
+
+def clean_marketplace_text(value, fallback="", limit=300):
+    text = str(value or fallback).strip()
+    text = re.sub(r"\s+", " ", text)
+    return text[:limit]
+
+
+def marketplace_templates():
+    data = load_marketplace_store()
+    templates = sorted(data.get("templates", []), key=lambda item: item.get("createdAt", ""), reverse=True)
+    return {
+        "ok": True,
+        "commissionRate": PLATFORM_COMMISSION_RATE,
+        "items": templates,
+    }
+
+
+def create_marketplace_template(payload):
+    template = payload.get("template")
+    if not isinstance(template, dict) or not isinstance(template.get("nodes"), list) or not isinstance(template.get("links"), list):
+        return {"ok": False, "message": "A valid workflow template with nodes and links is required."}, 400
+
+    price = payload.get("price")
+    try:
+        price = max(0, round(float(price or 0), 2))
+    except Exception:
+        price = 0
+
+    now = datetime.now(timezone.utc).isoformat()
+    item = {
+        "id": f"tmpl-{int(datetime.now(timezone.utc).timestamp())}-{abs(hash(json.dumps(template, sort_keys=True, default=str))) % 100000}",
+        "name": clean_marketplace_text(payload.get("name") or template.get("name"), "Untitled workflow template", 120),
+        "description": clean_marketplace_text(payload.get("description") or template.get("description"), "Reusable workflow template.", 500),
+        "category": clean_marketplace_text(payload.get("category"), "Workflow", 80),
+        "developerName": clean_marketplace_text(payload.get("developerName"), "Cell AI Data Developer", 120),
+        "price": price,
+        "currency": "USD",
+        "license": clean_marketplace_text(payload.get("license"), "Single business workspace", 120),
+        "status": "listed",
+        "commissionRate": PLATFORM_COMMISSION_RATE,
+        "developerShare": round(price * (1 - PLATFORM_COMMISSION_RATE), 2),
+        "platformFee": round(price * PLATFORM_COMMISSION_RATE, 2),
+        "sales": 0,
+        "createdAt": now,
+        "updatedAt": now,
+        "template": template,
+    }
+
+    data = load_marketplace_store()
+    data["templates"].append(item)
+    save_marketplace_store(data)
+    return {"ok": True, "item": item}, 201
+
+
+def purchase_marketplace_template(payload):
+    template_id = clean_marketplace_text(payload.get("templateId"), "", 120)
+    buyer_email = clean_marketplace_text(payload.get("buyerEmail"), "demo-buyer@example.com", 180)
+    data = load_marketplace_store()
+    template = next((item for item in data.get("templates", []) if item.get("id") == template_id), None)
+    if not template:
+        return {"ok": False, "message": "Marketplace template not found."}, 404
+
+    price = float(template.get("price") or 0)
+    purchase = {
+        "id": f"purchase-{int(datetime.now(timezone.utc).timestamp())}-{len(data.get('purchases', [])) + 1}",
+        "templateId": template_id,
+        "templateName": template.get("name"),
+        "buyerEmail": buyer_email,
+        "price": price,
+        "currency": template.get("currency") or "USD",
+        "platformFee": round(price * PLATFORM_COMMISSION_RATE, 2),
+        "developerPayout": round(price * (1 - PLATFORM_COMMISSION_RATE), 2),
+        "status": "demo_paid" if price else "free_install",
+        "createdAt": datetime.now(timezone.utc).isoformat(),
+    }
+    template["sales"] = int(template.get("sales") or 0) + 1
+    template["updatedAt"] = purchase["createdAt"]
+    data["purchases"].append(purchase)
+    save_marketplace_store(data)
+    return {"ok": True, "purchase": purchase, "template": template}, 200
 
 
 def normalize_cell(value):
@@ -1480,6 +1592,8 @@ class Handler(BaseHTTPRequestHandler):
                     ]
                 }
             )
+        elif path == "/marketplace/templates":
+            status, data = response(marketplace_templates())
         elif path == "/scripts":
             try:
                 scripts = sorted(
@@ -1507,6 +1621,12 @@ class Handler(BaseHTTPRequestHandler):
 
         if path == "/integrations/test":
             body, status = integration_test(payload)
+            status, data = response(body, status)
+        elif path == "/marketplace/templates":
+            body, status = create_marketplace_template(payload)
+            status, data = response(body, status)
+        elif path == "/marketplace/purchase":
+            body, status = purchase_marketplace_template(payload)
             status, data = response(body, status)
         elif path == "/scripts/run":
             body, status = run_customer_script(payload)

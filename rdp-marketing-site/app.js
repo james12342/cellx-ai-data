@@ -64,6 +64,9 @@ document.querySelector("[data-checkout-form]").addEventListener("submit", event 
 });
 
 const modal = document.querySelector("[data-demo-modal]");
+const authModal = document.querySelector("[data-auth-modal]");
+let authMode = "login";
+
 function openDemo() {
   modal.hidden = false;
   document.body.classList.add("modal-open");
@@ -81,6 +84,44 @@ document.querySelector("[data-demo-form]").addEventListener("submit", event => {
   event.preventDefault();
   closeDemo();
   showToast("Demo request captured. Connect this form to email, CRM, or an API endpoint.");
+});
+
+function setAuthMode(mode) {
+  authMode = mode === "register" ? "register" : "login";
+  document.querySelectorAll("[data-auth-tab]").forEach(button => {
+    button.classList.toggle("active", button.dataset.authTab === authMode);
+  });
+  document.getElementById("authTitle").textContent = authMode === "register" ? "Create developer marketplace account" : "Login to Cell AI Data";
+}
+
+function openAuth(mode = "login") {
+  setAuthMode(mode);
+  authModal.hidden = false;
+  document.body.classList.add("modal-open");
+}
+
+function closeAuth() {
+  authModal.hidden = true;
+  document.body.classList.remove("modal-open");
+}
+
+document.querySelectorAll("[data-open-auth]").forEach(button => {
+  button.addEventListener("click", () => openAuth(button.dataset.openAuth));
+});
+document.querySelectorAll("[data-auth-tab]").forEach(button => {
+  button.addEventListener("click", () => setAuthMode(button.dataset.authTab));
+});
+document.querySelector("[data-close-auth]").addEventListener("click", closeAuth);
+authModal.addEventListener("click", event => {
+  if (event.target === authModal) closeAuth();
+});
+document.querySelector("[data-auth-form]").addEventListener("submit", event => {
+  event.preventDefault();
+  const email = document.querySelector("[data-auth-email]").value || "demo@company.com";
+  const role = document.querySelector("[data-auth-role]").value || "Developer member";
+  localStorage.setItem("cell-ai-data-demo-account", JSON.stringify({ email, role, mode: authMode, signedInAt: new Date().toISOString() }));
+  closeAuth();
+  showToast(`${role} ${authMode === "register" ? "registered" : "logged in"}: marketplace access enabled.`);
 });
 
 document.querySelector("[data-nav-toggle]").addEventListener("click", () => {

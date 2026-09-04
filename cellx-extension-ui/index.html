@@ -4,7 +4,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>CellX Workflow Designer</title>
-  <link rel="stylesheet" href="./styles.css?v=20260904-template-library">
+  <link rel="stylesheet" href="./styles.css?v=20260904-marketplace">
 </head>
 <body>
   <div class="app-shell">
@@ -43,6 +43,7 @@
             <button id="autoLayoutBtn" type="button">Auto Layout</button>
             <button id="newWorkflowBtn" type="button">New Workflow</button>
             <button id="browseTemplatesBtn" type="button">Browse Templates</button>
+            <button id="marketplaceBtn" type="button">Marketplace</button>
             <button id="importTemplateBtn" type="button">Import JSON</button>
             <button id="exportTemplateBtn" type="button">Export Template</button>
             <button id="saveBtn" class="primary" type="button">Save Draft</button>
@@ -72,6 +73,47 @@
             <span id="templateLibraryStatus">Loading templates...</span>
           </div>
           <div id="templateList" class="template-list"></div>
+        </section>
+
+        <section id="marketplacePanel" class="marketplace-panel" aria-label="Workflow marketplace" hidden>
+          <div class="template-browser-head">
+            <div>
+              <strong>Workflow Template Marketplace</strong>
+              <span>Publish, buy, and import reusable workflow templates. Demo trading uses a 25% platform commission.</span>
+            </div>
+            <button id="closeMarketplaceBtn" type="button">Close</button>
+          </div>
+          <div class="marketplace-grid">
+            <form id="developerPublishForm" class="developer-card">
+              <strong>Developer listing</strong>
+              <span>Publish the active workflow as a sellable template.</span>
+              <label>Template name<input id="marketplaceName" type="text" placeholder="AI property recommendations workflow"></label>
+              <label>Category
+                <select id="marketplaceCategory">
+                  <option>Real Estate</option>
+                  <option>E-Commerce</option>
+                  <option>Finance</option>
+                  <option>Research</option>
+                  <option>Operations</option>
+                </select>
+              </label>
+              <label>Price USD<input id="marketplacePrice" type="number" min="0" step="1" value="49"></label>
+              <label>Developer name<input id="marketplaceDeveloper" type="text" value="Cell AI Data Developer"></label>
+              <label>Description<textarea id="marketplaceDescription" rows="3" placeholder="What business problem does this workflow solve?"></textarea></label>
+              <button class="primary" type="submit">Publish Template</button>
+            </form>
+            <div>
+              <div class="marketplace-tools">
+                <input id="marketplaceSearch" type="search" placeholder="Search marketplace templates">
+                <select id="marketplaceCategoryFilter" aria-label="Filter marketplace templates">
+                  <option value="">All categories</option>
+                </select>
+                <button id="refreshMarketplaceBtn" type="button">Refresh</button>
+              </div>
+              <div id="marketplaceStatus" class="marketplace-status">Loading marketplace...</div>
+              <div id="marketplaceList" class="marketplace-list"></div>
+            </div>
+          </div>
         </section>
 
         <section class="designer-grid">
@@ -131,6 +173,6 @@
     </section>
   </div>
 
-  <script src="./app.js?v=20260904-template-library"></script>
+  <script src="./app.js?v=20260904-marketplace"></script>
 </body>
 </html>
