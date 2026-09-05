@@ -413,6 +413,7 @@ h1 {
   background: var(--panel);
   border: 1px solid var(--line);
   margin-bottom: 12px;
+  min-height: calc(100vh - 210px);
 }
 
 .marketplace-grid {
@@ -420,12 +421,16 @@ h1 {
   grid-template-columns: 300px minmax(0, 1fr);
   gap: 14px;
   padding: 14px 16px 16px;
+  min-height: calc(100vh - 300px);
 }
 
 .marketplace-left {
   display: grid;
   gap: 12px;
   align-content: start;
+  max-height: calc(100vh - 330px);
+  overflow: auto;
+  padding-right: 4px;
 }
 
 .developer-card {
@@ -488,13 +493,15 @@ h1 {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(255px, 1fr));
   gap: 12px;
-  max-height: 380px;
+  max-height: calc(100vh - 365px);
+  min-height: 560px;
   overflow: auto;
   padding-right: 2px;
+  align-content: start;
 }
 
 .marketplace-card {
-  min-height: 230px;
+  min-height: 260px;
 }
 
 .marketplace-meta {
@@ -1191,11 +1198,28 @@ button.active {
   gap: 8px;
 }
 
+.test-result-head span {
+  display: inline-flex;
+  flex: 0 0 auto;
+  align-items: center;
+  gap: 6px;
+}
+
 .test-result-head strong {
   min-width: 0;
   color: #172033;
   font-size: 12px;
   line-height: 1.25;
+}
+
+.test-result-head button {
+  min-height: 24px;
+  padding: 3px 7px;
+  color: var(--blue);
+  background: #eff6ff;
+  border: 1px solid #bfdbfe;
+  font-size: 10px;
+  font-weight: 800;
 }
 
 .test-result-head em {
@@ -1258,6 +1282,113 @@ button.active {
   border: 1px solid #dbe6f5;
   font-size: 10px;
   line-height: 1.35;
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
+.result-dialog-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 1000;
+  display: grid;
+  place-items: center;
+  padding: 24px;
+  background: rgba(15, 23, 42, 0.38);
+}
+
+.result-dialog {
+  width: min(1080px, 94vw);
+  max-height: 88vh;
+  overflow: hidden;
+  display: grid;
+  grid-template-rows: auto auto minmax(0, 1fr);
+  background: #f8fbff;
+  border: 1px solid #bfdbfe;
+  box-shadow: 0 24px 70px rgba(15, 23, 42, 0.24);
+}
+
+.result-dialog header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 16px 18px;
+  background: #fff;
+  border-bottom: 1px solid var(--line);
+}
+
+.result-dialog header strong,
+.result-dialog header span {
+  display: block;
+}
+
+.result-dialog header strong {
+  color: #111827;
+  font-size: 18px;
+}
+
+.result-dialog header span {
+  margin-top: 4px;
+  color: var(--muted);
+  font-size: 12px;
+}
+
+.result-summary {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  gap: 10px;
+  padding: 14px 18px;
+  border-bottom: 1px solid var(--line);
+}
+
+.result-summary div {
+  padding: 10px;
+  background: #fff;
+  border: 1px solid #dbe6f5;
+}
+
+.result-summary span {
+  display: block;
+  color: var(--muted);
+  font-size: 11px;
+}
+
+.result-summary strong {
+  display: block;
+  margin-top: 4px;
+  color: #111827;
+  font-size: 14px;
+  line-height: 1.3;
+  word-break: break-word;
+}
+
+.result-dialog-grid {
+  min-height: 0;
+  display: grid;
+  grid-template-columns: minmax(0, 0.9fr) minmax(0, 1.1fr);
+  gap: 12px;
+  padding: 16px 18px 18px;
+  overflow: auto;
+}
+
+.result-dialog-grid b {
+  display: block;
+  margin-bottom: 7px;
+  color: #334155;
+  font-size: 11px;
+  text-transform: uppercase;
+}
+
+.result-dialog-grid pre {
+  max-height: 56vh;
+  margin: 0;
+  padding: 12px;
+  overflow: auto;
+  color: #172033;
+  background: #fff;
+  border: 1px solid #dbe6f5;
+  font-size: 12px;
+  line-height: 1.45;
   white-space: pre-wrap;
   word-break: break-word;
 }
@@ -1474,5 +1605,177 @@ button.active {
 
   .hint {
     font-size: 13px;
+  }
+
+  .tabs {
+    overflow-x: auto;
+    padding-bottom: 2px;
+  }
+
+  .tabs button {
+    flex: 0 0 auto;
+    min-width: 170px;
+  }
+
+  .marketplace-panel {
+    min-height: 0;
+    margin-bottom: 10px;
+    overflow: hidden;
+  }
+
+  .template-browser-head {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 10px;
+    padding: 12px;
+  }
+
+  .template-browser-head button {
+    width: 100%;
+  }
+
+  .template-browser-tools {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 8px;
+    padding: 12px;
+  }
+
+  .template-filter-row {
+    display: grid;
+    grid-template-columns: 1fr;
+    min-width: 0;
+  }
+
+  .template-browser-tools input,
+  .template-browser-tools select {
+    width: 100%;
+    min-height: 40px;
+  }
+
+  .template-browser-tools span {
+    white-space: normal;
+  }
+
+  .template-list {
+    grid-template-columns: 1fr;
+    max-height: none;
+    overflow: visible;
+    padding: 12px;
+  }
+
+  .marketplace-grid {
+    grid-template-columns: 1fr;
+    min-height: 0;
+    gap: 12px;
+    padding: 12px;
+  }
+
+  .marketplace-left {
+    max-height: none;
+    overflow: visible;
+    padding-right: 0;
+  }
+
+  .developer-card {
+    padding: 12px;
+    gap: 9px;
+  }
+
+  .developer-card strong {
+    font-size: 16px;
+  }
+
+  .developer-card label {
+    font-size: 12px;
+  }
+
+  .developer-card input,
+  .developer-card select,
+  .developer-card textarea,
+  .marketplace-tools input,
+  .marketplace-tools select {
+    min-height: 40px;
+    font-size: 13px;
+  }
+
+  .button-row {
+    grid-template-columns: 1fr;
+  }
+
+  .marketplace-tools {
+    grid-template-columns: 1fr;
+    gap: 8px;
+    margin-bottom: 10px;
+  }
+
+  .marketplace-status {
+    font-size: 12px;
+    margin-bottom: 8px;
+  }
+
+  .marketplace-list {
+    grid-template-columns: 1fr;
+    max-height: none;
+    min-height: 0;
+    overflow: visible;
+    padding-right: 0;
+    gap: 10px;
+  }
+
+  .marketplace-card {
+    min-height: 0;
+  }
+
+  .marketplace-card .template-card-top {
+    gap: 8px;
+  }
+
+  .marketplace-card h2 {
+    font-size: 16px;
+    line-height: 1.22;
+  }
+
+  .marketplace-card p {
+    font-size: 13px;
+    line-height: 1.4;
+  }
+
+  .marketplace-meta {
+    font-size: 12px;
+  }
+
+  .template-card-actions {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 8px;
+  }
+
+  .template-card-actions button {
+    width: 100%;
+    min-height: 38px;
+  }
+
+  .result-dialog-backdrop {
+    padding: 10px;
+    align-items: stretch;
+  }
+
+  .result-dialog {
+    width: 100%;
+    max-height: calc(100vh - 20px);
+  }
+
+  .result-dialog header {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .result-dialog header button {
+    width: 100%;
+  }
+
+  .result-dialog-grid {
+    grid-template-columns: 1fr;
   }
 }

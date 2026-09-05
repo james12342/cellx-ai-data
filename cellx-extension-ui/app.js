@@ -1223,7 +1223,7 @@ function buildAiModelSpec(node) {
 }
 
 function buildLogicSpec(node) {
-  const isSwitch = node.name === "Switch / Match";
+  const isSwitch = node.name === "Switch / Match" || /switch/i.test(node.name || "");
   const isFilter = node.name === "Filter Records";
   const isCompare = node.name === "Value Compare";
   return {
@@ -1689,7 +1689,17 @@ function ensureIntegrationSettings(node) {
     if (String(node.integrationSettings.scriptName || "").includes("orderdesk_orders_to_carriers.py") || /order desk/i.test(node.name || "")) {
       node.integrationSettings.scriptName = "orderdesk_orders_to_carriers.py";
       if (!node.integrationSettings.inputJson || node.integrationSettings.inputJson.includes("amazon_bestsellers_demo.py")) {
-        node.integrationSettings.inputJson = '{"limit":10,"order_by":"date_added","order":"desc","dry_run":true}';
+        node.integrationSettings.inputJson = '{"limit":100,"order_by":"date_added","order":"desc","dry_run":true}';
+      } else {
+        try {
+          const orderdeskInput = JSON.parse(node.integrationSettings.inputJson);
+          if (!orderdeskInput.limit || Number(orderdeskInput.limit) === 10) {
+            orderdeskInput.limit = 100;
+            node.integrationSettings.inputJson = JSON.stringify(orderdeskInput);
+          }
+        } catch {
+          // Keep custom non-JSON input visible so the user can repair it.
+        }
       }
       if (!node.integrationSettings.timeout || node.integrationSettings.timeout === "20") node.integrationSettings.timeout = "25";
     }
@@ -1698,7 +1708,7 @@ function ensureIntegrationSettings(node) {
 }
 
 function isOptionalIntegrationField(key, placeholder = "") {
-  return /optional/i.test(placeholder) || ["baseUrl", "projectId", "accountId", "apiToken", "webhookSecret", "serviceAccountJson", "authHeader", "retryPolicy", "dataPolicy", "chatUrl", "manualResult", "args"].includes(key);
+  return /optional/i.test(placeholder) || ["baseUrl", "projectId", "accountId", "apiToken", "webhookSecret", "serviceAccountJson", "authHeader", "retryPolicy", "dataPolicy", "chatUrl", "manualResult", "args", "trueLabel", "falseLabel", "expressionPreview"].includes(key);
 }
 
 function requiredIntegrationFields(spec, node) {
@@ -1942,7 +1952,7 @@ function buildNodeTestInput(node) {
 }
 
 function buildNodeTestOutput(node, status, message, result = null) {
-  if (result?.output) return result.output;
+  if (result?.output && node.type !== "condition" && node.type !== "carrier") return result.output;
   if (status === "error") {
     return result?.error || { ok: false, message };
   }
@@ -1950,6 +1960,7 @@ function buildNodeTestOutput(node, status, message, result = null) {
     return { ok: true, emitted: "order.created", order_id: "CX-10042" };
   }
   if (node.type === "condition") {
+    if (/switch/i.test(node.name || "")) return buildCarrierSwitchOutput(node);
     return { ok: true, branch: "paid_order", matched: true };
   }
   if (node.type === "ai") {
@@ -1975,7 +1986,7 @@ function buildNodeTestOutput(node, status, message, result = null) {
     return { ok: true, risk: "low", recommendation: "send_to_carrier_rate_step" };
   }
   if (node.type === "carrier") {
-    return { ok: true, selected: "FedEx Ground", estimated_cost: "$9.84" };
+    return buildCarrierShipmentOutput(node);
   }
   if (node.type === "action") {
     return { ok: true, wrote: "cx_order.status", value: "Ready to fulfill" };
@@ -1987,6 +1998,117 @@ function buildNodeTestOutput(node, status, message, result = null) {
     return { ok: true, script: node.integrationSettings?.scriptName || "customer script", message: message || "Script completed." };
   }
   return { ok: true, message: message || "Step test completed." };
+}
+
+function firstObjectWithCarrierRows(node) {
+  for (const item of previousNodeOutputs(node)) {
+    const output = item?.output || item;
+    if (output && typeof output === "object" && (Array.isArray(output.ups_rows) || Array.isArray(output.fedex_rows) || Array.isArray(output.manual_review_rows))) {
+      return output;
+    }
+  }
+  return {};
+}
+
+function buildCarrierSwitchOutput(node) {
+  const routed = firstObjectWithCarrierRows(node);
+  const upsRows = Array.isArray(routed.ups_rows) ? routed.ups_rows : [];
+  const fedexRows = Array.isArray(routed.fedex_rows) ? routed.fedex_rows : [];
+  const manualRows = Array.isArray(routed.manual_review_rows) ? routed.manual_review_rows : [];
+  return {
+    ok: true,
+    rule: "carrier",
+    total_orders: Number(routed.row_count || routed.orders_count || upsRows.length + fedexRows.length + manualRows.length || 0),
+    routes: [
+      { carrier: "UPS", count: upsRows.length, next_step: "UPS Shipment" },
+      { carrier: "FEDEX", count: fedexRows.length, next_step: "FedEx Shipment" },
+      { carrier: "MANUAL_REVIEW", count: manualRows.length, next_step: "Manual Review List" },
+    ],
+    note: "Orders are routed by detected requested shipping/carrier values from Order Desk.",
+  };
+}
+
+function buildCarrierShipmentOutput(node) {
+  const routed = firstObjectWithCarrierRows(node);
+  const carrier = /fedex/i.test(node.name || "") ? "FEDEX" : /ups/i.test(node.name || "") ? "UPS" : "CARRIER";
+  const rows = carrier === "UPS" ? (routed.ups_rows || []) : carrier === "FEDEX" ? (routed.fedex_rows || []) : [];
+  return {
+    ok: true,
+    carrier,
+    dry_run: true,
+    shipment_payload_count: rows.length,
+    sample_payload: rows[0]?.carrier_payload || null,
+    next_step: rows.length ? `Connect ${carrier} credentials to rate or create labels.` : `No ${carrier} orders in the current batch.`,
+  };
+}
+
+function summarizeResultPayload(output) {
+  if (!output || typeof output !== "object") return [];
+  const rows = [];
+  if ("orders_count" in output) rows.push(["Orders fetched", output.orders_count]);
+  if ("row_count" in output) rows.push(["Rows", output.row_count]);
+  if ("ups_count" in output) rows.push(["UPS", output.ups_count]);
+  if ("fedex_count" in output) rows.push(["FedEx", output.fedex_count]);
+  if ("manual_review_count" in output) rows.push(["Manual review", output.manual_review_count]);
+  if ("shipment_payload_count" in output) rows.push(["Shipment payloads", output.shipment_payload_count]);
+  if (Array.isArray(output.routes)) {
+    output.routes.forEach((route) => rows.push([route.carrier, route.count]));
+  }
+  if (output.message) rows.push(["Message", output.message]);
+  if (output.note) rows.push(["Note", output.note]);
+  return rows;
+}
+
+function showNodeResultDialog(nodeId) {
+  const node = nodes.find((item) => item.id === nodeId);
+  if (!node) return;
+  const result = node.testResult || {
+    status: "pending",
+    message: "Not tested yet.",
+    input: buildNodeTestInput(node),
+    output: { ok: null, message: "Click Test Selected or Run Workflow first." },
+  };
+  document.getElementById("resultDialog")?.remove();
+  const summary = summarizeResultPayload(result.output || {});
+  const dialog = document.createElement("div");
+  dialog.id = "resultDialog";
+  dialog.className = "result-dialog-backdrop";
+  dialog.innerHTML = `
+    <section class="result-dialog" role="dialog" aria-modal="true" aria-labelledby="resultDialogTitle">
+      <header>
+        <div>
+          <strong id="resultDialogTitle">${escapeHtml(node.name)}</strong>
+          <span>${escapeHtml(result.message || "Workflow node result")}</span>
+        </div>
+        <button type="button" data-close-result-dialog>Close</button>
+      </header>
+      ${summary.length ? `
+        <div class="result-summary">
+          ${summary.map(([label, value]) => `<div><span>${escapeHtml(label)}</span><strong>${escapeHtml(value)}</strong></div>`).join("")}
+        </div>
+      ` : ""}
+      <div class="result-dialog-grid">
+        <div>
+          <b>Input</b>
+          <pre>${escapeHtml(compactJson(result.input || {}))}</pre>
+        </div>
+        <div>
+          <b>Output</b>
+          <pre>${escapeHtml(compactJson(result.output || {}))}</pre>
+        </div>
+      </div>
+    </section>
+  `;
+  dialog.addEventListener("click", (event) => {
+    if (event.target === dialog || event.target.closest("[data-close-result-dialog]")) dialog.remove();
+  });
+  document.addEventListener("keydown", function closeOnEsc(event) {
+    if (event.key === "Escape") {
+      dialog.remove();
+      document.removeEventListener("keydown", closeOnEsc);
+    }
+  });
+  document.body.appendChild(dialog);
 }
 
 function renderNodeTestResults() {
@@ -2010,7 +2132,10 @@ function renderNodeTestResults() {
           <article class="test-result-card ${result.status}">
             <div class="test-result-head">
               <strong>${index + 1}. ${escapeHtml(node.name)}</strong>
-              <em>${testBadgeLabel(result.status)}</em>
+              <span>
+                <button type="button" data-view-node-result="${escapeHtml(node.id)}">View Result</button>
+                <em>${testBadgeLabel(result.status)}</em>
+              </span>
             </div>
             <p>${escapeHtml(result.message || "")}</p>
             <div class="io-grid">
@@ -2123,12 +2248,22 @@ function renderIntegrationFields(node) {
   document.getElementById("testConnectionBtn").addEventListener("click", () => testSelectedIntegration());
   document.getElementById("runWorkflowBtn").addEventListener("click", () => testWorkflowIntegrations());
   document.getElementById("exportResultsBtn").addEventListener("click", () => exportWorkflowResults());
+  bindResultViewButtons();
   document.getElementById("saveCredentialBtn").addEventListener("click", () => {
     const current = nodes.find((item) => item.id === selectedId);
     if (!current) return;
     current.connection = { status: "success", message: "Configuration saved as a local draft." };
     renderIntegrationFields(current);
     render();
+  });
+}
+
+function bindResultViewButtons() {
+  if (!propIntegration) return;
+  propIntegration.querySelectorAll("[data-view-node-result]").forEach((button) => {
+    if (button.dataset.boundViewResult === "true") return;
+    button.dataset.boundViewResult = "true";
+    button.addEventListener("click", () => showNodeResultDialog(button.dataset.viewNodeResult));
   });
 }
 
@@ -2484,6 +2619,7 @@ function render() {
     const nextMarkup = renderNodeTestResults();
     if (results) {
       results.outerHTML = nextMarkup;
+      bindResultViewButtons();
     }
   }
 }

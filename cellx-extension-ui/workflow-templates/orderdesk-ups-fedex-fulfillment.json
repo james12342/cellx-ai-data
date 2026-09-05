@@ -34,7 +34,7 @@
         "scriptName": "orderdesk_orders_to_carriers.py",
         "orderdeskStoreId": "",
         "orderdeskApiKey": "",
-        "inputJson": "{\"limit\":10,\"order_by\":\"date_added\",\"order\":\"desc\",\"dry_run\":true,\"folder_id\":\"\",\"modified_start_date\":\"\",\"modified_end_date\":\"\",\"ship_from\":{\"name\":\"Majestic Pet Products\",\"address1\":\"Warehouse address\",\"city\":\"Irvine\",\"state\":\"CA\",\"postal_code\":\"92620\",\"country\":\"US\"},\"default_package\":{\"weight_lbs\":1,\"length_in\":10,\"width_in\":8,\"height_in\":4}}",
+        "inputJson": "{\"limit\":100,\"order_by\":\"date_added\",\"order\":\"desc\",\"dry_run\":true,\"folder_id\":\"\",\"modified_start_date\":\"\",\"modified_end_date\":\"\",\"ship_from\":{\"name\":\"Majestic Pet Products\",\"address1\":\"Warehouse address\",\"city\":\"Irvine\",\"state\":\"CA\",\"postal_code\":\"92620\",\"country\":\"US\"},\"default_package\":{\"weight_lbs\":1,\"length_in\":10,\"width_in\":8,\"height_in\":4}}",
         "timeout": "25",
         "args": ""
       },
@@ -51,8 +51,13 @@
       "x": 590,
       "y": 160,
       "integrationSettings": {
+        "inputSource": "previous_step",
         "fieldPath": "carrier",
+        "operator": "equals",
         "cases": "UPS -> UPS Shipment\nFEDEX -> FedEx Shipment\nMANUAL_REVIEW -> Manual Review",
+        "trueLabel": "Matched carrier",
+        "falseLabel": "Manual review",
+        "expressionPreview": "Route each Order Desk order to UPS, FedEx, or Manual Review based on detected carrier.",
         "collectionPath": "{{previous_step.rows}}",
         "outputMode": "rows"
       },
