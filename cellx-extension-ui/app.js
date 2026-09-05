@@ -43,7 +43,7 @@ const legacyWorkflowStoreKey = "cellx-workflow-draft";
 const marketplaceStoreKey = "cellx-workflow-marketplace-draft";
 const marketplaceUserStoreKey = "cellx-marketplace-user";
 const marketplaceTokenStoreKey = "cellx-marketplace-token";
-const sensitiveSettingPattern = /^(apiKey|secretKey|clientSecret|authHeader|authToken|bearerToken|password|token)$/i;
+const sensitiveSettingPattern = /(apiKey|secretKey|clientSecret|authHeader|authToken|bearerToken|apiToken|password|token|serviceAccountJson)$/i;
 const nodeWidth = 188;
 const nodeHeight = 96;
 
@@ -490,6 +490,11 @@ function syncActiveWorkflow() {
   }
 }
 
+function saveWorkflowDraft(message = "") {
+  persistWorkflowStore();
+  return message || "Configuration saved in this browser.";
+}
+
 function persistWorkflowStore() {
   syncActiveWorkflow();
   localStorage.setItem(workflowStoreKey, JSON.stringify({
@@ -503,13 +508,13 @@ function uniqueWorkflowId() {
   return `workflow-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`;
 }
 
-function normalizeWorkflow(draft, fallbackName = "Untitled Workflow") {
+function normalizeWorkflow(draft, fallbackName = "Untitled Workflow", stripSecrets = true) {
   const valid = validateWorkflowTemplate({
     name: draft?.name || fallbackName,
     description: draft?.description || draft?.workflowDescription || "Drag nodes, reposition them, then connect steps.",
     nodes: Array.isArray(draft?.nodes) ? draft.nodes : [],
     links: Array.isArray(draft?.links) ? draft.links : [],
-  });
+  }, stripSecrets);
   return {
     id: String(draft?.id || uniqueWorkflowId()),
     name: valid.name,
@@ -525,7 +530,7 @@ function loadWorkflow(workflowId) {
   activeWorkflowId = workflow.id;
   workflowTitle = workflow.name || "Untitled Workflow";
   workflowDescription = workflow.description || "Drag nodes, reposition them, then connect steps.";
-  nodes = safeWorkflowNodes(workflow.nodes || [], true);
+  nodes = safeWorkflowNodes(workflow.nodes || [], false);
   links = (workflow.links || []).map((link) => ({ from: String(link.from), to: String(link.to) }));
   selectedId = nodes[0]?.id || null;
   connectFrom = null;
@@ -612,7 +617,7 @@ function nextIdFromNodes(items) {
   }, 1);
 }
 
-function validateWorkflowTemplate(template) {
+function validateWorkflowTemplate(template, stripSecrets = true) {
   if (!template || typeof template !== "object") {
     throw new Error("This file is not a workflow template.");
   }
@@ -628,7 +633,7 @@ function validateWorkflowTemplate(template) {
   return {
     name: String(template.name || "Imported Workflow"),
     description: String(template.description || "Drag nodes, reposition them, then connect steps."),
-    nodes: safeWorkflowNodes(template.nodes, true),
+    nodes: safeWorkflowNodes(template.nodes, stripSecrets),
     links: validLinks.map((link) => ({ from: String(link.from), to: String(link.to) })),
   };
 }
@@ -2252,7 +2257,7 @@ function renderIntegrationFields(node) {
   document.getElementById("saveCredentialBtn").addEventListener("click", () => {
     const current = nodes.find((item) => item.id === selectedId);
     if (!current) return;
-    current.connection = { status: "success", message: "Configuration saved as a local draft." };
+    current.connection = { status: "success", message: saveWorkflowDraft("Configuration saved in this browser. Refresh will keep this node setup.") };
     renderIntegrationFields(current);
     render();
   });
@@ -2952,7 +2957,7 @@ const savedLegacy = localStorage.getItem(legacyWorkflowStoreKey);
 if (savedMulti) {
   try {
     const draft = JSON.parse(savedMulti);
-    workflows = Array.isArray(draft.workflows) ? draft.workflows.map((item) => normalizeWorkflow(item, "Workflow")) : [];
+    workflows = Array.isArray(draft.workflows) ? draft.workflows.map((item) => normalizeWorkflow(item, "Workflow", false)) : [];
     activeWorkflowId = draft.activeWorkflowId || workflows[0]?.id || null;
   } catch {
     workflows = [];
@@ -2964,7 +2969,7 @@ if (savedMulti) {
       ...draft,
       name: draft.name || draft.workflowTitle || workflowTitle,
       description: draft.description || draft.workflowDescription || workflowDescription,
-    }, "Workflow 1")];
+    }, "Workflow 1", false)];
     activeWorkflowId = workflows[0].id;
   } catch {
     workflows = [];
