@@ -1,0 +1,128 @@
+{
+  "templateType": "cellx-workflow-designer",
+  "version": "1.0",
+  "exportedAt": "2026-09-06T00:00:00.000Z",
+  "name": "Website Form Submission to Google Sheets",
+  "description": "Receive a website form submission by webhook, normalize the submitted fields, append the data into a Google Sheet, notify the operator, and write an audit log.",
+  "nodes": [
+    {
+      "id": "node-1",
+      "type": "trigger",
+      "name": "Webhook Received",
+      "action": "/ext-api/webhooks/inbound",
+      "notes": "Website form posts JSON data to this workflow webhook endpoint.",
+      "icon": "material-symbols:webhook-rounded",
+      "x": 80,
+      "y": 160,
+      "integrationSettings": {
+        "owner": "Website Leads",
+        "timeout": "30",
+        "webhookPath": "/ext-api/webhooks/form-submission",
+        "sampleEvent": "{\"name\":\"Jane Customer\",\"email\":\"jane@example.com\",\"phone\":\"626-555-0100\",\"company\":\"Demo Company\",\"message\":\"I need help automating my business workflow.\",\"source_page\":\"https://www.cellaidata.com/contact\",\"submitted_at\":\"2026-09-06T10:00:00Z\"}"
+      },
+      "connection": null,
+      "testResult": null
+    },
+    {
+      "id": "node-2",
+      "type": "tool",
+      "name": "Normalize Form Fields",
+      "action": "/ext-api/tools/json-transform",
+      "notes": "Convert any website form payload into clean spreadsheet columns.",
+      "icon": "vscode-icons:file-type-json",
+      "x": 350,
+      "y": 160,
+      "integrationSettings": {
+        "sourcePath": "previous_step",
+        "transformMapping": "submitted_at <- {{submitted_at}}\nname <- {{name}}\nemail <- {{email}}\nphone <- {{phone}}\ncompany <- {{company}}\nmessage <- {{message}}\nsource_page <- {{source_page}}\nutm_source <- {{utm_source}}\nutm_campaign <- {{utm_campaign}}\nstatus <- New",
+        "outputMode": "rows"
+      },
+      "connection": null,
+      "testResult": null
+    },
+    {
+      "id": "node-3",
+      "type": "document",
+      "name": "Google Sheets Append Row",
+      "action": "/ext-api/google/sheets/append",
+      "notes": "Append normalized form submission rows into a Google Sheet. Configure Spreadsheet ID, Sheet tab, and field mapping.",
+      "icon": "logos:google-sheets",
+      "x": 620,
+      "y": 160,
+      "integrationSettings": {
+        "authMode": "service_account_or_oauth",
+        "spreadsheetId": "",
+        "sheetName": "Form Submissions",
+        "appendMode": "append_rows",
+        "inputPayload": "{{previous_step.rows}}",
+        "fieldMapping": "Submitted At <- submitted_at\nName <- name\nEmail <- email\nPhone <- phone\nCompany <- company\nMessage <- message\nSource Page <- source_page\nUTM Source <- utm_source\nUTM Campaign <- utm_campaign\nStatus <- status",
+        "serviceAccountJson": "",
+        "timeout": "30"
+      },
+      "connection": null,
+      "testResult": null
+    },
+    {
+      "id": "node-4",
+      "type": "communication",
+      "name": "Gmail Notify Operator",
+      "action": "/ext-api/gmail/send",
+      "notes": "Send an internal notification when a new form submission is captured.",
+      "icon": "logos:google-gmail",
+      "x": 890,
+      "y": 80,
+      "integrationSettings": {
+        "deliveryMode": "preview",
+        "to": "admin@example.com,workad_009@icloud.com",
+        "subjectTemplate": "New website form submission: {{name}}",
+        "bodyTemplate": "A new form submission was added to Google Sheets.\n\nName: {{name}}\nEmail: {{email}}\nPhone: {{phone}}\nCompany: {{company}}\nMessage: {{message}}\nSource: {{source_page}}",
+        "smtpHost": "smtp.gmail.com",
+        "smtpPort": "587",
+        "smtpSecurity": "starttls",
+        "username": "sender@example.com",
+        "fromEmail": "sender@example.com",
+        "passwordSecretName": "GMAIL_APP_PASSWORD"
+      },
+      "connection": null,
+      "testResult": null
+    },
+    {
+      "id": "node-5",
+      "type": "log",
+      "name": "Write Form Submission Log",
+      "action": "cx_workflow_log",
+      "notes": "Audit webhook receipt, sheet append status, and notification status.",
+      "icon": null,
+      "x": 890,
+      "y": 250,
+      "integrationSettings": {
+        "owner": "Website Leads",
+        "timeout": "30"
+      },
+      "connection": null,
+      "testResult": null
+    }
+  ],
+  "links": [
+    {
+      "from": "node-1",
+      "to": "node-2"
+    },
+    {
+      "from": "node-2",
+      "to": "node-3"
+    },
+    {
+      "from": "node-3",
+      "to": "node-4"
+    },
+    {
+      "from": "node-3",
+      "to": "node-5"
+    },
+    {
+      "from": "node-4",
+      "to": "node-5"
+    }
+  ]
+}

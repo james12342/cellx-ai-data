@@ -1,0 +1,174 @@
+{
+  "templateType": "cellx-workflow-designer",
+  "version": "1.0",
+  "exportedAt": "2026-09-06T00:00:00.000Z",
+  "name": "JHU Programs AI Analysis Email and SMS",
+  "description": "Fetch public Johns Hopkins catalogue programs, score promising programs, summarize the strongest options with OpenAI, then email and text the analysis.",
+  "nodes": [
+    {
+      "id": "node-1",
+      "type": "trigger",
+      "name": "Schedule",
+      "action": "cron",
+      "notes": "Run manually or periodically to refresh Johns Hopkins program analysis.",
+      "icon": "material-symbols:schedule-rounded",
+      "x": 60,
+      "y": 180,
+      "integrationSettings": {
+        "owner": "JHU Program Research",
+        "timeout": "30"
+      },
+      "connection": null,
+      "testResult": null
+    },
+    {
+      "id": "node-2",
+      "type": "script",
+      "name": "JHU Fetch Programs",
+      "action": "/ext-api/scripts/run",
+      "notes": "Fetch public program entries from the Johns Hopkins Academic Catalogue and return scored rows.",
+      "icon": "material-symbols:school-outline-rounded",
+      "x": 315,
+      "y": 180,
+      "integrationSettings": {
+        "scriptName": "jhu_programs_analyzer.py",
+        "inputJson": "{\"source_url\":\"https://e-catalogue.jhu.edu/programs/\",\"limit\":40,\"fallback_sample\":true}",
+        "timeout": "25",
+        "args": ""
+      },
+      "connection": null,
+      "testResult": null
+    },
+    {
+      "id": "node-3",
+      "type": "ai",
+      "name": "OpenAI JHU Program Analyst",
+      "action": "/ext-api/ai/openai/gpt-5",
+      "notes": "Analyze the program rows and explain the strongest JHU options for a student audience. Output is guidance, not an official university ranking.",
+      "icon": "logos:openai-icon",
+      "x": 570,
+      "y": 180,
+      "integrationSettings": {
+        "authMode": "platform_api_key",
+        "model": "gpt-5",
+        "maxInputRows": "20",
+        "compactInputFields": "rank,program_name,degree_level,division,category,ai_screening_score,why_recommended,program_url",
+        "platformSecretName": "OPENAI_API_KEY",
+        "promptTemplate": "Use only the JHU catalogue rows below. Pick the best offered programs for a high-school/student audience based on career demand, Johns Hopkins strength signals, interdisciplinarity, and clarity of fit. Do not claim this is an official JHU ranking. Keep output concise.\\n\\nReturn an email-ready analysis and a very short SMS summary.\\n\\nJHU rows:\\n{{previous_step}}",
+        "returnFormat": "{\n  \"summary\": \"short overall conclusion\",\n  \"best_programs\": [\n    {\n      \"rank\": 1,\n      \"program_name\": \"program\",\n      \"division\": \"school\",\n      \"why_best\": \"short reason\",\n      \"student_fit\": \"who should consider it\",\n      \"program_url\": \"url\"\n    }\n  ],\n  \"email\": {\n    \"subject\": \"Johns Hopkins program analysis\",\n    \"body\": \"clear analysis with top programs and cautions\"\n  },\n  \"sms\": \"short text message under 300 characters\"\n}",
+        "dataPolicy": "Use public catalogue data only. Do not claim official ranking or admissions advice."
+      },
+      "connection": null,
+      "testResult": null
+    },
+    {
+      "id": "node-4",
+      "type": "tool",
+      "name": "Build Email and SMS",
+      "action": "/ext-api/tools/json-transform",
+      "notes": "Extract OpenAI email body, SMS summary, and top program details for delivery and export.",
+      "icon": "vscode-icons:file-type-json",
+      "x": 825,
+      "y": 180,
+      "integrationSettings": {
+        "sourcePath": "previous_step",
+        "transformMapping": "summary <- {{summary}}\nemail_subject <- {{email.subject}}\nemail_body <- {{email.body}}\nsms <- {{sms}}\ntop_program <- {{best_programs.0.program_name}}\ntop_reason <- {{best_programs.0.why_best}}\ntop_url <- {{best_programs.0.program_url}}\nprogram_count <- {{best_programs.length}}",
+        "outputMode": "object",
+        "timeout": "30"
+      },
+      "connection": null,
+      "testResult": null
+    },
+    {
+      "id": "node-5",
+      "type": "communication",
+      "name": "Email and Text Analysis",
+      "action": "/ext-api/gmail/send",
+      "notes": "Send the JHU analysis to email and T-Mobile SMS gateway recipients.",
+      "icon": "logos:google-gmail",
+      "x": 1080,
+      "y": 180,
+      "integrationSettings": {
+        "deliveryMode": "connected_provider",
+        "to": "harrisonhuang98@gmail.com,workad_009@icloud.com",
+        "smsGatewayEmail": "9493128694@tmomail.net,6263833666@tmomail.net",
+        "phoneNumber": "9493128694,6263833666",
+        "subjectTemplate": "{{row.email_subject}}",
+        "bodyTemplate": "{{row.email_body}}\n\nSMS summary:\n{{row.sms}}",
+        "smtpHost": "smtp.gmail.com",
+        "smtpPort": "587",
+        "smtpSecurity": "starttls",
+        "username": "harrison20120512@gmail.com",
+        "fromEmail": "harrison20120512@gmail.com",
+        "passwordSecretName": "GMAIL_APP_PASSWORD"
+      },
+      "connection": null,
+      "testResult": null
+    },
+    {
+      "id": "node-6",
+      "type": "tool",
+      "name": "Export Program Excel",
+      "action": "/ext-api/tools/excel-export",
+      "notes": "Export the parsed JHU program rows to Excel for review.",
+      "icon": "vscode-icons:file-type-excel",
+      "x": 825,
+      "y": 360,
+      "integrationSettings": {
+        "endpoint": "/ext-api/tools/excel-export",
+        "sourcePath": "{{previous_step.rows}}",
+        "fileName": "jhu_programs_analysis.xlsx",
+        "sheetName": "JHU Programs",
+        "timeout": "60"
+      },
+      "connection": null,
+      "testResult": null
+    },
+    {
+      "id": "node-7",
+      "type": "log",
+      "name": "Write JHU Analysis Log",
+      "action": "cx_workflow_log",
+      "notes": "Record source URL, parsed program count, and delivery status.",
+      "icon": "vscode-icons:file-type-word",
+      "x": 1325,
+      "y": 180,
+      "integrationSettings": {
+        "owner": "JHU Program Research",
+        "timeout": "30"
+      },
+      "connection": null,
+      "testResult": null
+    }
+  ],
+  "links": [
+    {
+      "from": "node-1",
+      "to": "node-2"
+    },
+    {
+      "from": "node-2",
+      "to": "node-3"
+    },
+    {
+      "from": "node-3",
+      "to": "node-4"
+    },
+    {
+      "from": "node-4",
+      "to": "node-5"
+    },
+    {
+      "from": "node-2",
+      "to": "node-6"
+    },
+    {
+      "from": "node-5",
+      "to": "node-7"
+    },
+    {
+      "from": "node-6",
+      "to": "node-7"
+    }
+  ]
+}

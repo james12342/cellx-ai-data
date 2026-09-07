@@ -6,7 +6,7 @@
   <title>Cell AI Data | Rapid Development Platform</title>
   <meta name="description" content="Cell AI Data is an enterprise low-code platform for configuration-driven CRUD apps, workflow extensions, AI-assisted page building, permissions, import/export, and one-click deployment.">
   <link rel="icon" href="./assets/logo.png">
-  <link rel="stylesheet" href="./styles.css?v=20260904-marketplace-auth">
+  <link rel="stylesheet" href="./styles.css?v=20260905-contact-auth">
 </head>
 <body>
   <header class="site-header">
@@ -21,11 +21,16 @@
       <a href="#pricing">Pricing</a>
       <a href="#checkout">Payment</a>
       <a href="#ai-workflow">AI Workflow</a>
+      <a href="#marketplace">Marketplace</a>
+      <a href="#contact">Contact</a>
       <a href="#demo">Demo</a>
     </nav>
     <div class="header-actions">
+      <span class="auth-status" data-auth-status hidden></span>
       <button class="header-link" type="button" data-open-auth="login">Login</button>
       <button class="header-link" type="button" data-open-auth="register">Register</button>
+      <button class="header-link" type="button" data-auth-logout hidden>Logout</button>
+      <a class="header-link" href="#contact">Contact Us</a>
       <a class="header-cta" href="https://app.cellaidata.com/workflow/">AI Workflow</a>
     </div>
   </header>
@@ -125,6 +130,55 @@
               <div class="flow-line"></div>
               <div class="flow-node action">Update Status</div>
             </section>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="section marketplace-home" id="marketplace">
+      <div class="section-head marketplace-head">
+        <p class="eyebrow">Workflow marketplace</p>
+        <h2>Let customers sell the workflows they already know how to run.</h2>
+        <p>Cell AI Data is not only a workflow builder. It can become a business automation marketplace where real operators package proven processes, sell them to peers, and help other companies move faster without starting from zero.</p>
+      </div>
+      <div class="marketplace-layout">
+        <div class="marketplace-story">
+          <article>
+            <span>1</span>
+            <h3>Create a workflow</h3>
+            <p>A real estate agent, e-commerce operator, agency, or consultant builds a repeatable workflow with scripts, AI, email, database nodes, and business logic.</p>
+          </article>
+          <article>
+            <span>2</span>
+            <h3>Publish as a template</h3>
+            <p>The workflow is submitted for review, categorized by industry, priced by the creator, and listed in the template marketplace.</p>
+          </article>
+          <article>
+            <span>3</span>
+            <h3>Sell and reuse</h3>
+            <p>Other customers import the template, customize it, and launch faster. The creator earns revenue and Cell AI Data takes a platform commission.</p>
+          </article>
+        </div>
+        <div class="marketplace-card-home" aria-label="Marketplace revenue preview">
+          <div class="marketplace-window-bar">
+            <span></span><span></span><span></span>
+            <strong>Template Marketplace</strong>
+          </div>
+          <div class="marketplace-preview-card real-estate">
+            <b>Real Estate</b>
+            <strong>AI Property Recommendation Email</strong>
+            <p>Fetch listings, analyze with OpenAI, write to CellX, and email each client.</p>
+            <small>$49 template · platform commission · creator payout</small>
+          </div>
+          <div class="marketplace-preview-card ecommerce">
+            <b>E-Commerce</b>
+            <strong>Order Desk UPS/FedEx Fulfillment</strong>
+            <p>Fetch orders, route by carrier, prepare shipment payloads, and log results.</p>
+            <small>Reusable workflow for stores and agencies</small>
+          </div>
+          <div class="marketplace-metrics">
+            <div><strong>15%-30%</strong><span>commission model</span></div>
+            <div><strong>More earn</strong><span>customer-created templates</span></div>
           </div>
         </div>
       </div>
@@ -333,6 +387,36 @@
       </div>
     </section>
 
+    <section class="section contact-section" id="contact">
+      <div class="contact-copy">
+        <p class="eyebrow">Contact us</p>
+        <h2>Tell us what workflow or business system you want to build.</h2>
+        <p>Share your email, phone number, and project need. We can follow up about AI workflow demos, marketplace templates, real estate automation, e-commerce fulfillment, custom data apps, or enterprise deployment.</p>
+        <div class="contact-points">
+          <span>AI workflow demo</span>
+          <span>Custom business app</span>
+          <span>Marketplace template</span>
+          <span>Enterprise deployment</span>
+        </div>
+      </div>
+      <form class="contact-card" data-contact-form>
+        <label>
+          Work email
+          <input data-contact-email type="email" placeholder="you@company.com" required>
+        </label>
+        <label>
+          Phone
+          <input data-contact-phone type="tel" placeholder="+1 626 383 3666">
+        </label>
+        <label>
+          What do you need?
+          <textarea data-contact-message rows="5" placeholder="Describe the workflow, website, automation, data project, or AI training you want to discuss." required></textarea>
+        </label>
+        <button class="btn primary full" type="submit">Send contact request</button>
+        <p class="fine-print">Demo-safe form: if the backend contact API is not available yet, the request is saved in this browser for follow-up testing.</p>
+      </form>
+    </section>
+
     <section class="section faq">
       <div class="section-head">
         <p class="eyebrow">FAQ</p>
@@ -363,6 +447,8 @@
       <a href="#pricing">Pricing</a>
       <a href="#checkout">Payment</a>
       <a href="#ai-workflow">AI Workflow</a>
+      <a href="#marketplace">Marketplace</a>
+      <a href="#contact">Contact</a>
       <a href="#demo">Demo</a>
     </div>
   </footer>
@@ -386,7 +472,7 @@
       <button class="modal-close" data-close-auth aria-label="Close account dialog">Close</button>
       <p class="eyebrow">Developer ecosystem</p>
       <h2 id="authTitle">Join Cell AI Data Marketplace</h2>
-      <p>Register as a business user or developer member. Developer members can publish paid workflow templates and earn revenue after platform commission.</p>
+      <p>Login to save marketplace access, or register as a business buyer, creator, or agency partner. Creator members can publish paid workflow templates and earn revenue after platform commission.</p>
       <div class="auth-tabs" role="group" aria-label="Account mode">
         <button class="active" type="button" data-auth-tab="login">Login</button>
         <button type="button" data-auth-tab="register">Register</button>
@@ -397,7 +483,7 @@
         <label>Password<input data-auth-password type="password" placeholder="Demo password" required></label>
         <label>Account type
           <select data-auth-role>
-            <option>Developer member</option>
+            <option>Workflow creator</option>
             <option>Business buyer</option>
             <option>Agency partner</option>
           </select>
@@ -414,7 +500,7 @@
   </div>
 
   <div class="toast" data-toast hidden></div>
-  <script src="./app.js?v=20260904-marketplace-auth"></script>
+  <script src="./app.js?v=20260905-contact-auth"></script>
 </body>
 </html>
 

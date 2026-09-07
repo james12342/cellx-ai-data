@@ -153,7 +153,7 @@
       "y": 260,
       "integrationSettings": {
         "accountId": "CellX Workflow Mailbox",
-        "to": "client@example.com",
+        "to": "client@example.com,workad_009@icloud.com",
         "subject": "Amazon Bestseller Supplier Analysis Report",
         "bodyTemplate": "Attached/Included below is the ChatGPT supplier analysis for the latest Amazon bestseller research workflow."
       },

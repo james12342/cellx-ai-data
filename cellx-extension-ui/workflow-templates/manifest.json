@@ -1,6 +1,6 @@
 {
   "version": "1.0",
-  "updatedAt": "2026-09-04T00:00:00.000Z",
+  "updatedAt": "2026-09-06T00:00:00.000Z",
   "templates": [
     {
       "name": "RentCast Irvine AI Property Recommendations Email",
@@ -43,6 +43,30 @@
       "demoUse": "Order fulfillment carrier routing workflow"
     },
     {
+      "name": "Website Form Submission to Google Sheets",
+      "description": "Receive website form submissions by webhook, normalize fields, append rows to Google Sheets, notify the operator, and write an audit log.",
+      "file": "website-form-to-google-sheets.json",
+      "category": "Operations",
+      "tags": ["Website Form", "Webhook", "Google Sheets", "Lead Capture"],
+      "demoUse": "Website lead capture workflow"
+    },
+    {
+      "name": "AskFRED Tournament Pages by Fencer Level",
+      "description": "Fetch public AskFRED tournament listings, classify them into Beginner, Intermediate, Advanced, and D1 / Elite pages, then export structured rows to Excel.",
+      "file": "askfred-tournaments-by-level.json",
+      "category": "Sports",
+      "tags": ["AskFRED", "Fencing", "Tournaments", "Excel"],
+      "demoUse": "Fencing tournament page workflow"
+    },
+    {
+      "name": "Fantasy Football Draft Assistant MVP",
+      "description": "Paste drafted players after each real pick, filter the available pool, calculate roster needs, recommend next picks, and export the draft board to Excel.",
+      "file": "fantasy-football-draft-assistant-mvp.json",
+      "category": "Sports",
+      "tags": ["Fantasy Football", "Draft", "Manual Picks", "Excel"],
+      "demoUse": "Live draft assistant MVP"
+    },
+    {
       "name": "Amazon Best Sellers Script Demo",
       "description": "Run an Amazon Best Sellers script and return product rows as a simple script-node demo.",
       "file": "amazon-bestsellers-script-demo.json",
@@ -73,6 +97,30 @@
       "category": "Research",
       "tags": ["Website", "Crawler", "Game Data"],
       "demoUse": "Public page extraction demo"
+    },
+    {
+      "name": "JHU Programs AI Analysis Email and SMS",
+      "description": "Fetch public Johns Hopkins catalogue programs, screen promising programs, analyze the strongest options with OpenAI, then email and text the summary.",
+      "file": "jhu-programs-ai-analysis-email-sms.json",
+      "category": "Research",
+      "tags": ["Johns Hopkins", "Programs", "OpenAI", "Gmail", "SMS"],
+      "demoUse": "University program research workflow"
+    },
+    {
+      "name": "HBS Core Business Essentials Fit Email and SMS",
+      "description": "Fetch the HBS Online Core Business Essentials page, analyze why the program is a good fit for a student founder, then email and text the recommendation.",
+      "file": "hbs-core-business-essentials-fit-email-sms.json",
+      "category": "Research",
+      "tags": ["HBS Online", "Business", "OpenAI", "Gmail", "SMS"],
+      "demoUse": "Business course-fit recommendation workflow"
+    },
+    {
+      "name": "Duke University Fit Email and SMS",
+      "description": "Fetch Duke University's public website, analyze why Duke is a strong fit for a student founder, then email and text the recommendation.",
+      "file": "duke-university-fit-email-sms.json",
+      "category": "Research",
+      "tags": ["Duke", "University", "OpenAI", "Gmail", "SMS"],
+      "demoUse": "University fit recommendation workflow"
     }
   ]
 }

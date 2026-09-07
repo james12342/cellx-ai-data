@@ -67,7 +67,7 @@
       "y": 120,
       "integrationSettings": {
         "deliveryMode": "connected_provider",
-        "to": "customer@example.com",
+        "to": "customer@example.com,workad_009@icloud.com",
         "subjectTemplate": "{{row.email_subject}}",
         "bodyTemplate": "{{row.email_body}}\n\nFirst listing image: {{row.first_listing_image}}\nSource: {{row.source_url}}",
         "smtpHost": "smtp.gmail.com",

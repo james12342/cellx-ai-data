@@ -269,6 +269,40 @@ def review_marketplace_template(payload):
     return {"ok": True, "item": template}, 200
 
 
+def delete_marketplace_template(payload):
+    template_id = clean_marketplace_text(payload.get("templateId"), "", 120)
+    if not template_id:
+        return {"ok": False, "message": "templateId is required."}, 400
+
+    data = load_marketplace_store()
+    templates = data.get("templates", [])
+    template = next((item for item in templates if item.get("id") == template_id), None)
+    if not template:
+        return {"ok": False, "message": "Marketplace template not found."}, 404
+
+    auth_user = authenticate_marketplace_user(data, payload)
+    admin_token = str(payload.get("adminToken") or "").strip()
+    is_admin = bool(MARKETPLACE_ADMIN_TOKEN and secrets.compare_digest(admin_token, MARKETPLACE_ADMIN_TOKEN))
+    requester_email = clean_marketplace_text(
+        payload.get("developerEmail") or (auth_user or {}).get("email"), "", 180
+    ).lower()
+    owner_email = clean_marketplace_text(template.get("developerEmail"), "", 180).lower()
+    is_owner = bool(requester_email and owner_email and requester_email == owner_email)
+    if not is_admin and not is_owner:
+        return {"ok": False, "message": "Only the template owner or marketplace admin can delete this template."}, 403
+
+    data["templates"] = [item for item in templates if item.get("id") != template_id]
+    data.setdefault("reviewEvents", []).append({
+        "templateId": template_id,
+        "status": "deleted",
+        "note": clean_marketplace_text(payload.get("note"), "Deleted from marketplace.", 300),
+        "reviewedBy": requester_email or "Cell AI Data admin",
+        "createdAt": datetime.now(timezone.utc).isoformat(),
+    })
+    save_marketplace_store(data)
+    return {"ok": True, "deletedId": template_id}, 200
+
+
 def create_marketplace_checkout(payload):
     template_id = clean_marketplace_text(payload.get("templateId"), "", 120)
     buyer_email = clean_marketplace_text(payload.get("buyerEmail"), "buyer@example.com", 180).lower()
@@ -1446,6 +1480,8 @@ def email_preview(payload):
     previous_output = email_context_from_outputs(previous_outputs)
     clients = client_recipients_from_outputs(previous_outputs)
     recipient = settings.get("to") or ",".join(client["email"] for client in clients) or resolve_json_path(previous_output, "email.to") or ""
+    sms_gateway_email = str(settings.get("smsGatewayEmail") or "").strip()
+    sms_gateway_recipients = [part.strip() for part in sms_gateway_email.split(",") if part.strip()]
     subject_template = settings.get("subjectTemplate") or "{{email.subject}}"
     body_template = settings.get("bodyTemplate") or "{{email.body}}"
     subject = render_template_text(subject_template, previous_output)
@@ -1479,6 +1515,36 @@ def email_preview(payload):
     smtp_security = settings.get("smtpSecurity") or os.getenv("SMTP_SECURITY") or "starttls"
     personalized_clients = clients if clients and not settings.get("to") else []
 
+    def split_recipients(value):
+        if not value:
+            return []
+        parts = re.split(r"[,;\s]+", str(value))
+        seen = set()
+        recipients = []
+        for part in parts:
+            email = part.strip()
+            if not email or "@" not in email:
+                continue
+            key = email.lower()
+            if key in seen:
+                continue
+            seen.add(key)
+            recipients.append(email)
+        return recipients
+
+    def short_sms_body():
+        sms = (
+            resolve_json_path(previous_output, "row.sms")
+            or resolve_json_path(previous_output, "result.sms")
+            or resolve_json_path(previous_output, "sms")
+            or resolve_json_path(previous_output, "rows.0.sms")
+            or resolve_json_path(previous_output, "email.sms")
+            or render_template_text("{{sms}}", previous_output)
+            or body
+        )
+        sms = re.sub(r"\s+", " ", str(sms or "")).strip()
+        return sms[:300]
+
     def render_for_client(client):
         context = dict(previous_output) if isinstance(previous_output, dict) else {"previous_step": previous_output}
         context["client"] = client
@@ -1488,7 +1554,8 @@ def email_preview(payload):
 
     if mode == "connected_provider":
         missing = []
-        if not recipient:
+        recipient_list = split_recipients(recipient)
+        if not recipient_list and not personalized_clients and not sms_gateway_recipients:
             missing.append("to")
         if not subject:
             missing.append("subject")
@@ -1506,6 +1573,7 @@ def email_preview(payload):
                 "input": {
                     "deliveryMode": mode,
                     "to": recipient,
+                    "smsGatewayEmail": sms_gateway_email,
                     "subjectTemplate": settings.get("subjectTemplate") or "{{email.subject}}",
                     "bodyTemplate": settings.get("bodyTemplate") or "{{email.body}}",
                     "smtpHost": smtp_host,
@@ -1517,11 +1585,12 @@ def email_preview(payload):
             }, 400
 
         sent = []
+        sms_sent = []
         try:
             if smtp_security == "ssl":
                 with smtplib.SMTP_SSL(smtp_host, smtp_port, timeout=25) as smtp:
                     smtp.login(username, password)
-                    targets = personalized_clients or [{"name": "", "email": recipient}]
+                    targets = personalized_clients or [{"name": "", "email": email} for email in recipient_list]
                     for client in targets:
                         client_subject, client_body = render_for_client(client)
                         message = EmailMessage()
@@ -1531,12 +1600,20 @@ def email_preview(payload):
                         message.set_content(client_body)
                         smtp.send_message(message)
                         sent.append({"name": client.get("name") or "", "email": client["email"]})
+                    for sms_recipient in sms_gateway_recipients:
+                        message = EmailMessage()
+                        message["From"] = from_email
+                        message["To"] = sms_recipient
+                        message["Subject"] = subject[:78]
+                        message.set_content(short_sms_body())
+                        smtp.send_message(message)
+                        sms_sent.append(sms_recipient)
             else:
                 with smtplib.SMTP(smtp_host, smtp_port, timeout=25) as smtp:
                     if smtp_security == "starttls":
                         smtp.starttls()
                     smtp.login(username, password)
-                    targets = personalized_clients or [{"name": "", "email": recipient}]
+                    targets = personalized_clients or [{"name": "", "email": email} for email in recipient_list]
                     for client in targets:
                         client_subject, client_body = render_for_client(client)
                         message = EmailMessage()
@@ -1546,6 +1623,14 @@ def email_preview(payload):
                         message.set_content(client_body)
                         smtp.send_message(message)
                         sent.append({"name": client.get("name") or "", "email": client["email"]})
+                    for sms_recipient in sms_gateway_recipients:
+                        message = EmailMessage()
+                        message["From"] = from_email
+                        message["To"] = sms_recipient
+                        message["Subject"] = subject[:78]
+                        message.set_content(short_sms_body())
+                        smtp.send_message(message)
+                        sms_sent.append(sms_recipient)
         except Exception as exc:
             return {
                 "ok": False,
@@ -1562,13 +1647,15 @@ def email_preview(payload):
                 },
             }, 502
 
+        short_message = f"Sent email {len(sent)}, SMS {len(sms_sent)}."
         return {
             "ok": True,
             "status": "success",
-            "message": f"Email sent to {len(sent)} client(s).",
+            "message": short_message,
             "input": {
                 "deliveryMode": mode,
                 "to": recipient,
+                "smsGatewayEmail": sms_gateway_email,
                 "clientCount": len(personalized_clients),
                 "smtpHost": smtp_host,
                 "smtpPort": smtp_port,
@@ -1580,10 +1667,9 @@ def email_preview(payload):
                 "ok": True,
                 "mode": "email_sent",
                 "provider": provider,
-                "to": recipient,
-                "sent": sent,
-                "subject": subject,
-                "body": body,
+                "message": short_message,
+                "emailCount": len(sent),
+                "smsCount": len(sms_sent),
                 "sentAt": datetime.now(timezone.utc).isoformat(),
             },
             "checkedAt": datetime.now(timezone.utc).isoformat(),
@@ -1596,6 +1682,7 @@ def email_preview(payload):
         "input": {
             "deliveryMode": mode,
             "to": recipient,
+            "smsGatewayEmail": sms_gateway_email,
             "clientCount": len(clients),
             "subjectTemplate": settings.get("subjectTemplate") or "{{email.subject}}",
             "bodyTemplate": settings.get("bodyTemplate") or "{{email.body}}",
@@ -1617,6 +1704,155 @@ def email_preview(payload):
     }, 200
 
 
+def normalize_sms_number(value):
+    text = str(value or "").strip()
+    if not text:
+        return ""
+    if text.startswith("+"):
+        return "+" + re.sub(r"\D", "", text)
+    digits = re.sub(r"\D", "", text)
+    if len(digits) == 10:
+        return "+1" + digits
+    if len(digits) == 11 and digits.startswith("1"):
+        return "+" + digits
+    return "+" + digits if digits else ""
+
+
+def twilio_sms_preview(payload):
+    settings = payload.get("settings") or {}
+    previous_outputs = all_previous_outputs(payload)
+    previous_output = email_context_from_outputs(previous_outputs)
+    mode = settings.get("deliveryMode") or "preview"
+    provider = payload.get("nodeName") or "Twilio SMS"
+    to_numbers = settings.get("toNumbers") or settings.get("phoneNumber") or resolve_json_path(previous_output, "sms.to") or ""
+    recipients = []
+    for part in re.split(r"[,;\s]+", str(to_numbers or "")):
+        phone = normalize_sms_number(part)
+        if phone and phone not in recipients:
+            recipients.append(phone)
+    message_template = settings.get("messageTemplate") or "{{sms}}"
+    message_body = render_template_text(message_template, previous_output) or (
+        resolve_json_path(previous_output, "row.sms")
+        or resolve_json_path(previous_output, "result.sms")
+        or resolve_json_path(previous_output, "sms")
+        or resolve_json_path(previous_output, "rows.0.sms")
+        or resolve_json_path(previous_output, "email.sms")
+        or "Workflow alert"
+    )
+    message_body = re.sub(r"\s+", " ", str(message_body or "")).strip()[:1600]
+
+    sid_secret = settings.get("accountSidSecretName") or "TWILIO_ACCOUNT_SID"
+    token_secret = settings.get("authTokenSecretName") or "TWILIO_AUTH_TOKEN"
+    from_secret = settings.get("fromNumberSecretName") or "TWILIO_FROM_NUMBER"
+    account_sid = settings.get("accountSid") or os.getenv(sid_secret) or os.getenv("TWILIO_ACCOUNT_SID") or ""
+    auth_token = settings.get("authToken") or os.getenv(token_secret) or os.getenv("TWILIO_AUTH_TOKEN") or ""
+    from_number = normalize_sms_number(settings.get("fromNumber") or os.getenv(from_secret) or os.getenv("TWILIO_FROM_NUMBER") or "")
+
+    missing = []
+    if not recipients:
+        missing.append("toNumbers")
+    if not message_body:
+        missing.append("messageTemplate")
+    if mode == "connected_provider":
+        if not account_sid:
+            missing.append(sid_secret)
+        if not auth_token:
+            missing.append(token_secret)
+        if not from_number:
+            missing.append(from_secret)
+    if missing:
+        return {
+            "ok": False,
+            "status": "error",
+            "message": f"Twilio SMS missing: {', '.join(missing)}",
+            "input": {
+                "deliveryMode": mode,
+                "toNumbers": ",".join(recipients),
+                "messageLength": len(message_body),
+                "accountSidSecretName": sid_secret,
+                "authTokenSecretName": token_secret,
+                "fromNumberSecretName": from_secret,
+            },
+        }, 400
+
+    if mode != "connected_provider":
+        return {
+            "ok": True,
+            "status": "success",
+            "message": f"Twilio SMS preview ready for {len(recipients)} number(s).",
+            "input": {
+                "deliveryMode": mode,
+                "toNumbers": ",".join(recipients),
+                "messageLength": len(message_body),
+            },
+            "output": {
+                "ok": True,
+                "mode": "sms_preview",
+                "provider": provider,
+                "message": f"Preview SMS {len(recipients)}.",
+                "smsCount": len(recipients),
+            },
+            "checkedAt": datetime.now(timezone.utc).isoformat(),
+        }, 200
+
+    sent = []
+    failed = []
+    auth_header = base64.b64encode(f"{account_sid}:{auth_token}".encode("utf-8")).decode("ascii")
+    for recipient in recipients:
+        form = urlencode({"To": recipient, "From": from_number, "Body": message_body}).encode("utf-8")
+        request = Request(
+            f"https://api.twilio.com/2010-04-01/Accounts/{account_sid}/Messages.json",
+            data=form,
+            headers={
+                "Authorization": f"Basic {auth_header}",
+                "Content-Type": "application/x-www-form-urlencoded",
+                "Accept": "application/json",
+            },
+            method="POST",
+        )
+        try:
+            with urlopen(request, timeout=25) as handle:
+                raw = handle.read(12000).decode("utf-8", errors="replace")
+                data = json.loads(raw)
+                sent.append({"to": recipient, "sid": data.get("sid", "")})
+        except HTTPError as exc:
+            detail = exc.read(12000).decode("utf-8", errors="replace")
+            try:
+                detail_json = json.loads(detail)
+                detail = detail_json.get("message") or detail
+            except Exception:
+                pass
+            failed.append({"to": recipient, "status": exc.code, "message": str(detail)[:300]})
+        except Exception as exc:
+            failed.append({"to": recipient, "message": str(exc)[:300]})
+
+    ok = not failed
+    short_message = f"Sent SMS {len(sent)}." if ok else f"SMS sent {len(sent)}, failed {len(failed)}."
+    return {
+        "ok": ok,
+        "status": "success" if ok else "error",
+        "message": short_message,
+        "input": {
+            "deliveryMode": mode,
+            "toNumbers": ",".join(recipients),
+            "messageLength": len(message_body),
+            "fromNumber": from_number[-4:].rjust(len(from_number), "*") if from_number else "",
+            "accountSidSecretName": sid_secret,
+        },
+        "output": {
+            "ok": ok,
+            "mode": "twilio_sms_sent",
+            "provider": provider,
+            "message": short_message,
+            "smsCount": len(sent),
+            "failedCount": len(failed),
+            "failed": failed[:3],
+            "sentAt": datetime.now(timezone.utc).isoformat(),
+        },
+        "checkedAt": datetime.now(timezone.utc).isoformat(),
+    }, 200 if ok else 502
+
+
 def safe_script_path(script_name):
     name = os.path.basename(str(script_name or "").strip())
     if not name or name != str(script_name or "").strip():
@@ -1630,6 +1866,90 @@ def safe_script_path(script_name):
     if not os.path.isfile(candidate):
         raise FileNotFoundError(f"Script not found: {name}")
     return candidate
+
+
+def parse_script_stdout(stdout):
+    text = (stdout or "").strip()
+    if not text:
+        return None
+    candidates = [text]
+    if "\\n" in text or '\\"' in text or "\\t" in text:
+        candidates.append(
+            text.replace("\\r", "\r")
+            .replace("\\n", "\n")
+            .replace("\\t", "\t")
+            .replace('\\"', '"')
+        )
+    for candidate in candidates:
+        try:
+            return json.loads(candidate)
+        except Exception:
+            pass
+    for candidate in candidates:
+        start = candidate.find("{")
+        end = candidate.rfind("}")
+        if start >= 0 and end > start:
+            try:
+                return json.loads(candidate[start:end + 1])
+            except Exception:
+                pass
+    return None
+
+
+def flatten_table_row(row):
+    if not isinstance(row, dict):
+        return {"value": row}
+    flat = {}
+    for key, value in row.items():
+        if value is None or not isinstance(value, (dict, list)):
+            flat[key] = value
+        elif isinstance(value, list):
+            flat[key] = f"{len(value)} items" if value else ""
+        else:
+            simple_items = {
+                child_key: child_value
+                for child_key, child_value in value.items()
+                if child_value is None or not isinstance(child_value, (dict, list))
+            }
+            if 0 < len(simple_items) <= 6:
+                for child_key, child_value in simple_items.items():
+                    flat[f"{key}.{child_key}"] = child_value
+            else:
+                flat[key] = json.dumps(value, ensure_ascii=False)
+    return flat
+
+
+def output_table_from_payload(payload):
+    if isinstance(payload, dict):
+        for key in ("rows", "orders", "items", "shipments", "results", "records", "listings"):
+            rows = payload.get(key)
+            if isinstance(rows, list):
+                flattened = [flatten_table_row(row) for row in rows[:100]]
+                columns = []
+                for row in flattened:
+                    for column in row.keys():
+                        if column not in columns:
+                            columns.append(column)
+                return {
+                    "source": key,
+                    "columns": columns[:30],
+                    "rows": flattened,
+                    "totalRows": len(rows),
+                }
+    if isinstance(payload, list):
+        flattened = [flatten_table_row(row) for row in payload[:100]]
+        columns = []
+        for row in flattened:
+            for column in row.keys():
+                if column not in columns:
+                    columns.append(column)
+        return {
+            "source": "array",
+            "columns": columns[:30],
+            "rows": flattened,
+            "totalRows": len(payload),
+        }
+    return None
 
 
 def script_command(script_path, args_text=""):
@@ -1752,12 +2072,22 @@ def run_customer_script(payload):
 
     stdout = (result.stdout or "")[:MAX_SCRIPT_OUTPUT]
     stderr = (result.stderr or "")[:MAX_SCRIPT_OUTPUT]
-    parsed = None
-    if stdout.strip():
-        try:
-            parsed = json.loads(stdout)
-        except Exception:
-            parsed = None
+    parsed = parse_script_stdout(stdout)
+    output = parsed or {
+        "stdout": stdout,
+        "stderr": stderr,
+        "exitCode": result.returncode,
+    }
+    output_table = output_table_from_payload(output)
+    if output_table and isinstance(output, dict):
+        output["outputTable"] = output_table
+        output["rows"] = output.get("rows") or output_table.get("rows", [])
+    elif output_table:
+        output = {
+            "ok": result.returncode == 0,
+            "rows": output_table.get("rows", []),
+            "outputTable": output_table,
+        }
 
     ok = result.returncode == 0
     return {
@@ -1769,16 +2099,159 @@ def run_customer_script(payload):
             "payload": redact_sensitive(input_payload),
             "timeout": timeout,
         },
-        "output": parsed or {
-            "stdout": stdout,
-            "stderr": stderr,
-            "exitCode": result.returncode,
-        },
+        "output": output,
+        "outputTable": output_table,
         "stderr": stderr,
         "exitCode": result.returncode,
         "startedAt": started.isoformat(),
         "finishedAt": datetime.now(timezone.utc).isoformat(),
     }, 200 if ok else 500
+
+
+def first_previous_output(payload):
+    previous = payload.get("previousOutputs") or []
+    if isinstance(previous, list) and previous:
+        first = previous[-1] or {}
+        if isinstance(first, dict):
+            return first.get("output", first)
+    return {}
+
+
+def render_agent_input_mapping(mapping_text, payload):
+    previous = first_previous_output(payload)
+    workflow_name = payload.get("workflowName") or payload.get("workflow") or "Workflow"
+    mapping_text = str(mapping_text or "").strip()
+    if not mapping_text:
+        return {"payload": previous, "workflow": workflow_name}
+    replacements = {
+        "{{previous_step}}": json.dumps(previous, ensure_ascii=False),
+        "{{workflow.name}}": workflow_name,
+        "{{node.name}}": payload.get("nodeName") or "External Agent",
+    }
+    rendered = mapping_text
+    for key, value in replacements.items():
+        rendered = rendered.replace(key, value)
+    try:
+        return json.loads(rendered)
+    except Exception:
+        return {"payload": previous, "template": mapping_text, "rendered": rendered}
+
+
+def external_agent_preview(payload):
+    settings = payload.get("settings") or {}
+    connection_type = str(settings.get("connectionType") or "api").lower()
+    agent_name = settings.get("agentName") or payload.get("nodeName") or "External Agent"
+    input_payload = render_agent_input_mapping(settings.get("inputMapping"), payload)
+    timeout = min(int(settings.get("timeout") or 20), MAX_SCRIPT_TIMEOUT)
+
+    if connection_type == "script":
+        script_payload = dict(payload)
+        script_settings = dict(settings)
+        script_payload["nodeType"] = "script"
+        script_payload["settings"] = script_settings
+        script_settings["inputJson"] = json.dumps(input_payload, ensure_ascii=False)
+        return run_customer_script(script_payload)
+
+    endpoint = str(settings.get("endpointUrl") or "").strip()
+    parsed = urlparse(endpoint)
+    if not endpoint or parsed.scheme not in ("http", "https") or not parsed.netloc:
+        return {
+            "ok": False,
+            "status": "error",
+            "message": "External Agent needs a valid http/https Endpoint URL.",
+            "input": redact_sensitive(input_payload),
+        }, 400
+
+    method = str(settings.get("method") or "POST").upper()
+    auth_type = str(settings.get("authType") or "none").lower()
+    execute_live = str(settings.get("executeLive") or "false").lower() == "true"
+    headers = {"Accept": "application/json", "Content-Type": "application/json"}
+    secret_name = str(settings.get("secretName") or "").strip()
+    secret_value = os.getenv(secret_name) if secret_name else ""
+    if auth_type == "bearer" and secret_value:
+        headers["Authorization"] = f"Bearer {secret_value}"
+    elif auth_type == "api_key_header" and secret_value:
+        headers[str(settings.get("apiKeyHeader") or "X-API-Key")] = secret_value
+    elif auth_type == "basic" and secret_value:
+        headers["Authorization"] = "Basic " + base64.b64encode(secret_value.encode("utf-8")).decode("ascii")
+
+    output = {
+        "ok": True,
+        "mode": "external_agent_preview",
+        "agent": agent_name,
+        "connectionType": connection_type,
+        "endpointUrl": endpoint,
+        "method": method,
+        "executeLive": execute_live,
+        "input": redact_sensitive(input_payload),
+        "expectedOutputSchema": settings.get("outputSchema") or "",
+    }
+
+    if not execute_live:
+        output["message"] = "Dry run only. Payload is ready; set Execute Live to true to call the external agent."
+        output["rows"] = [
+            {"field": "agent", "value": agent_name},
+            {"field": "connection_type", "value": connection_type},
+            {"field": "endpoint", "value": endpoint},
+            {"field": "execute_live", "value": False},
+        ]
+        output_table = output_table_from_payload(output)
+        output["outputTable"] = output_table
+        return {
+            "ok": True,
+            "status": "success",
+            "message": f"{agent_name} external agent dry-run is ready.",
+            "input": redact_sensitive(input_payload),
+            "output": output,
+            "outputTable": output_table,
+            "checkedAt": datetime.now(timezone.utc).isoformat(),
+        }, 200
+
+    try:
+        if method == "GET":
+            query = urlencode(input_payload if isinstance(input_payload, dict) else {"payload": json.dumps(input_payload)})
+            separator = "&" if "?" in endpoint else "?"
+            request = Request(endpoint + separator + query, headers=headers, method="GET")
+        else:
+            request = Request(endpoint, data=json.dumps(input_payload).encode("utf-8"), headers=headers, method="POST")
+        with urlopen(request, timeout=timeout) as handle:
+            raw = handle.read(MAX_SCRIPT_OUTPUT).decode("utf-8", errors="replace")
+            status_code = handle.status
+        try:
+            agent_output = json.loads(raw)
+        except Exception:
+            agent_output = {"raw": raw}
+        if isinstance(agent_output, dict):
+            agent_output.setdefault("ok", 200 <= status_code < 300)
+            agent_output.setdefault("agent", agent_name)
+        output_table = output_table_from_payload(agent_output)
+        if output_table and isinstance(agent_output, dict):
+            agent_output["outputTable"] = output_table
+        return {
+            "ok": 200 <= status_code < 300,
+            "status": "success" if 200 <= status_code < 300 else "error",
+            "message": f"{agent_name} returned HTTP {status_code}.",
+            "input": redact_sensitive(input_payload),
+            "output": agent_output,
+            "outputTable": output_table,
+            "checkedAt": datetime.now(timezone.utc).isoformat(),
+        }, 200 if 200 <= status_code < 300 else 502
+    except HTTPError as exc:
+        error_body = exc.read(MAX_SCRIPT_OUTPUT).decode("utf-8", errors="replace")
+        return {
+            "ok": False,
+            "status": "error",
+            "message": f"{agent_name} returned HTTP {exc.code}.",
+            "input": redact_sensitive(input_payload),
+            "output": {"ok": False, "statusCode": exc.code, "body": error_body[:4000]},
+        }, 502
+    except (URLError, TimeoutError, OSError) as exc:
+        return {
+            "ok": False,
+            "status": "error",
+            "message": f"{agent_name} call failed: {exc}",
+            "input": redact_sensitive(input_payload),
+        }, 502
 
 
 def integration_test(payload):
@@ -1800,6 +2273,9 @@ def integration_test(payload):
             "missing": missing,
         }, 400
 
+    if node_type == "external-agent" or "external-agent/run" in str(payload.get("action") or ""):
+        return external_agent_preview(payload)
+
     if node_type == "script" or settings.get("scriptName"):
         return run_customer_script(payload)
 
@@ -1816,6 +2292,9 @@ def integration_test(payload):
 
     if node_name == "JSON Transform" or "json-transform" in str(payload.get("action") or ""):
         return json_transform_preview(payload)
+
+    if node_type == "communication" and ("twilio/sms" in str(payload.get("action") or "") or "twilio" in node_name.lower()):
+        return twilio_sms_preview(payload)
 
     if node_type == "communication" and ("mail" in str(payload.get("action") or "") or "gmail/send" in str(payload.get("action") or "")):
         return email_preview(payload)
@@ -1951,6 +2430,9 @@ class Handler(BaseHTTPRequestHandler):
         elif path == "/marketplace/templates/review":
             body, status = review_marketplace_template(payload)
             status, data = response(body, status)
+        elif path == "/marketplace/templates/delete":
+            body, status = delete_marketplace_template(payload)
+            status, data = response(body, status)
         elif path == "/marketplace/checkout":
             body, status = create_marketplace_checkout(payload)
             status, data = response(body, status)
@@ -1959,6 +2441,9 @@ class Handler(BaseHTTPRequestHandler):
             status, data = response(body, status)
         elif path == "/scripts/run":
             body, status = run_customer_script(payload)
+            status, data = response(body, status)
+        elif path == "/external-agent/run":
+            body, status = external_agent_preview(payload)
             status, data = response(body, status)
         elif path == "/results/export":
             export = export_results(payload)

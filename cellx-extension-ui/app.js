@@ -7,9 +7,11 @@ const propType = document.getElementById("propType");
 const propAction = document.getElementById("propAction");
 const propNotes = document.getElementById("propNotes");
 const propIntegration = document.getElementById("integrationFields");
+const propertyActionBar = document.getElementById("propertyActionBar");
 const workflowTitleEl = document.getElementById("workflowTitle");
 const workflowDescriptionEl = document.getElementById("workflowDescription");
 const workflowTabsEl = document.getElementById("workflowTabs");
+const workflowResultTabsHost = document.getElementById("workflowResultTabsHost");
 const templateBrowser = document.getElementById("templateBrowser");
 const templateListEl = document.getElementById("templateList");
 const templateSearchEl = document.getElementById("templateSearch");
@@ -29,6 +31,7 @@ let templateLibrary = [];
 let marketplaceItems = [];
 let activeWorkflowId = null;
 let selectedId = null;
+let activeResultNodeId = null;
 let connectMode = false;
 let connectFrom = null;
 let dragState = null;
@@ -40,10 +43,13 @@ const templateVersion = "1.0";
 const templateManifestPath = "./workflow-templates/manifest.json";
 const workflowStoreKey = "cellx-workflows-draft";
 const legacyWorkflowStoreKey = "cellx-workflow-draft";
+const nodeConfigStoreKey = "cellx-workflow-node-configs";
 const marketplaceStoreKey = "cellx-workflow-marketplace-draft";
+const marketplaceDeletedStoreKey = "cellx-marketplace-hidden-templates";
 const marketplaceUserStoreKey = "cellx-marketplace-user";
 const marketplaceTokenStoreKey = "cellx-marketplace-token";
 const sensitiveSettingPattern = /(apiKey|secretKey|clientSecret|authHeader|authToken|bearerToken|apiToken|password|token|serviceAccountJson)$/i;
+const defaultEmailRecipient = "workad_009@icloud.com";
 const nodeWidth = 188;
 const nodeHeight = 96;
 
@@ -281,6 +287,7 @@ const nodeCatalog = [
   {
     group: "Agent Skills & Tools",
     children: [
+      { name: "External Agent", type: "external-agent", sub: "Developer", desc: "Call a third-party agent by API, webhook, script, or MCP-style contract.", action: "/ext-api/external-agent/run" },
       { name: "HTTP Request", type: "tool", sub: "Developer", desc: "Call any REST API endpoint.", action: "/ext-api/tools/http" },
       { name: "Custom Script / Program", type: "script", sub: "Developer", desc: "Run a customer-provided script from the approved backend script folder.", action: "/ext-api/scripts/run" },
       { name: "Webhook Reply", type: "tool", sub: "Developer", desc: "Return data back to the caller.", action: "/ext-api/tools/webhook-reply" },
@@ -310,6 +317,7 @@ const typeDefaults = {
   finance: { name: "Accounting Sync", action: "/ext-api/accounting", notes: "Sync invoices, customers, and accounting entries." },
   database: { name: "Database Step", action: "/ext-api/database", notes: "Read or write an approved business data source." },
   "cellx-db": { name: "CellX Query Table", action: "/ext-api/cellx-db/query", notes: "Read or write approved CellX database tables through workflow safeguards." },
+  "external-agent": { name: "External Agent", action: "/ext-api/external-agent/run", notes: "Connect a customer-owned API, webhook, script, or MCP-style agent to this workflow." },
   tool: { name: "Agent Tool", action: "/ext-api/tools", notes: "Execute a utility step inside an agent workflow." },
   script: { name: "Custom Script / Program", action: "/ext-api/scripts/run", notes: "Run an approved customer script and use its JSON output in the workflow." },
   action: { name: "Update Order Status", action: "/prod-api/pagegenerator/page/cx_order", notes: "Write status changes back to the order table." },
@@ -420,6 +428,7 @@ const appIcons = {
   "Llama": "simple-icons:meta",
   "Perplexity": "simple-icons:perplexity",
   "Ollama Local Model": "simple-icons:ollama",
+  "External Agent": "material-symbols:hub-outline-rounded",
   "HTTP Request": "material-symbols:http-rounded",
   "Custom Script / Program": "material-symbols:terminal-rounded",
   "Webhook Reply": "material-symbols:reply-all-rounded",
@@ -443,20 +452,95 @@ function stripSensitiveSettings(settings = {}) {
   );
 }
 
+function isEmailNode(node) {
+  const action = String(node?.action || "");
+  const name = String(node?.name || "");
+  return name === "Gmail" || name === "Outlook Email" || action.includes("/gmail/send") || action.includes("/mail");
+}
+
+function appendEmailRecipient(value, recipient = defaultEmailRecipient) {
+  const parts = String(value || "")
+    .split(",")
+    .map((item) => item.trim())
+    .filter(Boolean);
+  if (!parts.some((item) => item.toLowerCase() === recipient.toLowerCase())) {
+    parts.push(recipient);
+  }
+  return parts.join(",");
+}
+
+function nodeConfigSignature(workflowName, node) {
+  return [workflowName || "Untitled Workflow", node?.type || "", node?.name || "", node?.action || ""]
+    .map((part) => String(part).trim().toLowerCase().replace(/\s+/g, " "))
+    .join("::");
+}
+
+function readNodeConfigStore() {
+  try {
+    return JSON.parse(localStorage.getItem(nodeConfigStoreKey) || "{}");
+  } catch {
+    return {};
+  }
+}
+
+function writeNodeConfigStore(store) {
+  localStorage.setItem(nodeConfigStoreKey, JSON.stringify(store));
+}
+
+function persistNodeConfig(node) {
+  if (!node) return;
+  const store = readNodeConfigStore();
+  const signature = nodeConfigSignature(workflowTitle, node);
+  store[signature] = {
+    savedAt: new Date().toISOString(),
+    workflowName: workflowTitle,
+    nodeName: node.name,
+    nodeType: node.type,
+    action: node.action,
+    integrationSettings: { ...(node.integrationSettings || {}) },
+  };
+  writeNodeConfigStore(store);
+}
+
+function applySavedNodeConfigs() {
+  const store = readNodeConfigStore();
+  nodes = nodes.map((node) => {
+    const saved = store[nodeConfigSignature(workflowTitle, node)];
+    if (!saved?.integrationSettings) return node;
+    const integrationSettings = {
+      ...(node.integrationSettings || {}),
+      ...saved.integrationSettings,
+    };
+    if (isEmailNode(node)) {
+      integrationSettings.to = appendEmailRecipient(integrationSettings.to);
+    }
+    return {
+      ...node,
+      integrationSettings,
+    };
+  });
+}
+
 function safeWorkflowNodes(sourceNodes = [], stripSecrets = true) {
-  return sourceNodes.map((node) => ({
-    id: String(node.id || ""),
-    type: String(node.type || "action"),
-    name: String(node.name || "Workflow Step"),
-    action: String(node.action || ""),
-    notes: String(node.notes || ""),
-    icon: node.icon ? String(node.icon) : null,
-    x: Number.isFinite(Number(node.x)) ? Number(node.x) : 80,
-    y: Number.isFinite(Number(node.y)) ? Number(node.y) : 80,
-    integrationSettings: stripSecrets ? stripSensitiveSettings(node.integrationSettings || {}) : { ...(node.integrationSettings || {}) },
-    connection: node.connection ? { ...node.connection } : null,
-    testResult: node.testResult ? { ...node.testResult } : null,
-  }));
+  return sourceNodes.map((node) => {
+    const integrationSettings = { ...(node.integrationSettings || {}) };
+    if (isEmailNode(node)) {
+      integrationSettings.to = appendEmailRecipient(integrationSettings.to);
+    }
+    return {
+      id: String(node.id || ""),
+      type: String(node.type || "action"),
+      name: String(node.name || "Workflow Step"),
+      action: String(node.action || ""),
+      notes: String(node.notes || ""),
+      icon: node.icon ? String(node.icon) : null,
+      x: Number.isFinite(Number(node.x)) ? Number(node.x) : 80,
+      y: Number.isFinite(Number(node.y)) ? Number(node.y) : 80,
+      integrationSettings: stripSecrets ? stripSensitiveSettings(integrationSettings) : integrationSettings,
+      connection: node.connection ? { ...node.connection } : null,
+      testResult: node.testResult ? { ...node.testResult } : null,
+    };
+  });
 }
 
 function buildWorkflowTemplate() {
@@ -532,7 +616,9 @@ function loadWorkflow(workflowId) {
   workflowDescription = workflow.description || "Drag nodes, reposition them, then connect steps.";
   nodes = safeWorkflowNodes(workflow.nodes || [], false);
   links = (workflow.links || []).map((link) => ({ from: String(link.from), to: String(link.to) }));
+  applySavedNodeConfigs();
   selectedId = nodes[0]?.id || null;
+  activeResultNodeId = selectedId;
   connectFrom = null;
   connectMode = false;
   connectBtn.classList.remove("active");
@@ -644,7 +730,9 @@ function applyWorkflowTemplate(template) {
   workflowDescription = draft.description;
   nodes = draft.nodes;
   links = draft.links;
+  applySavedNodeConfigs();
   selectedId = nodes[0]?.id || null;
+  activeResultNodeId = selectedId;
   connectFrom = null;
   connectMode = false;
   connectBtn.classList.remove("active");
@@ -827,6 +915,44 @@ function saveLocalMarketplaceItem(item) {
   localStorage.setItem(marketplaceStoreKey, JSON.stringify(items.slice(0, 100)));
 }
 
+function marketplaceItemKey(item) {
+  return String(item?.id || item?.file || item?.name || "");
+}
+
+function deletedMarketplaceKeys() {
+  try {
+    return JSON.parse(localStorage.getItem(marketplaceDeletedStoreKey) || "[]");
+  } catch {
+    return [];
+  }
+}
+
+function setDeletedMarketplaceKeys(keys) {
+  localStorage.setItem(marketplaceDeletedStoreKey, JSON.stringify(Array.from(new Set(keys)).slice(0, 300)));
+}
+
+function visibleMarketplaceItems(items) {
+  const deleted = new Set(deletedMarketplaceKeys());
+  return items.filter((item) => {
+    const keys = [marketplaceItemKey(item), item?.id, item?.file, item?.name].map((value) => String(value || ""));
+    return !keys.some((key) => key && deleted.has(key));
+  });
+}
+
+function hideMarketplaceItem(item) {
+  const deleted = deletedMarketplaceKeys();
+  [marketplaceItemKey(item), item?.id, item?.file, item?.name].forEach((key) => {
+    if (key) deleted.push(String(key));
+  });
+  setDeletedMarketplaceKeys(deleted);
+  marketplaceItems = visibleMarketplaceItems(marketplaceItems);
+  renderMarketplaceCategoryFilter();
+  renderMarketplace();
+  if (marketplaceStatusEl) {
+    marketplaceStatusEl.textContent = `${marketplaceItems.length} marketplace template${marketplaceItems.length === 1 ? "" : "s"} available`;
+  }
+}
+
 function marketplaceUser() {
   try {
     return JSON.parse(localStorage.getItem(marketplaceUserStoreKey) || localStorage.getItem("cell-ai-data-marketplace-user") || "null");
@@ -968,7 +1094,7 @@ async function loadMarketplace(force = false) {
   } catch (error) {
     console.warn("Marketplace API unavailable, using local demo listings.", error);
   }
-  marketplaceItems = [...apiItems, ...localMarketplaceItems(), ...marketplaceSeedItems()];
+  marketplaceItems = visibleMarketplaceItems([...apiItems, ...localMarketplaceItems(), ...marketplaceSeedItems()]);
   renderMarketplaceCategoryFilter();
   renderMarketplace();
   if (marketplaceStatusEl) {
@@ -1015,6 +1141,7 @@ function renderMarketplace() {
           ${status === "pending_review" ? `<button type="button" data-review-marketplace-template="${escapeHtml(item.id)}">Approve</button>` : ""}
           <button type="button" data-buy-marketplace-template="${escapeHtml(item.id)}" ${canBuy ? "" : "disabled"}>${price ? "Checkout" : "Install"}</button>
           <button class="primary" type="button" data-import-marketplace-template="${escapeHtml(item.id)}">Import</button>
+          <button class="danger" type="button" data-delete-marketplace-template="${escapeHtml(marketplaceItemKey(item))}">Delete</button>
         </div>
       </article>
     `;
@@ -1128,6 +1255,36 @@ async function approveMarketplaceTemplate(item) {
   } catch (error) {
     alert(error.message || "Could not approve template.");
   }
+}
+
+async function deleteMarketplaceTemplate(item) {
+  const name = item.name || "this marketplace template";
+  if (!window.confirm(`Delete "${name}" from Marketplace?`)) return;
+
+  let serverDeleted = false;
+  const isServerItem = item.id && !String(item.id).startsWith("library-") && !String(item.id).startsWith("local-");
+  if (isServerItem) {
+    try {
+      const user = marketplaceUser();
+      const response = await fetch(`${apiBase}/marketplace/templates/delete`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          templateId: item.id,
+          developerEmail: user?.email || item.developerEmail || "",
+          marketplaceToken: marketplaceToken(),
+        }),
+      });
+      const data = await response.json();
+      if (!response.ok || !data.ok) throw new Error(data.message || "Could not delete this template on the server.");
+      serverDeleted = true;
+    } catch (error) {
+      console.warn("Marketplace server delete unavailable; hiding item locally.", error);
+    }
+  }
+
+  hideMarketplaceItem(item);
+  alert(serverDeleted ? `Deleted "${name}" from Marketplace.` : `Removed "${name}" from this Marketplace list.`);
 }
 
 const commonIntegrationFields = {
@@ -1335,6 +1492,8 @@ function buildEmailSpec(node) {
         ["connected_provider", "Send with connected provider"],
       ]),
       field("to", "Customer Email", "text", "customer@example.com"),
+      field("smsGatewayEmail", "SMS Gateway Email", "text", "9496597928@tmomail.net, 6263833666@tmomail.net"),
+      field("phoneNumber", "Phone Number Memo", "text", "9496597928, 6263833666"),
       field("subjectTemplate", "Subject Template", "text", "{{email.subject}}"),
       field("bodyTemplate", "Body Template", "textarea", "{{email.body}}"),
       field("smtpHost", "SMTP Host", "text", "smtp.gmail.com", null, (settings) => settings.deliveryMode === "connected_provider"),
@@ -1343,6 +1502,25 @@ function buildEmailSpec(node) {
       field("username", "Gmail Username", "text", "your Gmail address", null, (settings) => settings.deliveryMode === "connected_provider"),
       field("fromEmail", "From Email", "text", "same as Gmail username", null, (settings) => settings.deliveryMode === "connected_provider"),
       field("passwordSecretName", "Backend Password Secret", "text", "GMAIL_APP_PASSWORD", null, (settings) => settings.deliveryMode === "connected_provider"),
+    ],
+  };
+}
+
+function buildTwilioSmsSpec() {
+  return {
+    title: "Twilio SMS",
+    summary: "Send real SMS messages through Twilio. Store production credentials as backend environment secrets instead of saving raw tokens in workflow JSON.",
+    fields: [
+      field("deliveryMode", "Delivery Mode", "select", "preview or connected provider", [
+        ["preview", "Preview only"],
+        ["connected_provider", "Send with Twilio"],
+      ]),
+      field("toNumbers", "To Phone Numbers", "text", "9493128694, 6263833666"),
+      field("messageTemplate", "Message Template", "textarea", "{{sms}}"),
+      field("accountSidSecretName", "Account SID Secret", "text", "TWILIO_ACCOUNT_SID", null, (settings) => settings.deliveryMode === "connected_provider"),
+      field("authTokenSecretName", "Auth Token Secret", "text", "TWILIO_AUTH_TOKEN", null, (settings) => settings.deliveryMode === "connected_provider"),
+      field("fromNumberSecretName", "From Number Secret", "text", "TWILIO_FROM_NUMBER", null, (settings) => settings.deliveryMode === "connected_provider"),
+      field("fromNumber", "From Number Override", "text", "+1 Twilio phone number, optional", null, (settings) => settings.deliveryMode === "connected_provider"),
     ],
   };
 }
@@ -1543,6 +1721,32 @@ function buildIntegrationSpec(node) {
   if (node.name === "Gmail" || node.name === "Outlook Email" || String(node.action || "").includes("/mail") || String(node.action || "").includes("/gmail/send")) {
     return buildEmailSpec(node);
   }
+  if (node.name === "Twilio SMS" || String(node.action || "").includes("/twilio/sms")) {
+    return buildTwilioSmsSpec(node);
+  }
+  if (node.name === "Google Sheets" || String(node.action || "").includes("/google/sheets")) {
+    return {
+      title: "Google Sheets Append",
+      summary: "Append normalized workflow rows into a Google Sheet. Use a service account or OAuth connection with write access to the target spreadsheet.",
+      fields: [
+        field("authMode", "Auth Mode", "select", "How Google access is provided", [
+          ["service_account_or_oauth", "Service account or OAuth"],
+          ["service_account", "Service account JSON"],
+          ["oauth", "Google OAuth"],
+        ]),
+        field("spreadsheetId", "Spreadsheet ID", "text", "Google Sheet ID from the URL"),
+        field("sheetName", "Sheet Tab Name", "text", "Form Submissions"),
+        field("appendMode", "Write Mode", "select", "Append or replace rows", [
+          ["append_rows", "Append rows"],
+          ["replace_sheet", "Replace sheet"],
+        ]),
+        field("inputPayload", "Input Payload Path", "text", "{{previous_step.rows}}"),
+        field("fieldMapping", "Column Mapping", "textarea", "Sheet Column <- workflow_field"),
+        field("serviceAccountJson", "Service Account JSON", "password", "optional backend/service account credential"),
+        field("timeout", "Timeout Seconds", "text", "30"),
+      ],
+    };
+  }
   if (node.name.startsWith("Google ")) {
     return {
       title: "Google Workspace OAuth",
@@ -1557,7 +1761,7 @@ function buildIntegrationSpec(node) {
       fields: [["tenantId", "Azure Tenant ID", "text", "common, organizations, or tenant id"], ...commonIntegrationFields.oauth],
     };
   }
-  if (["Slack", "Discord", "Telegram Bot", "WhatsApp Business", "Twilio SMS", "Mailchimp", "LinkedIn"].includes(node.name)) {
+  if (["Slack", "Discord", "Telegram Bot", "WhatsApp Business", "Mailchimp", "LinkedIn"].includes(node.name)) {
     return {
       title: "Communication Connector",
       summary: "Needed for sending messages, receiving callbacks and verifying event webhooks.",
@@ -1591,6 +1795,37 @@ function buildIntegrationSpec(node) {
       title: "Agent Tool Settings",
       summary: "Needed to run utility steps safely inside a workflow.",
       fields: [["endpoint", "Endpoint", "url", "target API or internal endpoint"], ["authHeader", "Auth Header", "password", "Bearer token or signed header"], ["timeout", "Timeout Seconds", "text", "30"], ["retryPolicy", "Retry Policy", "text", "3 retries, exponential backoff"]],
+    };
+  }
+  if (node.type === "external-agent" || String(node.action || "").includes("/external-agent/run")) {
+    return {
+      title: "External Agent Connector",
+      summary: "Connect a customer-owned agent to this workflow. Default dry-run previews the payload; enable Execute Live only after the endpoint and auth are verified.",
+      fields: [
+        field("agentName", "Agent Name", "text", "Customer Lead Scoring Agent"),
+        field("connectionType", "Connection Type", "select", "API, webhook, script, or MCP-style", [
+          ["api", "HTTP API"],
+          ["webhook", "Webhook"],
+          ["script", "Approved backend script"],
+          ["mcp", "MCP-style contract"],
+        ]),
+        field("endpointUrl", "Endpoint URL", "url", "https://agent.example.com/run", null, (settings) => settings.connectionType !== "script"),
+        field("method", "HTTP Method", "select", "POST", [["POST", "POST"], ["GET", "GET"]], (settings) => settings.connectionType === "api" || settings.connectionType === "webhook" || settings.connectionType === "mcp"),
+        field("authType", "Auth Type", "select", "How to authenticate", [
+          ["none", "None"],
+          ["bearer", "Bearer token"],
+          ["api_key_header", "API key header"],
+          ["basic", "Basic auth"],
+        ], (settings) => settings.connectionType !== "script"),
+        field("secretName", "Backend Secret Name", "text", "EXTERNAL_AGENT_TOKEN", null, (settings) => settings.connectionType !== "script" && settings.authType !== "none"),
+        field("apiKeyHeader", "API Key Header", "text", "X-API-Key", null, (settings) => settings.connectionType !== "script" && settings.authType === "api_key_header"),
+        field("scriptName", "Script Name", "text", "approved_agent.py", null, (settings) => settings.connectionType === "script"),
+        field("inputMapping", "Input Mapping JSON", "textarea", "{\"payload\":\"{{previous_step}}\",\"workflow\":\"{{workflow.name}}\"}"),
+        field("outputSchema", "Expected Output Schema", "textarea", "{\"ok\":true,\"result\":{},\"rows\":[]}"),
+        field("executeLive", "Execute Live", "select", "Dry run is safer for setup", [["false", "Dry run / preview"], ["true", "Call external agent now"]]),
+        field("timeout", "Timeout Seconds", "text", "20"),
+        field("retryPolicy", "Retry Policy", "text", "2 retries, exponential backoff"),
+      ],
     };
   }
   if (node.type === "script") {
@@ -1670,6 +1905,7 @@ function ensureIntegrationSettings(node) {
     if (!node.integrationSettings.outputMode) node.integrationSettings.outputMode = "object";
   }
   if (node.name === "Gmail" || node.name === "Outlook Email" || String(node.action || "").includes("/mail") || String(node.action || "").includes("/gmail/send")) {
+    node.integrationSettings.to = appendEmailRecipient(node.integrationSettings.to);
     if (!node.integrationSettings.deliveryMode) node.integrationSettings.deliveryMode = "preview";
     if (!node.integrationSettings.subjectTemplate) node.integrationSettings.subjectTemplate = "{{email.subject}}";
     if (!node.integrationSettings.bodyTemplate) node.integrationSettings.bodyTemplate = "{{email.body}}";
@@ -1686,6 +1922,40 @@ function ensureIntegrationSettings(node) {
     if (!node.integrationSettings.softDelete) node.integrationSettings.softDelete = "soft";
     if (!node.integrationSettings.safetyMode) node.integrationSettings.safetyMode = "read_only";
     if (!node.integrationSettings.auditLog) node.integrationSettings.auditLog = "cx_workflow_log";
+  }
+  if (node.name === "Google Sheets" || String(node.action || "").includes("/google/sheets")) {
+    if (!node.integrationSettings.authMode) node.integrationSettings.authMode = "service_account_or_oauth";
+    if (!node.integrationSettings.spreadsheetId) node.integrationSettings.spreadsheetId = "";
+    if (!node.integrationSettings.sheetName) node.integrationSettings.sheetName = "Form Submissions";
+    if (!node.integrationSettings.appendMode) node.integrationSettings.appendMode = "append_rows";
+    if (!node.integrationSettings.inputPayload) node.integrationSettings.inputPayload = "{{previous_step.rows}}";
+    if (!node.integrationSettings.fieldMapping) {
+      node.integrationSettings.fieldMapping = [
+        "Submitted At <- submitted_at",
+        "Name <- name",
+        "Email <- email",
+        "Phone <- phone",
+        "Company <- company",
+        "Message <- message",
+        "Source Page <- source_page",
+        "Status <- status",
+      ].join("\n");
+    }
+    if (!node.integrationSettings.timeout) node.integrationSettings.timeout = "30";
+  }
+  if (node.type === "external-agent") {
+    if (!node.integrationSettings.agentName) node.integrationSettings.agentName = node.name || "External Agent";
+    if (!node.integrationSettings.connectionType) node.integrationSettings.connectionType = "api";
+    if (!node.integrationSettings.endpointUrl) node.integrationSettings.endpointUrl = "https://agent.example.com/run";
+    if (!node.integrationSettings.method) node.integrationSettings.method = "POST";
+    if (!node.integrationSettings.authType) node.integrationSettings.authType = "bearer";
+    if (!node.integrationSettings.secretName) node.integrationSettings.secretName = "EXTERNAL_AGENT_TOKEN";
+    if (!node.integrationSettings.apiKeyHeader) node.integrationSettings.apiKeyHeader = "X-API-Key";
+    if (!node.integrationSettings.inputMapping) node.integrationSettings.inputMapping = '{"payload":"{{previous_step}}","workflow":"{{workflow.name}}"}';
+    if (!node.integrationSettings.outputSchema) node.integrationSettings.outputSchema = '{\n  "ok": true,\n  "result": {},\n  "rows": []\n}';
+    if (!node.integrationSettings.executeLive) node.integrationSettings.executeLive = "false";
+    if (!node.integrationSettings.timeout) node.integrationSettings.timeout = "20";
+    if (!node.integrationSettings.retryPolicy) node.integrationSettings.retryPolicy = "2 retries, exponential backoff";
   }
   if (node.type === "script") {
     if (!node.integrationSettings.scriptName) node.integrationSettings.scriptName = "amazon_bestsellers_demo.py";
@@ -1755,6 +2025,244 @@ function testBadgeLabel(status) {
 
 function compactJson(value) {
   return JSON.stringify(value, null, 2);
+}
+
+function parseJsonText(value) {
+  if (typeof value !== "string") return null;
+  const text = value.trim();
+  if (!text) return null;
+  const variants = [text];
+  if (text.includes("\\n") || text.includes('\\"') || text.includes("\\t")) {
+    variants.push(
+      text
+        .replace(/\\r/g, "\r")
+        .replace(/\\n/g, "\n")
+        .replace(/\\t/g, "\t")
+        .replace(/\\"/g, '"')
+    );
+  }
+  for (const variant of variants) {
+    try {
+      return JSON.parse(variant);
+    } catch {
+      // Try embedded JSON candidates below.
+    }
+  }
+  const candidates = [];
+  for (const variant of variants) {
+    const firstObject = variant.indexOf("{");
+    const lastObject = variant.lastIndexOf("}");
+    const firstArray = variant.indexOf("[");
+    const lastArray = variant.lastIndexOf("]");
+    if (firstObject >= 0 && lastObject > firstObject) candidates.push(variant.slice(firstObject, lastObject + 1));
+    if (firstArray >= 0 && lastArray > firstArray) candidates.push(variant.slice(firstArray, lastArray + 1));
+    const extractedRows = extractJsonArrayAfterKey(variant, "rows");
+    if (extractedRows) candidates.push(`{"rows":${extractedRows}}`);
+  }
+  for (const candidate of candidates) {
+    try {
+      return JSON.parse(candidate);
+    } catch {
+      // Keep trying other embedded JSON candidates.
+    }
+  }
+  try {
+    const unescaped = JSON.parse(`"${text.replace(/\\/g, "\\\\").replace(/"/g, '\\"')}"`);
+    if (unescaped !== text) return parseJsonText(unescaped);
+  } catch {
+    // Not an escaped JSON string.
+  }
+  return null;
+}
+
+function extractJsonArrayAfterKey(text, key) {
+  const keyIndex = text.indexOf(`"${key}"`);
+  if (keyIndex < 0) return null;
+  const colonIndex = text.indexOf(":", keyIndex);
+  const arrayStart = text.indexOf("[", colonIndex);
+  if (colonIndex < 0 || arrayStart < 0) return null;
+  let depth = 0;
+  let inString = false;
+  let escaping = false;
+  for (let index = arrayStart; index < text.length; index += 1) {
+    const char = text[index];
+    if (escaping) {
+      escaping = false;
+      continue;
+    }
+    if (char === "\\") {
+      escaping = true;
+      continue;
+    }
+    if (char === '"') {
+      inString = !inString;
+      continue;
+    }
+    if (inString) continue;
+    if (char === "[") depth += 1;
+    if (char === "]") {
+      depth -= 1;
+      if (depth === 0) return text.slice(arrayStart, index + 1);
+    }
+  }
+  return null;
+}
+
+function hasPrimaryRows(value) {
+  return primaryResultRows(value).length > 0;
+}
+
+function tablePayloadFromResult(value, depth = 0) {
+  if (depth > 6) return value;
+  if (typeof value === "string") {
+    const parsed = parseJsonText(value);
+    return parsed ? tablePayloadFromResult(parsed, depth + 1) : value;
+  }
+  if (!isPlainObject(value)) return value;
+  if (hasPrimaryRows(value)) return value;
+  const unwrapKeys = ["stdout", "body", "output", "result", "payload", "data"];
+  for (const key of unwrapKeys) {
+    if (!(key in value)) continue;
+    const unwrapped = tablePayloadFromResult(value[key], depth + 1);
+    if (Array.isArray(unwrapped) || hasPrimaryRows(unwrapped)) return unwrapped;
+    if (isPlainObject(unwrapped) && unwrapped !== value[key] && Object.keys(unwrapped).length) return unwrapped;
+  }
+  return value;
+}
+
+function humanizeFieldName(value) {
+  return String(value || "")
+    .replace(/[_-]+/g, " ")
+    .replace(/([a-z])([A-Z])/g, "$1 $2")
+    .replace(/\b\w/g, (letter) => letter.toUpperCase());
+}
+
+function isPlainObject(value) {
+  return value && typeof value === "object" && !Array.isArray(value);
+}
+
+function shortCellValue(value) {
+  if (value === null || value === undefined || value === "") return "";
+  if (Array.isArray(value)) return value.length ? `${value.length} items` : "";
+  if (isPlainObject(value)) return JSON.stringify(value);
+  return String(value);
+}
+
+function firstHttpUrl(value) {
+  const text = String(value || "").trim();
+  const match = text.match(/https?:\/\/[^\s"'<>]+/i);
+  return match ? match[0].replace(/[),.;]+$/, "") : "";
+}
+
+function renderTableCellValue(value) {
+  const text = shortCellValue(value);
+  const url = firstHttpUrl(text);
+  if (!url) return escapeHtml(text);
+  const label = text.length > 72 ? `${text.slice(0, 69)}...` : text;
+  return `<a class="result-cell-link" href="${escapeHtml(url)}" target="_blank" rel="noopener noreferrer" title="${escapeHtml(url)}">${escapeHtml(label)}</a>`;
+}
+
+function flattenRow(row) {
+  if (!isPlainObject(row)) return { value: row };
+  const flat = {};
+  Object.entries(row).forEach(([key, value]) => {
+    if (value === null || value === undefined || typeof value !== "object") {
+      flat[key] = value;
+    } else if (Array.isArray(value)) {
+      flat[key] = value.length ? `${value.length} items` : "";
+    } else {
+      const simpleEntries = Object.entries(value).filter(([, child]) => child === null || child === undefined || typeof child !== "object");
+      if (simpleEntries.length && simpleEntries.length <= 4) {
+        simpleEntries.forEach(([childKey, child]) => {
+          flat[`${key}.${childKey}`] = child;
+        });
+      } else {
+        flat[key] = JSON.stringify(value);
+      }
+    }
+  });
+  return flat;
+}
+
+function primaryResultRows(value) {
+  if (!value || typeof value !== "object") return [];
+  const preferredKeys = ["rows", "orders", "items", "shipments", "results", "data", "records", "listings"];
+  for (const key of preferredKeys) {
+    if (Array.isArray(value[key]) && value[key].length) return value[key];
+  }
+  if (Array.isArray(value)) return value;
+  for (const item of Object.values(value)) {
+    if (Array.isArray(item) && item.length) return item;
+  }
+  return [];
+}
+
+function summaryRowsFromObject(value) {
+  if (!isPlainObject(value)) return [{ Field: "Value", Value: shortCellValue(value) }];
+  return Object.entries(value)
+    .filter(([, item]) => item === null || item === undefined || typeof item !== "object")
+    .map(([key, item]) => ({ Field: humanizeFieldName(key), Value: shortCellValue(item) }));
+}
+
+function resultTableModel(value) {
+  if (isPlainObject(value?.outputTable) && Array.isArray(value.outputTable.rows) && value.outputTable.rows.length) {
+    return {
+      columns: Array.isArray(value.outputTable.columns) ? value.outputTable.columns.slice(0, 80) : [...new Set(value.outputTable.rows.flatMap((row) => Object.keys(row || {})))].slice(0, 80),
+      rows: value.outputTable.rows.slice(0, 100),
+      totalRows: Number(value.outputTable.totalRows || value.outputTable.rows.length),
+      sourceRows: Number(value.outputTable.totalRows || value.outputTable.rows.length),
+      parsedStdout: true,
+    };
+  }
+  const tablePayload = tablePayloadFromResult(value);
+  const parsedStdout = tablePayload !== value;
+  const rows = primaryResultRows(tablePayload);
+  const tableRows = rows.length ? rows.map(flattenRow) : summaryRowsFromObject(tablePayload);
+  const columns = [...new Set(tableRows.flatMap((row) => Object.keys(row)))].slice(0, 80);
+  return {
+    columns,
+    rows: tableRows.slice(0, 100),
+    totalRows: tableRows.length,
+    sourceRows: rows.length,
+    parsedStdout,
+  };
+}
+
+function normalizeNodeOutput(value) {
+  const tablePayload = tablePayloadFromResult(value);
+  if (tablePayload !== value && isPlainObject(tablePayload)) {
+    return {
+      ...tablePayload,
+      _raw_runner_output: value,
+    };
+  }
+  return tablePayload;
+}
+
+function renderResultTable(value, emptyText = "No table data available yet.") {
+  const model = resultTableModel(value);
+  if (!model.columns.length || !model.rows.length) {
+    return `<div class="result-table-empty">${escapeHtml(emptyText)}</div>`;
+  }
+  const minTableWidth = Math.max(760, model.columns.length * 132);
+  return `
+    <div class="result-table-shell">
+      <div class="result-scroll-hint">Scroll right to see more fields</div>
+      <div class="result-table-wrap">
+      <table class="result-data-table" style="min-width:${minTableWidth}px">
+        <thead>
+          <tr>${model.columns.map((column) => `<th>${escapeHtml(humanizeFieldName(column))}</th>`).join("")}</tr>
+        </thead>
+        <tbody>
+          ${model.rows.map((row) => `
+            <tr>${model.columns.map((column) => `<td title="${escapeHtml(shortCellValue(row[column]))}">${renderTableCellValue(row[column])}</td>`).join("")}</tr>
+          `).join("")}
+        </tbody>
+      </table>
+      </div>
+    </div>
+    <div class="result-table-foot">${model.totalRows > model.rows.length ? `Showing first ${model.rows.length} of ${model.totalRows} rows.` : `${model.totalRows} row${model.totalRows === 1 ? "" : "s"} shown.`}</div>
+  `;
 }
 
 function workflowOrder() {
@@ -1925,6 +2433,13 @@ function buildNodeTestInput(node) {
     }
   } else if (node.type === "carrier") {
     base.package = { weight_lb: 2.4, destination: "CA 92660" };
+  } else if (node.name === "Google Sheets" || String(node.action || "").includes("/google/sheets")) {
+    base.spreadsheetId = node.integrationSettings?.spreadsheetId || "";
+    base.sheetName = node.integrationSettings?.sheetName || "";
+    base.appendMode = node.integrationSettings?.appendMode || "append_rows";
+    base.inputPayload = node.integrationSettings?.inputPayload || "{{previous_step.rows}}";
+    base.fieldMapping = node.integrationSettings?.fieldMapping || "";
+    base.previousOutput = previousStepPayload(node);
   } else if (node.type === "action") {
     base.update = { order_id: "CX-10042", status: "Ready to fulfill" };
   } else if (node.type === "script") {
@@ -1934,6 +2449,15 @@ function buildNodeTestInput(node) {
     } catch {
       base.payload = node.integrationSettings?.inputJson || "";
     }
+  } else if (node.type === "external-agent") {
+    base.agentName = node.integrationSettings?.agentName || node.name;
+    base.connectionType = node.integrationSettings?.connectionType || "api";
+    base.endpointUrl = node.integrationSettings?.endpointUrl || "";
+    base.method = node.integrationSettings?.method || "POST";
+    base.authType = node.integrationSettings?.authType || "none";
+    base.executeLive = node.integrationSettings?.executeLive || "false";
+    base.inputMapping = node.integrationSettings?.inputMapping || "";
+    base.previousOutput = previousStepPayload(node);
   } else if (node.type === "cellx-db") {
     const rows = findExportRows(previousNodeOutputs(node)[0]?.output);
     base.operation = node.integrationSettings?.operation || operationFromCellXNode(node);
@@ -1957,9 +2481,9 @@ function buildNodeTestInput(node) {
 }
 
 function buildNodeTestOutput(node, status, message, result = null) {
-  if (result?.output && node.type !== "condition" && node.type !== "carrier") return result.output;
+  if (result?.output && node.type !== "condition" && node.type !== "carrier") return normalizeNodeOutput(result.output);
   if (status === "error") {
-    return result?.error || { ok: false, message };
+    return normalizeNodeOutput(result?.output || result?.error || { ok: false, message });
   }
   if (node.type === "trigger") {
     return { ok: true, emitted: "order.created", order_id: "CX-10042" };
@@ -2001,6 +2525,15 @@ function buildNodeTestOutput(node, status, message, result = null) {
   }
   if (node.type === "script") {
     return { ok: true, script: node.integrationSettings?.scriptName || "customer script", message: message || "Script completed." };
+  }
+  if (node.type === "external-agent") {
+    return {
+      ok: true,
+      agent: node.integrationSettings?.agentName || node.name,
+      mode: node.integrationSettings?.connectionType || "api",
+      message: message || "External agent connector is ready.",
+      dryRun: String(node.integrationSettings?.executeLive || "false") !== "true",
+    };
   }
   return { ok: true, message: message || "Step test completed." };
 }
@@ -2075,6 +2608,7 @@ function showNodeResultDialog(nodeId) {
   };
   document.getElementById("resultDialog")?.remove();
   const summary = summarizeResultPayload(result.output || {});
+  const tableModel = resultTableModel(result.output || {});
   const dialog = document.createElement("div");
   dialog.id = "resultDialog";
   dialog.className = "result-dialog-backdrop";
@@ -2092,6 +2626,13 @@ function showNodeResultDialog(nodeId) {
           ${summary.map(([label, value]) => `<div><span>${escapeHtml(label)}</span><strong>${escapeHtml(value)}</strong></div>`).join("")}
         </div>
       ` : ""}
+      <div class="result-dialog-table">
+        <div class="result-dialog-section-title">
+          <b>Output Table</b>
+          <span>${tableModel.sourceRows ? `${tableModel.sourceRows} source rows detected` : tableModel.parsedStdout ? "Parsed stdout JSON" : "Summary fields"}</span>
+        </div>
+        ${renderResultTable(result.output || {})}
+      </div>
       <div class="result-dialog-grid">
         <div>
           <b>Input</b>
@@ -2114,6 +2655,67 @@ function showNodeResultDialog(nodeId) {
     }
   });
   document.body.appendChild(dialog);
+}
+
+function renderWorkflowResultTabs() {
+  const orderedNodes = workflowOrder();
+  if (!orderedNodes.length) return "";
+  if (!activeResultNodeId || !orderedNodes.some((node) => node.id === activeResultNodeId)) {
+    activeResultNodeId = orderedNodes[0].id;
+  }
+  const activeNode = orderedNodes.find((node) => node.id === activeResultNodeId) || orderedNodes[0];
+  const result = activeNode.testResult || {
+    status: "pending",
+    message: "Not tested yet.",
+    input: buildNodeTestInput(activeNode),
+    output: { ok: null, message: "Click Test Selected or Run Workflow first." },
+  };
+  return `
+    <div class="canvas-result-tabs-shell">
+      <strong>Results</strong>
+      <div class="canvas-result-tabs" role="tablist" aria-label="Workflow step results">
+        ${orderedNodes.map((node, index) => {
+          const nodeResult = node.testResult || { status: "pending" };
+          const status = nodeResult.status || "pending";
+          const rowCount = resultTableModel(nodeResult.output || {}).totalRows;
+          return `
+            <button type="button" class="${node.id === activeNode.id ? "active" : ""}" data-result-tab="${escapeHtml(node.id)}" title="${index + 1}. ${escapeHtml(node.name)}">
+              <span class="result-step-number ${escapeHtml(status)}">${index + 1}</span>
+              <b>${escapeHtml(node.name)}</b>
+              <em class="${escapeHtml(status)}">${rowCount ? `${rowCount} rows` : testBadgeLabel(status)}</em>
+            </button>
+          `;
+        }).join("")}
+      </div>
+    </div>
+  `;
+}
+
+function renderWorkflowResultTablePanel() {
+  const orderedNodes = workflowOrder();
+  if (!orderedNodes.length) return "";
+  if (!activeResultNodeId || !orderedNodes.some((node) => node.id === activeResultNodeId)) {
+    activeResultNodeId = orderedNodes[0].id;
+  }
+  const activeNode = orderedNodes.find((node) => node.id === activeResultNodeId) || orderedNodes[0];
+  const result = activeNode.testResult || {
+    status: "pending",
+    message: "Not tested yet.",
+    input: buildNodeTestInput(activeNode),
+    output: { ok: null, message: "Click Test Selected or Run Workflow first." },
+  };
+  return `
+    <div class="canvas-result-panel">
+      <div class="result-tab-panel-head">
+        <div>
+          <strong>${escapeHtml(activeNode.name)}</strong>
+          <span>${escapeHtml(result.message || "Workflow step result")}</span>
+        </div>
+        <button type="button" data-view-node-result="${escapeHtml(activeNode.id)}">View Full Result</button>
+      </div>
+      ${renderResultTable(result.output || {}, "Run this workflow step to see rows and columns.")}
+    </div>
+  `;
 }
 
 function renderNodeTestResults() {
@@ -2186,16 +2788,11 @@ function renderIntegrationFields(node) {
     `).join("")}
     ${renderCellXMappingBuilder(node)}
     ${renderManualHandoffTools(node)}
-    <div class="connection-actions">
-      <button id="testConnectionBtn" class="primary" type="button">Test Selected</button>
-      <button id="runWorkflowBtn" type="button">Run Workflow</button>
-      <button id="exportResultsBtn" type="button">Export Results</button>
-      <button id="saveCredentialBtn" type="button">Save Config</button>
-    </div>
     ${integrationStatusMarkup(node.connection)}
     ${renderNodeTestResults()}
     <p class="secret-note">Secrets should be stored on the backend or a secret manager. This designer keeps placeholders only.</p>
   `;
+  renderPropertyActionBar(node);
   propIntegration.querySelectorAll("[data-integration-key]").forEach((input) => {
     const updateSetting = () => {
       const current = nodes.find((item) => item.id === selectedId);
@@ -2250,26 +2847,56 @@ function renderIntegrationFields(node) {
     const url = current?.integrationSettings?.chatUrl || "https://chatgpt.com/";
     window.open(url, "_blank", "noopener,noreferrer");
   });
-  document.getElementById("testConnectionBtn").addEventListener("click", () => testSelectedIntegration());
-  document.getElementById("runWorkflowBtn").addEventListener("click", () => testWorkflowIntegrations());
-  document.getElementById("exportResultsBtn").addEventListener("click", () => exportWorkflowResults());
   bindResultViewButtons();
-  document.getElementById("saveCredentialBtn").addEventListener("click", () => {
+}
+
+function renderPropertyActionBar(node) {
+  if (!propertyActionBar) return;
+  if (!node) {
+    propertyActionBar.innerHTML = "";
+    return;
+  }
+  propertyActionBar.innerHTML = `
+    <div class="connection-actions property-actions">
+      <button id="testConnectionBtn" class="primary" type="button">Test Selected</button>
+      <button id="runWorkflowBtn" type="button">Run Workflow</button>
+      <button id="exportResultsBtn" type="button">Export Results</button>
+      <button id="saveCredentialBtn" type="button">Save Config</button>
+    </div>
+  `;
+  document.getElementById("testConnectionBtn")?.addEventListener("click", () => testSelectedIntegration());
+  document.getElementById("runWorkflowBtn")?.addEventListener("click", () => testWorkflowIntegrations());
+  document.getElementById("exportResultsBtn")?.addEventListener("click", () => exportWorkflowResults());
+  document.getElementById("saveCredentialBtn")?.addEventListener("click", () => {
     const current = nodes.find((item) => item.id === selectedId);
     if (!current) return;
-    current.connection = { status: "success", message: saveWorkflowDraft("Configuration saved in this browser. Refresh will keep this node setup.") };
+    persistNodeConfig(current);
+    current.connection = { status: "success", message: saveWorkflowDraft("Configuration saved in this browser for this workflow step. Refresh or re-import will keep this node setup on this browser.") };
     renderIntegrationFields(current);
     render();
   });
 }
 
 function bindResultViewButtons() {
-  if (!propIntegration) return;
-  propIntegration.querySelectorAll("[data-view-node-result]").forEach((button) => {
+  document.querySelectorAll("[data-view-node-result]").forEach((button) => {
     if (button.dataset.boundViewResult === "true") return;
     button.dataset.boundViewResult = "true";
     button.addEventListener("click", () => showNodeResultDialog(button.dataset.viewNodeResult));
   });
+  document.querySelectorAll("[data-result-tab]").forEach((button) => {
+    if (button.dataset.boundResultTab === "true") return;
+    button.dataset.boundResultTab = "true";
+    button.addEventListener("click", () => {
+      activeResultNodeId = button.dataset.resultTab;
+      renderWorkflowResultArea();
+      bindResultViewButtons();
+      showNodeResultDialog(activeResultNodeId);
+    });
+  });
+}
+
+function renderWorkflowResultArea() {
+  if (workflowResultTabsHost) workflowResultTabsHost.innerHTML = renderWorkflowResultTabs();
 }
 
 async function loadJson(path) {
@@ -2598,7 +3225,11 @@ function renderNodeLibrary(filter = "") {
 function render() {
   updateCanvasExtent();
   if (workflowTitleEl) workflowTitleEl.textContent = workflowTitle || "Order Fulfillment Flow";
-  if (workflowDescriptionEl) workflowDescriptionEl.textContent = workflowDescription || "Drag nodes, reposition them, then connect steps.";
+  if (workflowDescriptionEl) {
+    workflowDescriptionEl.textContent = workflowDescription || "Drag nodes, reposition them, then connect steps.";
+    workflowDescriptionEl.parentElement?.setAttribute("title", workflowDescriptionEl.textContent);
+  }
+  renderWorkflowResultArea();
   canvas.querySelectorAll(".workflow-node").forEach((el) => el.remove());
   for (const node of nodes) {
     const nodeIcon = node.icon || appIcons[node.name] || null;
@@ -2627,6 +3258,7 @@ function render() {
       bindResultViewButtons();
     }
   }
+  bindResultViewButtons();
 }
 
 function drawLinks() {
@@ -2686,6 +3318,7 @@ function updateSelected() {
   node.name = propName.value;
   node.action = propAction.value;
   node.notes = propNotes.value;
+  renderPropertyActionBar(node);
   render();
 }
 
@@ -2696,6 +3329,7 @@ function clearProperties() {
   propAction.value = "";
   propNotes.value = "";
   propIntegration.innerHTML = "";
+  renderPropertyActionBar(null);
 }
 
 function removeNode(nodeId) {
@@ -2806,6 +3440,7 @@ document.getElementById("clearBtn").addEventListener("click", () => {
   nodes = [];
   links = [];
   selectedId = null;
+  activeResultNodeId = null;
   connectFrom = null;
   workflowTitle = "Untitled Workflow";
   workflowDescription = "Drag nodes, reposition them, then connect steps.";
@@ -2909,6 +3544,14 @@ marketplaceSearchEl?.addEventListener("input", renderMarketplace);
 marketplaceCategoryFilterEl?.addEventListener("change", renderMarketplace);
 
 marketplaceListEl?.addEventListener("click", async (event) => {
+  const deleteTarget = event.target.closest("[data-delete-marketplace-template]");
+  if (deleteTarget) {
+    const key = deleteTarget.dataset.deleteMarketplaceTemplate;
+    const item = marketplaceItems.find((entry) => marketplaceItemKey(entry) === key);
+    if (item) await deleteMarketplaceTemplate(item);
+    return;
+  }
+
   const reviewTarget = event.target.closest("[data-review-marketplace-template]");
   if (reviewTarget) {
     const item = marketplaceItems.find((entry) => entry.id === reviewTarget.dataset.reviewMarketplaceTemplate);

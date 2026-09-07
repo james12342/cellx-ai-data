@@ -1,0 +1,180 @@
+{
+  "templateType": "cellx-workflow-designer",
+  "version": "1.0",
+  "exportedAt": "2026-09-06T00:00:00.000Z",
+  "name": "AskFRED Tournament Pages by Fencer Level",
+  "description": "Fetch public AskFRED tournament listings, classify them into Beginner, Intermediate, Advanced, and D1 / Elite pages, then export the structured rows to Excel.",
+  "nodes": [
+    {
+      "id": "node-1",
+      "type": "trigger",
+      "name": "Schedule",
+      "action": "cron",
+      "notes": "Run manually or weekly to refresh fencing tournament pages.",
+      "icon": "material-symbols:schedule-rounded",
+      "x": 70,
+      "y": 160,
+      "integrationSettings": {
+        "owner": "Fencing Tournament Research",
+        "timeout": "30"
+      },
+      "connection": null,
+      "testResult": null
+    },
+    {
+      "id": "node-2",
+      "type": "script",
+      "name": "AskFRED Fetch Tournaments",
+      "action": "/ext-api/scripts/run",
+      "notes": "Fetch AskFRED public tournament listings and classify each event by likely fencer level. Uses sample fallback rows if the live page cannot be parsed during a demo.",
+      "icon": "material-symbols:sports-martial-arts-rounded",
+      "x": 330,
+      "y": 160,
+      "integrationSettings": {
+        "scriptName": "askfred_tournaments_by_level.py",
+        "inputJson": "{\"source_url\":\"https://www.askfred.net/tournaments\",\"limit\":80,\"fallback_sample\":true}",
+        "timeout": "25",
+        "args": ""
+      },
+      "connection": null,
+      "testResult": null
+    },
+    {
+      "id": "node-3",
+      "type": "tool",
+      "name": "Build Page Rows",
+      "action": "/ext-api/tools/json-transform",
+      "notes": "Normalize tournament fields into a page-ready table. Each row includes the target page slug and page title.",
+      "icon": "vscode-icons:file-type-json",
+      "x": 590,
+      "y": 160,
+      "integrationSettings": {
+        "sourcePath": "{{previous_step.rows}}",
+        "transformMapping": "page_slug <- {{item.page_slug}}\npage_title <- {{item.page_title}}\nlevel <- {{item.level}}\ntournament_name <- {{item.title}}\nstart_date <- {{item.start_date}}\nlocation <- {{item.location}}\nweapon <- {{item.weapon}}\nrating_hint <- {{item.rating_hint}}\ntournament_url <- {{item.tournament_url}}\nwhy_this_level <- {{item.why_this_level}}\nnotes <- {{item.notes}}",
+        "outputMode": "rows",
+        "timeout": "30"
+      },
+      "connection": null,
+      "testResult": null
+    },
+    {
+      "id": "node-4",
+      "type": "tool",
+      "name": "Export Tournament Excel",
+      "action": "/ext-api/tools/excel-export",
+      "notes": "Export the tournament rows into an Excel workbook. Filter or split by page_slug to create Beginner, Intermediate, Advanced, and D1 / Elite sheets.",
+      "icon": "vscode-icons:file-type-excel",
+      "x": 850,
+      "y": 160,
+      "integrationSettings": {
+        "endpoint": "/ext-api/tools/excel-export",
+        "sourcePath": "{{previous_step.rows}}",
+        "fileName": "askfred_tournaments_by_level.xlsx",
+        "sheetMode": "split_by_field",
+        "splitField": "page_slug",
+        "timeout": "60"
+      },
+      "connection": null,
+      "testResult": null
+    },
+    {
+      "id": "node-5",
+      "type": "cellx-db",
+      "name": "CellX Tournament Pages",
+      "action": "/ext-api/cellx-db/bulk-import",
+      "notes": "Optional: after creating a CellX table such as cx_askfred_tournaments, map these rows into CellX so each level can power a separate page.",
+      "icon": "material-symbols:database-outline",
+      "x": 850,
+      "y": 330,
+      "integrationSettings": {
+        "operation": "bulk_import",
+        "tableName": "cx_askfred_tournaments",
+        "inputPayloadPath": "{{previous_step.rows}}",
+        "sourceRows": "0",
+        "mappingCount": "10",
+        "safetyMode": "approved_write",
+        "softDelete": "set del_flag = 1",
+        "auditLogTable": "cx_workflow_log",
+        "fieldMapping": "page_slug <- {{item.page_slug}}\npage_title <- {{item.page_title}}\nlevel <- {{item.level}}\ntournament_name <- {{item.tournament_name}}\nstart_date <- {{item.start_date}}\nlocation <- {{item.location}}\nweapon <- {{item.weapon}}\nrating_hint <- {{item.rating_hint}}\ntournament_url <- {{item.tournament_url}}\nwhy_this_level <- {{item.why_this_level}}"
+      },
+      "connection": null,
+      "testResult": null
+    },
+    {
+      "id": "node-6",
+      "type": "log",
+      "name": "Write Tournament Log",
+      "action": "cx_workflow_log",
+      "notes": "Record run count, source URL, and page grouping status.",
+      "icon": null,
+      "x": 1110,
+      "y": 160,
+      "integrationSettings": {
+        "owner": "Fencing Tournament Research",
+        "timeout": "30"
+      },
+      "connection": null,
+      "testResult": null
+    },
+    {
+      "id": "node-7",
+      "type": "communication",
+      "name": "Text AskFRED Summary",
+      "action": "/ext-api/gmail/send",
+      "notes": "Send a compact AskFRED summary by Gmail and T-Mobile SMS gateway recipients.",
+      "icon": "logos:google-gmail",
+      "x": 1110,
+      "y": 330,
+      "integrationSettings": {
+        "deliveryMode": "connected_provider",
+        "to": "harrison20120512@gmail.com,workad_009@icloud.com",
+        "smsGatewayEmail": "9496597928@tmomail.net,6263833666@tmomail.net,9493128694@tmomail.net",
+        "phoneNumber": "9496597928,6263833666,9493128694",
+        "subjectTemplate": "AskFRED workflow summary",
+        "bodyTemplate": "AskFRED: {{row_count}} tournaments found. Beginner {{pages.0.row_count}}, Intermediate {{pages.1.row_count}}, Advanced {{pages.2.row_count}}, D1 {{pages.3.row_count}}. Top: {{rows.0.title}} {{rows.0.location}} {{rows.0.tournament_url}}",
+        "smtpHost": "smtp.gmail.com",
+        "smtpPort": "587",
+        "smtpSecurity": "starttls",
+        "username": "harrison20120512@gmail.com",
+        "fromEmail": "harrison20120512@gmail.com",
+        "passwordSecretName": "GMAIL_APP_PASSWORD"
+      },
+      "connection": null,
+      "testResult": null
+    }
+  ],
+  "links": [
+    {
+      "from": "node-1",
+      "to": "node-2"
+    },
+    {
+      "from": "node-2",
+      "to": "node-3"
+    },
+    {
+      "from": "node-3",
+      "to": "node-4"
+    },
+    {
+      "from": "node-3",
+      "to": "node-5"
+    },
+    {
+      "from": "node-4",
+      "to": "node-6"
+    },
+    {
+      "from": "node-5",
+      "to": "node-6"
+    },
+    {
+      "from": "node-2",
+      "to": "node-7"
+    },
+    {
+      "from": "node-7",
+      "to": "node-6"
+    }
+  ]
+}

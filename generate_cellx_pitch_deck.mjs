@@ -3,9 +3,10 @@ import path from "node:path";
 import { Presentation, PresentationFile } from "@oai/artifact-tool";
 
 const OUT = "outputs/business_plan_20260831";
-const PPTX = path.join(OUT, "CellX_RDP_Competition_Pitch_Deck_20_Slides_Investor_Case_AI_Comps_Presenters_Header_Link.pptx");
+const PPTX = path.join(OUT, "CellaiData_Sunshine_Youth_Entrepreneurs_Challenge_DemoScreenshot.pptx");
 const LOGO = path.resolve("rdp-marketing-site/assets/logo.png");
 const VIS = path.resolve("outputs/business_plan_20260831/visuals");
+const REAL_ESTATE_DEMO_SCREENSHOT = "C:\\Users\\hibre\\AppData\\Local\\Temp\\codex-clipboard-b566c4ab-88ca-46f3-bb30-e6e0a1eb28a9.png";
 const CELLX_LOGO_SVG = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 180 72">
   <rect width="180" height="72" fill="none"/>
   <path d="M18 36 L42 12 L82 52 L58 72 Z" fill="#3F66B5"/>
@@ -119,16 +120,17 @@ function metricPill(slide, x, y, label, value, color) {
 
 function drawBigIdeaStrip(slide, x, y) {
   const ideas = [
-    ["Software-defined software", "Business apps become metadata, workflow, and policy."],
-    ["One-person AI company", "Small teams coordinate research, data, and follow-up."],
-    ["Cost down, output up", "Automate repetitive work with human approval where needed."],
+    ["BIG SAVE", "Lower labor and operating cost."],
+    ["BIG FAST", "Launch workflows in days, not months."],
+    ["BIG FLEXIBLE", "Change software as the business changes."],
+    ["EVEN MORE EARN", "Sell templates and unlock new revenue."],
   ];
   ideas.forEach((idea, i) => {
-    const xx = x + i * 342;
-    box(slide, xx, y, 316, 88, i === 1 ? "#EEF2FF" : C.white, i === 1 ? "#C4B5FD" : "#BFD3F3");
-    iconBadge(slide, xx + 18, y + 22, [C.blue, C.purple, C.green][i], ["SD", "AI", "ROI"][i]);
-    tb(slide, idea[0], xx + 76, y + 16, 220, 24, { fontSize: 16, bold: true, color: C.navy });
-    tb(slide, idea[1], xx + 76, y + 46, 214, 30, { fontSize: 11, color: C.muted });
+    const xx = x + i * 270;
+    box(slide, xx, y, 246, 88, i === 2 ? "#EEF2FF" : C.white, i === 2 ? "#C4B5FD" : "#BFD3F3");
+    iconBadge(slide, xx + 16, y + 22, [C.green, C.blue, C.purple, C.orange][i], ["$", ">>", "AI", "+$"][i]);
+    tb(slide, idea[0], xx + 70, y + 16, 158, 24, { fontSize: 18, bold: true, color: C.navy });
+    tb(slide, idea[1], xx + 70, y + 46, 158, 30, { fontSize: 11, color: C.muted });
   });
 }
 
@@ -249,6 +251,50 @@ function drawMarketingAutomation(s) {
   tb(s, "Marketing is the first showcase: product promotion, video generation, influencer outreach, social distribution, and lead handoff.", 80, 505, 1080, 46, { fontSize: 20, bold: true, color: C.navy, alignment: "center" });
 }
 
+function drawRealEstateDemo(s, screenshot) {
+  box(s, 70, 224, 760, 390, C.white, "#BFD3F3");
+  s.images.add({
+    blob: screenshot,
+    contentType: "image/png",
+    alt: "Live Cell AI Data workflow designer demo",
+    fit: "contain",
+    position: { left: 82, top: 238, width: 736, height: 362 },
+    borderRadius: "rounded-lg",
+  });
+  const steps = [
+    ["1", "Fetch listings", "RentCast pulls fresh Irvine property rows."],
+    ["2", "Analyze with AI", "OpenAI scores each listing and explains fit."],
+    ["3", "Write to CellX", "Mapped rows go into the cx_property table."],
+    ["4", "Email clients", "Gmail sends personalized recommendations."],
+  ];
+  steps.forEach((step, i) => {
+    const y = 228 + i * 94;
+    iconBadge(s, 875, y, [C.blue, C.purple, "#0F766E", C.orange][i], step[0]);
+    tb(s, step[1], 938, y + 2, 250, 28, { fontSize: 24, bold: true, color: C.navy });
+    tb(s, step[2], 938, y + 40, 250, 34, { fontSize: 15, color: C.muted });
+  });
+  box(s, 132, 632, 1000, 54, "#EAF3FF", "#BFD3F3");
+  tb(s, "Live proof: the platform connects data source, AI reasoning, database writeback, client lookup, email delivery, and test results.", 165, 648, 940, 26, { fontSize: 18, bold: true, color: C.blue, alignment: "center" });
+}
+
+function drawMarketplaceDemo(s) {
+  const cards = [
+    ["Customer creates", "A realtor, seller, or agency designs a repeatable workflow from real work."],
+    ["Template review", "Cell AI Data checks category, safety, required fields, and demo quality."],
+    ["Marketplace sale", "Other customers buy the workflow, import it, and adapt it to their business."],
+    ["Platform commission", "The creator earns from their know-how while Cell AI Data takes a platform fee."],
+  ];
+  cards.forEach((card, i) => {
+    const x = 86 + (i % 2) * 560;
+    const y = 246 + Math.floor(i / 2) * 160;
+    box(s, x, y, 500, 118, i === 3 ? "#FFF7ED" : C.white, i === 3 ? "#FDBA74" : "#BFD3F3");
+    iconBadge(s, x + 24, y + 35, [C.blue, C.green, C.purple, C.orange][i], String(i + 1));
+    tb(s, card[0], x + 88, y + 28, 310, 28, { fontSize: 25, bold: true, color: C.navy });
+    tb(s, card[1], x + 90, y + 68, 360, 34, { fontSize: 15, color: C.muted });
+  });
+  tb(s, "This turns customers into workflow creators: they save money first, then earn by selling proven processes.", 130, 588, 1020, 42, { fontSize: 22, bold: true, color: C.navy, alignment: "center" });
+}
+
 function drawCompetition(s) {
   const rows = [
     ["PLTR", "Operational AI + data platform", "$4.48B 2025, +56%", "+492%"],
@@ -351,20 +397,20 @@ function drawPricingLadder(s) {
 
 function drawRevenueModel(s) {
   const streams = [
-    ["Subscription", "$99-$899+/mo", "Recurring SaaS and private deployment fees", C.blue],
-    ["Implementation", "$2k-$15k", "Workflow setup, data mapping, connector rollout", C.green],
-    ["Templates", "$29-$499", "Industry packs and premium agent nodes", C.purple],
-    ["Usage", "Pass-through", "AI tokens, storage, advanced connectors", C.orange],
+    ["BIG SAVE", "Subscriptions", "$99-$899+/mo for software that reduces manual work", C.green],
+    ["BIG FAST", "Implementation", "$2k-$15k setup packages for quick workflow launch", C.blue],
+    ["BIG FLEXIBLE", "Templates", "$29-$499 reusable templates and premium agent nodes", C.purple],
+    ["EVEN MORE EARN", "Marketplace", "Developers sell templates; platform takes commission", C.orange],
   ];
   streams.forEach((stream, i) => {
     const x = 70 + i * 292;
     box(s, x, 252, 250, 230, i === 1 ? "#F0FDF4" : C.white, i === 1 ? "#86EFAC" : "#BFD3F3");
     iconBadge(s, x + 28, 282, stream[3], String(i + 1));
-    tb(s, stream[0], x + 28, 350, 190, 28, { fontSize: 23, bold: true, color: C.navy });
-    tb(s, stream[1], x + 28, 395, 190, 32, { fontSize: 25, bold: true, color: stream[3] });
-    tb(s, stream[2], x + 28, 440, 190, 42, { fontSize: 13, color: C.muted });
+    tb(s, stream[0], x + 28, 342, 190, 24, { fontSize: 17, bold: true, color: stream[3] });
+    tb(s, stream[1], x + 28, 374, 190, 28, { fontSize: 22, bold: true, color: C.navy });
+    tb(s, stream[2], x + 28, 420, 190, 54, { fontSize: 13, color: C.muted });
   });
-  tb(s, "Early revenue comes from paid pilots and setup. Scalable margin comes from subscriptions, templates, and repeatable partner delivery.", 120, 550, 1040, 42, { fontSize: 22, bold: true, color: C.navy, alignment: "center" });
+  tb(s, "The same promise sells twice: customers save time and cost, while developers earn from reusable workflows through the marketplace.", 120, 550, 1040, 42, { fontSize: 22, bold: true, color: C.navy, alignment: "center" });
 }
 
 function drawFinancialOutlook(s) {
@@ -384,7 +430,7 @@ function drawFinancialOutlook(s) {
     box(s, 78, y, 1080, 44, r === 4 ? "#E8FFF3" : C.white, r === 4 ? "#86EFAC" : C.line);
     row.forEach((txt, c) => tb(s, txt, cols[c], y + 11, c === 0 ? 160 : c === 4 ? 210 : 120, 20, { fontSize: c === 0 ? 14 : 16, bold: c > 0 && c < 4, color: c === 4 ? C.muted : C.ink, alignment: c > 0 && c < 4 ? "center" : undefined }));
   });
-  tb(s, "Investor case, not audited forecasts: upside comes from repeatable templates, partner delivery, and expansion from one workflow into operations.", 135, 598, 1010, 36, { fontSize: 18, bold: true, color: C.blue, alignment: "center" });
+  tb(s, "Investor case, not audited forecasts: Big Save drives adoption, Big Fast drives pilots, Big Flexible drives expansion, and Even More Earn adds marketplace upside.", 135, 598, 1010, 36, { fontSize: 18, bold: true, color: C.blue, alignment: "center" });
 }
 
 function drawAsk(s) {
@@ -398,116 +444,85 @@ function drawAsk(s) {
 
 const slides = [
   {
-    t: "CellX RDP",
-    sub: "Software-defined business platform for the one-person AI company era",
+    t: "Project Description: Cell AI Data",
+    sub: "Big Save. Big Fast. Big Flexible. And Even More Earn.",
     kind: "cover",
   },
   {
-    t: "Every business team now needs its own software logic",
-    sub: "Marketing, sales, operations, supply chain, support, finance, and admin teams all need custom workflows faster than traditional development can deliver.",
+    t: "Team Introduction: TVT student founders",
+    sub: "Harrison Huang and David Cai, 9th grade students at Tarbut V' Torah Community Day School in Irvine, California.",
+    cards: [["Who we are", "A student team building with AI, software, business research, and live demos."], ["Why TVT matters", "A school culture of inquiry and close relationships encouraged us to test a real idea."], ["Why now", "The AI era makes students and parents more curious about practical new technology."], ["Founder mission", "Build software that helps people work faster, spend less, and turn knowledge into reusable workflows."]],
+  },
+  {
+    t: "Problem Requirements: business software moves too slowly",
+    sub: "Small teams lose time and money because everyday processes still depend on manual work, spreadsheets, and disconnected tools.",
     layout: "pain",
-    bullets: ["Business processes change faster than software release cycles.", "Low-code tools often miss real database and permission context.", "AI experiments sit outside the workflow and create cost and governance concerns."],
+    bullets: ["A single operator often handles sales, data entry, email follow-up, reporting, and customer service.", "Traditional custom software is expensive and slow to change.", "AI answers help, but businesses need AI connected to real data and real actions."],
   },
   {
-    t: "CellX turns business logic into configurable software",
-    sub: "Business logic becomes configurable metadata, workflow, permissions, and AI skills.",
+    t: "Solution: workflow-defined business software",
+    sub: "Cell AI Data lets users drag workflow nodes, connect AI, run custom scripts, write into CellX tables, export Excel, and email results.",
     layout: "product",
-    cards: [["Configure", "Tables, fields, search forms, validation"], ["Generate", "Admin pages, menus, roles, actions"], ["Extend", "Custom pages, LiteFlow-style hooks, sidecar APIs"], ["Operate", "Deploy on Lightsail with app.cellaidata.com"]],
+    cards: [["Configure", "Tables, fields, search forms, validation"], ["Run workflows", "Scripts, AI models, conditions, email, exports"], ["Use company data", "CellX database query, insert, update, and audit logs"], ["Avoid rewrites", "Add workflow capability beside the existing backend"]],
   },
   {
-    t: "A working platform prototype, not just a pitch",
-    sub: "The current project already has a public site, a deployed backend, and a workflow designer extension for cross-industry processes.",
-    visual: "cellx_architecture.png",
-    cards: [["cellaidata.com", "Marketing, pricing, trial/demo, AI workflow promotion"], ["app.cellaidata.com", "CellX backend with admin and order data"], ["/workflow/", "Visual workflow skill designer"], ["/ext-api", "Extension API concept for integrations"]],
+    t: "Demo: real estate AI workflow",
+    sub: "The live demo fetches Irvine property listings, analyzes each home, saves structured rows, reads client records, and emails recommendations.",
+    layout: "realEstateDemo",
   },
   {
-    t: "From promotion to support: one configurable workflow layer",
-    sub: "CellX is not limited to order management. Orders are one node in a larger business operating system.",
-    layout: "lifecycle",
+    t: "Demo Continue: customers can sell proven workflows",
+    sub: "A customer who builds a mature repeatable process can package it as a marketplace template for others to buy and import.",
+    layout: "marketplaceDemo",
   },
   {
-    t: "Node Library covers the full company stack",
-    sub: "Users browse categories and drag reusable skills for marketing, sales, commerce, operations, support, data, and AI.",
-    layout: "library",
-    cards: [["Marketing", "TikTok, Facebook, video ads, influencer outreach"], ["Sales", "CRM, lead scoring, quotes, follow-up"], ["Commerce", "Amazon, Shopify, product listings"], ["Operations", "Approvals, tasks, alerts, SOPs"], ["Supply Chain", "Inventory, suppliers, shipping, procurement"], ["Support", "Tickets, returns, knowledge base, email"], ["AI Models", "OpenAI, Claude, Gemini, DeepSeek, Mistral, Llama"], ["CellX DB", "Query, create, update, delete, export Excel"]],
-  },
-  {
-    t: "CellX Database nodes activate every business table",
-    sub: "Workflow should not be separate from company data. It should safely use marketing, sales, inventory, order, finance, and support tables.",
-    layout: "db",
-    bullets: ["Allow-listed table access for query, create, update, delete, and export.", "Parameterized queries, audit logs, permissions, and approval gates.", "Works even when the original backend JAR source is unavailable."],
-  },
-  {
-    t: "AI cost strategy: three modes",
-    sub: "Customers can choose automation level and token ownership per AI node.",
-    layout: "aiModes",
-    cards: [["Platform API", "CellX manages AI keys and bills usage."], ["Bring Your Own Key", "Customer enters their OpenAI/Claude/Gemini key."], ["Manual Web Handoff", "User logs into ChatGPT, copies prompt/result, no platform token burn."]],
-  },
-  {
-    t: "Example: AI marketing automation for a one-person company",
-    sub: "Generate product promotion content, identify influencers, distribute to TikTok/Facebook, capture leads, and hand off to sales.",
-    marketingFlow: true,
-  },
-  {
-    t: "Industry coverage",
-    sub: "The same platform pattern applies across verticals because the core product is configurable business logic.",
+    t: "Target Market: lean operators with repeatable work",
+    sub: "The first users are teams where one person must manage many operational tasks and can see ROI quickly.",
     layout: "customers",
-    cards: [["Retail & Brands", "Marketing, orders, loyalty, support"], ["Manufacturing", "Inventory, suppliers, equipment, approvals"], ["Education", "Students, classes, notices, reports"], ["Professional Services", "Client portals, delivery workflows, billing"]],
+    cards: [["Real estate", "Listings, AI property analysis, client matching, email alerts"], ["E-commerce", "Orders, carrier routing, supplier reports, inventory follow-up"], ["Agencies", "Client workflows, marketing assets, repeatable delivery"], ["SMB operations", "Internal tools, approvals, data cleanup, Excel exports"]],
   },
   {
-    t: "Market tailwinds support the timing",
-    sub: "Low-code, digital process automation, and agentic AI are converging into software-defined operations.",
-    visual: "cellx_market_ad.png",
-    stats: true,
+    t: "Innovation Highlights: AI plus workflow plus data",
+    sub: "Cell AI Data combines visual workflow design, executable scripts, large models, database operations, and template trading in one system.",
+    layout: "library",
+    cards: [["Visual builder", "Users can drag and connect business nodes."], ["Custom scripts", "Customers can run their own approved programs."], ["AI analysis", "OpenAI and manual handoff modes support different cost needs."], ["Marketplace", "Reusable workflows can become sellable business assets."]],
   },
   {
-    t: "Public AI workflow comps show the investor pattern",
-    sub: "The strongest signal is not AI alone. Public markets reward AI platforms tied to data, workflow, governance, and execution.",
-    layout: "competition",
-    matrix: true,
-  },
-  {
-    t: "AI agent competitors leave an SMB operating gap",
-    sub: "Most public comps target enterprise platforms, CRM suites, or heavy automation. CellX can enter through lean-team workflows.",
-    layout: "competitorDeepDive",
-  },
-  {
-    t: "SWOT: prototype strength must become paid proof",
-    sub: "The investor story improves when CellX converts technical progress into customer traction and repeatable workflow assets.",
-    layout: "swot",
-  },
-  {
-    t: "Business model",
-    sub: "A tiered subscription model with private deployment and implementation upside.",
-    layout: "pricingLadder",
-    pricing: true,
-  },
-  {
-    t: "Go-to-market starts with one painful workflow",
-    sub: "CellX should sell proof, not a generic platform: begin with high-ROI workflows and turn each pilot into a reusable template.",
-    layout: "gtmEngine",
-  },
-  {
-    t: "Revenue model has four monetization layers",
-    sub: "The model combines predictable SaaS with high-touch setup, premium templates, and usage pass-through.",
+    t: "Business Model: save more, move faster, earn more",
+    sub: "The product monetizes software access, implementation help, reusable templates, and marketplace commission.",
     layout: "revenueModel",
   },
   {
-    t: "Investor-case outlook reaches $6.0M ARR run-rate",
-    sub: "A focused wedge can expand from paid pilots into recurring SaaS, implementation, templates, and partner channels.",
-    layout: "financialOutlook",
+    t: "Project Progress: working MVP already deployed",
+    sub: "The demo is more than a concept. The platform now has a public site, AWS deployment, workflow tabs, template browsing, and live integrations.",
+    cards: [["Public website", "cellaidata.com explains the product and links to the workflow system."], ["Workflow designer", "Multiple workflows, tabs, template library, marketplace preview, and node testing."], ["Live examples", "Real estate AI email, Amazon best sellers, Yahoo stocks, Order Desk fulfillment."], ["Backend work", "Customer scripts, CellX database nodes, Gmail delivery, OpenAI API, and export results."]],
   },
   {
-    t: "Roadmap to paid pilots",
-    sub: "Focus on universal business templates, governed execution, and one-person AI company workflows.",
+    t: "Market Strategy: demo first, then paid pilots",
+    sub: "We will use specific workflow demos to win early trust, then convert each successful use case into a reusable template.",
+    layout: "gtmEngine",
+  },
+  {
+    t: "Competitive Advantage: lighter than enterprise platforms",
+    sub: "Large AI and workflow companies focus on enterprise buyers. Cell AI Data starts with practical workflows that small teams can understand and test quickly.",
+    layout: "competitorDeepDive",
+  },
+  {
+    t: "Future Outlook: from MVP to workflow ecosystem",
+    sub: "The next stage is real customers, secure payments, template review, developer payouts, and stronger integrations.",
     layout: "gtm",
     roadmap: true,
   },
   {
+    t: "Financials: investor-case path to $6.0M ARR",
+    sub: "The upside comes from subscriptions, implementation, templates, marketplace commission, and expansion from one workflow into daily operations.",
+    layout: "financialOutlook",
+  },
+  {
     t: "Thank you",
-    sub: "CellX is ready for pilot discovery, technical hardening, and partner introductions.",
+    sub: "Cell AI Data is ready for pilot discovery, demo feedback, and mentor introductions.",
     layout: "ask",
-    bullets: ["Pilot customers in marketing, e-commerce, operations, education, services, and SMB IT.", "Cloud credits and security mentorship for production workflow execution.", "Introductions to social media, marketplace, shipping, payment, and AI ecosystem partners.", "Goal: convert prototype momentum into paid pilots and reusable cross-industry workflow templates."],
+    bullets: ["Pilot customers in real estate, e-commerce, agencies, education, services, and SMB operations.", "Mentorship on security, payments, customer onboarding, and AI workflow governance.", "Goal: turn a working student-built prototype into paid pilots and a reusable workflow ecosystem."],
   },
 ];
 
@@ -517,6 +532,7 @@ async function main() {
   for (const name of ["cellx_hero_ad.png", "cellx_architecture.png", "cellx_workflow_ad.png", "cellx_market_ad.png"]) {
     visualBytes[name] = await fs.readFile(path.join(VIS, name));
   }
+  const realEstateDemoScreenshot = await fs.readFile(REAL_ESTATE_DEMO_SCREENSHOT);
   const p = Presentation.create({ slideSize: { width: 1280, height: 720 } });
 
   for (const [idx, spec] of slides.entries()) {
@@ -525,7 +541,7 @@ async function main() {
     tb(s, String(idx + 1).padStart(2, "0"), 1150, 660, 64, 28, { fontSize: 13, color: "#94A3B8", alignment: "right" });
 
     if (spec.kind === "cover") {
-      s.images.add({ blob: visualBytes["cellx_hero_ad.png"], contentType: "image/png", alt: "CellX product advertising visual", fit: "cover", position: { left: 640, top: 176, width: 540, height: 304 }, borderRadius: "rounded-xl" });
+      s.images.add({ blob: visualBytes["cellx_workflow_ad.png"], contentType: "image/png", alt: "Workflow and AI studio visual", fit: "contain", position: { left: 638, top: 174, width: 542, height: 304 }, borderRadius: "rounded-xl" });
       tb(s, "Competition Pitch Deck", 58, 230, 360, 36, { fontSize: 22, bold: true, color: C.blue });
       tb(s, "Presented by Harrison Huang and David Cai", 60, 274, 520, 24, { fontSize: 18, bold: true, color: C.navy });
       tb(s, "Tarbut V' Torah (TVT) Community Day School | 9th Grade", 60, 302, 560, 24, { fontSize: 15, color: C.muted });
@@ -545,6 +561,10 @@ async function main() {
       drawAiModes(s);
     } else if (spec.layout === "customers") {
       drawCustomers(s);
+    } else if (spec.layout === "realEstateDemo") {
+      drawRealEstateDemo(s, realEstateDemoScreenshot);
+    } else if (spec.layout === "marketplaceDemo") {
+      drawMarketplaceDemo(s);
     } else if (spec.layout === "competition") {
       drawCompetition(s);
     } else if (spec.layout === "competitorDeepDive") {
@@ -614,9 +634,9 @@ async function main() {
     } else if (spec.cards) {
       spec.cards.forEach((card, i) => {
         const col = i % 3, row = Math.floor(i / 3);
-        box(s, 72 + col * 380, 255 + row * 140, 330, 100, C.white, C.line);
+        box(s, 72 + col * 380, 255 + row * 142, 330, 116, C.white, C.line);
         tb(s, card[0], 96 + col * 380, 278 + row * 140, 280, 24, { fontSize: 18, bold: true, color: C.navy });
-        tb(s, card[1], 96 + col * 380, 315 + row * 140, 280, 36, { fontSize: 14, color: C.muted });
+        tb(s, card[1], 96 + col * 380, 315 + row * 140, 280, 52, { fontSize: 12.5, color: C.muted });
       });
     } else if (spec.bullets) {
       bulletList(s, spec.bullets, 100, 260, 950, 72);

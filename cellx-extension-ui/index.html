@@ -4,7 +4,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>CellX Workflow Designer</title>
-  <link rel="stylesheet" href="./styles.css?v=20260904-marketplace">
+  <link rel="stylesheet" href="./styles.css?v=20260906-marketplace-delete">
 </head>
 <body>
   <div class="app-shell">
@@ -156,10 +156,11 @@
 
           <section class="canvas-wrap">
             <div class="canvas-head">
-              <div>
+              <div class="workflow-title-block">
                 <strong id="workflowTitle">Order Fulfillment Flow</strong>
                 <span id="workflowDescription">Drag nodes, reposition them, then connect steps.</span>
               </div>
+              <div id="workflowResultTabsHost" class="canvas-result-tabs-host" aria-label="Workflow result tabs"></div>
               <button id="clearBtn" type="button">Clear</button>
             </div>
             <div id="canvas" class="canvas">
@@ -169,6 +170,7 @@
 
           <aside class="properties">
             <div class="panel-title">Properties</div>
+            <div id="propertyActionBar" class="property-action-bar"></div>
             <label>
               Node name
               <input id="propName" type="text" placeholder="Select a node">
@@ -195,6 +197,6 @@
     </section>
   </div>
 
-  <script src="./app.js?v=20260904-marketplace"></script>
+  <script src="./app.js?v=20260906-email-recipient-sync"></script>
 </body>
 </html>

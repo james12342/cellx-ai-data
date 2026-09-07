@@ -11,7 +11,7 @@ from docx.oxml.ns import qn
 OUT = Path("outputs/business_plan_20260831")
 LOGO = Path("rdp-marketing-site/assets/logo.png")
 VIS = OUT / "visuals"
-DOCX = OUT / "CellX_RDP_Business_Plan_Competition_English_Presenters.docx"
+DOCX = OUT / "CellAIData_Business_Plan_Workflow_Marketplace_Ecosystem_Updated.docx"
 
 
 BLUE = "1F4FD8"
@@ -127,7 +127,7 @@ pages = [
     {
         "title": "1. Executive Summary",
         "body": [
-            "CellX Rapid Development Platform (CellX RDP) is a software-defined business platform for building data-centric applications, workflow automations, and AI-assisted operational tools without rewriting a customer's core system. Order management is only one scenario. The broader vision covers marketing, sales, commerce, inventory, supply chain, customer support, finance, administration, and any industry-specific process that can be modeled as data plus workflow.",
+            "Cell AI Data is a software-defined business platform for building data-centric applications, workflow automations, AI agents, and reusable operational templates without rewriting a customer's core system. Order management is only one scenario. The broader vision covers marketing, sales, commerce, inventory, supply chain, customer support, finance, administration, real estate, and any industry-specific process that can be modeled as data plus workflow.",
             "The product thesis is software-defined software: business applications should be reconfigured through metadata, workflow, permissions, connectors, and AI skills instead of being rewritten as one-off custom code. In the AI-agent era, this becomes a major demand because companies want one person or a very small team to operate more processes, launch more campaigns, manage more customer interactions, and reduce repetitive work without adding headcount.",
             "The opportunity is clear: companies need new internal applications faster, but many are blocked by legacy systems, custom database schemas, integration complexity, and AI token-cost concerns. CellX solves this by turning database tables, field metadata, permissions, import/export rules, and extension points into configurable business apps. Its AI Workflow Skill Designer adds a drag-and-drop layer for third-party systems, AI models, manual ChatGPT handoffs, and direct CellX database actions."
         ],
@@ -136,7 +136,7 @@ pages = [
             "Vision: software-defined software for flexible, extensible business processes.",
             "AI-era operating model: one skilled operator can coordinate marketing, sales, operations, support, data workflows, and human approval.",
             "Users: founders, one-person companies, SMB teams, e-commerce operators, manufacturers, education administrators, agencies, and internal IT teams.",
-            "Business model: tiered SaaS and private Lightsail/cloud deployments from $99 to $899+ per month.",
+            "Business model: SaaS subscriptions, paid pilots, private deployment, template marketplace commissions, and customer-created workflow sales.",
             "Competition goal: show a working prototype, a clear market, and a path to paid pilots."
         ],
     },
@@ -157,9 +157,9 @@ pages = [
     {
         "title": "3. The Solution",
         "body": [
-            "CellX RDP addresses the gap with a configuration-first architecture. Tables and page metadata become business screens. Permissions, import/export, validation, and workflow hooks can be configured rather than hand-coded each time. The platform preserves the existing backend while enabling extension modules, sidecar APIs, and workflow pages to be added around it.",
+            "Cell AI Data addresses the gap with a configuration-first architecture. Tables and page metadata become business screens. Permissions, import/export, validation, and workflow hooks can be configured rather than hand-coded each time. The platform preserves the existing backend while enabling extension modules, sidecar APIs, and workflow pages to be added around it.",
             "This makes CellX a software-defined software layer. The user defines what the business needs - fields, forms, approvals, data operations, third-party connectors, AI decisions, marketing actions, sales follow-up, fulfillment steps, and support logic - and CellX turns those definitions into a working operational interface.",
-            "The new AI Workflow Designer extends the platform beyond CRUD generation. Users can drag nodes, connect steps, test third-party credentials, show connection status, import/export workflow templates, and use manual ChatGPT or web handoff when they want AI reasoning without burning the platform owner's token budget."
+            "The new AI Workflow Designer extends the platform beyond CRUD generation. Users can drag nodes, connect steps, test third-party credentials, view readable node results, save configuration, import/export workflow templates, and use OpenAI API, BYOK, or manual ChatGPT/web handoff depending on cost and privacy needs."
         ],
         "bullets": [
             "Generate production-ready admin pages from database structure and metadata.",
@@ -172,12 +172,13 @@ pages = [
     {
         "title": "4. Product Modules",
         "body": [
-            "CellX is positioned as a modular platform rather than a single page builder or an order-management product. The current prototype includes a marketing site, an admin backend, a workflow designer, a node library, a sidecar API concept, and import/export templates. These pieces form a general-purpose business operating layer that can be adapted to many industries and workflows."
+            "Cell AI Data is positioned as a modular platform rather than a single page builder or an order-management product. The current prototype includes a marketing site, an admin backend, a workflow designer, a node library, a sidecar API concept, workflow tabs, a template library, and a marketplace preview. These pieces form a general-purpose business operating layer that can be adapted to many industries and workflows."
         ],
         "table": [
             ("Runtime Page Builder", "Build CRUD pages, search forms, tables, and actions from metadata for any business object.", "Cuts repetitive internal app development work."),
             ("CellX Backend", "Existing deployed application with user, role, menu, notice, generated table, order, and configurable business structures.", "Provides a real operational system instead of a demo-only shell."),
             ("AI Workflow Designer", "Drag-and-drop workflow canvas with node library, connectors, import/export templates, and test status.", "Turns integrations and AI steps into reusable skills."),
+            ("Workflow Marketplace", "Customers can publish mature workflow templates for review, sale, import, and reuse across categories.", "Turns customer know-how into a platform ecosystem and commission revenue."),
             ("Marketing Site", "English front page with pricing, payment page, trial/demo links, and AI workflow promotion.", "Creates a public sales entry point."),
             ("Sidecar Extension API", "Independent /ext-api layer for new integrations and workflow services.", "Adds capability without modifying the original JAR source.")
         ],
@@ -198,7 +199,21 @@ pages = [
         ],
     },
     {
-        "title": "6. CellX Data Activation",
+        "title": "6. Workflow Marketplace Ecosystem",
+        "body": [
+            "The marketplace expands Cell AI Data from a tool into an ecosystem. A customer who builds a mature workflow, such as AI real-estate recommendations, marketing video generation, Amazon supplier research, or Order Desk UPS/FedEx fulfillment, can package it as a reusable template and sell it to similar businesses.",
+            "In this model, the 'developer' is not only a professional software engineer. It can be a real estate agent, agency owner, e-commerce operator, logistics manager, or consultant who has turned practical business know-how into a repeatable workflow. Cell AI Data provides template hosting, review status, category browsing, import flow, checkout, and payout rails."
+        ],
+        "bullets": [
+            "Customer-creators upload standardized workflows and set a template price.",
+            "Buyers browse by category such as Real Estate, E-commerce, Finance, Research, Marketing, or Operations.",
+            "The platform reviews templates before listing to protect quality and trust.",
+            "Revenue model: platform commission plus optional setup, connector, and private deployment services.",
+            "Long-term moat: the more useful workflows customers publish, the more valuable the marketplace becomes."
+        ],
+    },
+    {
+        "title": "7. CellX Data Activation",
         "body": [
             "A key differentiator is the CellX Database node library. Rather than treating workflow as a separate automation island, CellX exposes internal tables as controlled workflow resources. This allows users to query campaigns, leads, customers, orders, inventory, suppliers, tickets, invoices, approvals, and audit events or trigger follow-up tasks from data already stored in the platform.",
             "This approach can be implemented with safeguards: allow-listed tables, parameterized queries, read/write permission policies, audit logs, and staged review before destructive actions. That creates a practical route for expanding a deployed backend even when the original source code is unavailable."
@@ -211,7 +226,7 @@ pages = [
         ],
     },
     {
-        "title": "7. Target Customers",
+        "title": "8. Target Customers",
         "body": [
             "CellX is strongest where teams have frequent internal application needs, structured data, and integration pressure. The product is designed to be cross-industry: e-commerce, consumer brands, agencies, manufacturing, education, services, logistics, healthcare administration, real estate operations, and SMB IT teams that cannot afford long custom development cycles.",
             "The product also fits agencies and implementation partners who repeatedly build admin portals for clients. For those teams, CellX can become a repeatable delivery engine with private deployment options."
@@ -224,7 +239,7 @@ pages = [
         ],
     },
     {
-        "title": "8. Market Opportunity",
+        "title": "9. Market Opportunity",
         "body": [
             "The market is moving toward low-code platforms that are also AI-aware, integration-ready, and governed. Gartner projects the low-code development technologies market to reach $58.2 billion by 2029 with a 14.1% CAGR, citing agentic AI, citizen development, and operational excellence as adoption drivers. Forrester estimated the low-code and digital process automation market at $13.2 billion by the end of 2023 and approximately $30 billion by 2028, with an AI-fueled scenario approaching $50 billion.",
             "AI adoption creates an additional demand layer. Deloitte's 2026 State of AI reporting shows expanded sanctioned AI access and strong interest in customized agents, while McKinsey highlights that scaling agentic AI requires governed, reusable assets that can coordinate tools, data, and transactional systems. CellX is designed for this intersection: low-code business apps plus governed workflow and AI execution across the full company lifecycle."
@@ -237,7 +252,7 @@ pages = [
         ],
     },
     {
-        "title": "9. Competitive Landscape",
+        "title": "10. Competitive Landscape",
         "body": [
             "For an investor audience, the right competitive set is no longer only low-code tools. CellX should be compared with the broader AI workflow and enterprise agent ecosystem: Palantir AIP, Salesforce Agentforce, ServiceNow AI workflows, UiPath agentic automation, C3.ai enterprise AI applications, Microsoft Copilot and Power Platform, plus private AI-agent builders. These companies show that buyers want AI connected to data, workflow, governance, and execution.",
             "The public-market signal is mixed and useful. Palantir has been rewarded because investors see rapid growth tied to operational data and AI execution. UiPath and ServiceNow show that automation and workflow platforms can remain valuable when they absorb AI into existing process systems. Salesforce shows that agents can become an upsell layer inside a large application suite. C3.ai shows the risk: AI positioning alone is not enough if revenue growth weakens. CellX should use this pattern to position itself as a focused, SMB-friendly AI workflow and software-defined operations platform."
@@ -255,7 +270,7 @@ pages = [
         },
     },
     {
-        "title": "10. Competitor Analysis",
+        "title": "11. Competitor Analysis",
         "body": [
             "The strongest investor framing is that CellX is not another generic AI chatbot or agent playground. It is closer to a lightweight operating layer for AI-enabled business workflows. Palantir is the clearest strategic reference because it connects data, workflow, governance, and operational decisions. However, Palantir primarily sells to larger enterprise and government buyers. CellX can use a smaller-company wedge: e-commerce operators, agencies, one-person companies, and SMB teams that need practical workflows without a heavy enterprise platform.",
             "Salesforce and ServiceNow show that agents become valuable when they live inside systems of record. UiPath shows that automation buyers still pay for execution, monitoring, and governance. Microsoft shows that AI distribution can be embedded into existing productivity and cloud workflows. CellX's opening is to package those ideas into a narrower, faster, lower-cost product: generated business apps, database workflow nodes, AI handoff options, templates, and private deployment."
@@ -272,7 +287,7 @@ pages = [
         },
     },
     {
-        "title": "11. SWOT Analysis",
+        "title": "12. SWOT Analysis",
         "body": [
             "The SWOT view highlights a practical path for investor readiness. CellX already has a working prototype, a public site, a backend-adjacent architecture, and a strong AI-era narrative. The main weakness is that the product still needs customer proof, deeper connectors, and repeatable onboarding. The opportunity is large because low-code, agentic AI, workflow automation, and lean-company operations are converging. The threats are real: large platforms can bundle features, buyers will demand security, and the automation market is noisy.",
             "The strategy should therefore convert product progress into proof points: paid pilots, measurable time savings, reusable workflow templates, partner delivery, and documented security controls."
@@ -287,26 +302,28 @@ pages = [
         },
     },
     {
-        "title": "12. Business Model and Pricing",
+        "title": "13. Business Model and Pricing",
         "body": [
             "The current marketing site already presents a tiered structure that can be refined during customer discovery. The model balances self-service entry with higher-value private deployments and implementation support. The business should not rely on subscription revenue alone in the first year. Early revenue should come from paid pilots, setup packages, custom workflow templates, and connector configuration. As the product matures, the same work should become reusable software assets with higher gross margin.",
-            "The most important pricing principle is to separate platform value from pass-through costs. CellX can charge for generated applications, workflow governance, private deployment, templates, and support, while AI model usage can be platform-managed, customer-owned through BYOK, or kept outside the platform through manual ChatGPT/web handoff."
+            "The most important pricing principle is to separate platform value from pass-through costs. Cell AI Data can charge for generated applications, workflow governance, private deployment, templates, marketplace transactions, and support, while AI model usage can be platform-managed, customer-owned through BYOK, or kept outside the platform through manual ChatGPT/web handoff."
         ],
         "table": [
             ("Trial", "$0 / month", "14-day demo, sample pages, workflow preview, and guided evaluation."),
             ("Starter", "$99 / month", "1 production environment, up to 20 generated pages, standard import/export, email support."),
             ("Growth", "$299 / month", "3 environments, unlimited generated pages, workflow extension support, priority updates."),
-            ("Enterprise", "$899+ / month", "Private Lightsail/cloud deployment, source-level extension guidance, onboarding, governance review.")
+            ("Enterprise", "$899+ / month", "Private Lightsail/cloud deployment, source-level extension guidance, onboarding, governance review."),
+            ("Marketplace", "15%-30% commission", "Customers sell reusable workflow templates; Cell AI Data handles listing, review, checkout, and payout.")
         ],
         "bullets": [
-            "Additional revenue can come from implementation packages, custom integrations, workflow templates, premium agent nodes, and industry solution packs.",
+            "Additional revenue can come from implementation packages, custom integrations, workflow templates, premium agent nodes, industry solution packs, and marketplace commissions.",
             "Template packs can cover AI marketing automation, social distribution, influencer outreach, sales follow-up, order fulfillment, inventory planning, supplier sourcing, support automation, and finance workflows.",
+            "Customers can earn more by selling proven workflows, while the platform earns recurring commission without doing every implementation manually.",
             "AI token costs can be passed through, BYOK-based, or avoided through manual ChatGPT/web handoff workflows.",
             "Private deployment keeps the platform attractive to companies with data-control requirements."
         ],
     },
     {
-        "title": "13. Go-To-Market Strategy",
+        "title": "14. Go-To-Market Strategy",
         "body": [
             "The first go-to-market motion should be founder-led and proof-driven. Instead of selling an abstract platform, CellX should demonstrate complete one-person-company workflows: generate product promotion videos, invite influencers, push content to TikTok/Facebook and other social platforms, capture leads, follow up through CRM/email, manage orders, check inventory, coordinate suppliers, handle shipping, support customers, and export results to Excel for AI analysis.",
             "The best beachhead is not every industry at once. CellX should start with customers who already feel the pain weekly: e-commerce operators, small agencies, brand owners, and SMB operations teams. These buyers have visible repetitive work, existing spreadsheets or databases, and a clear desire to reduce manual labor. The launch motion should produce short public demos, direct founder outreach, pilot workshops, and case studies showing time saved, workflows automated, and manual handoffs reduced."
@@ -317,11 +334,11 @@ pages = [
             "Phase 1: paid pilots with e-commerce, marketing, agency, and SMB operations teams.",
             "Phase 2: package workflow templates for AI video promotion, influencer outreach, social posting, Amazon research, FedEx/UPS shipping, Stripe/PayPal payment follow-up, and CRM updates.",
             "Phase 3: partner with agencies that build marketing operations and internal systems for small businesses.",
-            "Phase 4: publish a template marketplace and integration library."
+            "Phase 4: publish a template marketplace where customers can sell mature standardized workflows to peers, with Cell AI Data taking commission."
         ],
     },
     {
-        "title": "14. Market Launch Plan",
+        "title": "15. Market Launch Plan",
         "body": [
             "CellX should launch through a narrow, repeatable workflow wedge. The recommended wedge is AI marketing-to-sales operations for small teams: research a product or niche, create campaign assets, identify influencers or channels, publish or prepare posts, capture leads, update CRM records, and trigger follow-up. This is easy to demonstrate, strongly connected to revenue, and broad enough to expand into order, support, and supplier workflows.",
             "The launch plan should combine direct selling with productized content. A founder-led sales motion can target 50-100 qualified pilot prospects per month using LinkedIn, e-commerce communities, local SMB networks, agency relationships, and existing CellX site traffic. The public site should focus on demo booking, workflow templates, and before/after operational examples instead of generic platform language."
@@ -330,14 +347,15 @@ pages = [
             "headers": ["Channel", "Execution", "Success Metric", "Purpose"],
             "rows": [
                 ("Founder outreach", "Direct email, LinkedIn, local business contacts, agency introductions.", "10-15 discovery calls per month.", "Find urgent pilot problems and refine ICP."),
-                ("Demo content", "Short workflow videos for AI marketing, Amazon research, inventory alerts, support routing.", "5 qualified demo requests per month.", "Make the product understandable quickly."),
+                ("Demo content", "Short workflow videos for AI marketing, real estate alerts, Amazon research, inventory alerts, and support routing.", "5 qualified demo requests per month.", "Make the product understandable quickly."),
                 ("Pilot workshops", "Paid setup session that maps one workflow and launches a prototype.", "3 paid pilots per quarter.", "Convert interest into revenue and proof."),
+                ("Customer creators", "Help successful users publish workflow templates into the marketplace.", "10 listed templates by Year 1.", "Turn customer expertise into ecosystem supply."),
                 ("Agency partners", "Offer private deployment and reusable client workflow templates.", "2 active partners in Year 1.", "Lower CAC and create implementation leverage.")
             ],
         },
     },
     {
-        "title": "15. Technology and Architecture",
+        "title": "16. Technology and Architecture",
         "body": [
             "The deployed backend uses a Java-oriented enterprise stack, while the extension layer can be independently deployed behind Nginx. This allows CellX to grow even when the original backend source is unavailable. The workflow UI can be hosted under /workflow/ and communicate with a sidecar /ext-api layer for integrations, database operations, and AI connectors.",
             "The architecture prioritizes separation: the original system remains stable, while new workflow capabilities, integration adapters, and AI skill pages can be added beside it. This is the technical foundation for flexible business-process extension: a company can keep its core software stable while allowing AI agents and workflow nodes to operate through governed sidecar services."
@@ -350,10 +368,10 @@ pages = [
         ],
     },
     {
-        "title": "16. Security, Governance, and AI Cost Strategy",
+        "title": "17. Security, Governance, and AI Cost Strategy",
         "body": [
-            "For competition and pilot readiness, security should be presented as a core design principle. CellX should avoid giving arbitrary SQL or unrestricted API access to workflow users. Instead, it should use allow-listed database actions, least-privilege credentials, encrypted secrets, audit logs, environment separation, and clear manual approval gates.",
-            "The AI strategy is especially important. Some users want automation through OpenAI, Anthropic, Gemini, DeepSeek, Mistral, Llama, Perplexity, or local Ollama models. Others want to log into ChatGPT manually and paste results back to avoid platform-paid token usage. CellX can support all three modes: platform-managed API, customer-provided API key, and human web handoff."
+            "For competition and pilot readiness, security should be presented as a core design principle. Cell AI Data should avoid giving arbitrary SQL or unrestricted API access to workflow users. Instead, it should use allow-listed database actions, least-privilege credentials, encrypted secrets, audit logs, environment separation, and clear manual approval gates.",
+            "The AI strategy is especially important. Some users want automation through OpenAI, Anthropic, Gemini, DeepSeek, Mistral, Llama, Perplexity, or local Ollama models. Others want to log into ChatGPT manually and paste results back to avoid platform-paid token usage. Cell AI Data can support all three modes: platform-managed API, customer-provided API key, and human web handoff."
         ],
         "bullets": [
             "Secrets: store API keys, access keys, and passwords encrypted and scoped by workspace.",
@@ -364,22 +382,22 @@ pages = [
         ],
     },
     {
-        "title": "17. Roadmap",
+        "title": "18. Roadmap",
         "body": [
             "The roadmap should move from prototype credibility to customer-grade repeatability. The next milestone is not to build every integration deeply. It is to create a reliable extension model, a few high-value templates, and measurable customer outcomes."
         ],
         "table": [
             ("0-3 months", "Stabilize workflow UI, template import/export, CellX DB nodes, manual ChatGPT handoff, marketing site, and one-person-company demo flows.", "Competition-ready and pilot-ready prototype."),
             ("3-6 months", "Add production sidecar API, encrypted secrets, connector tests, run logs, and templates for social, CRM, Amazon, FedEx/UPS, Stripe/PayPal, and email.", "Paid pilot readiness."),
-            ("6-12 months", "Add marketplace templates, multi-tenant account model, billing, usage controls, and role-based workflow governance across industry packs.", "Repeatable SaaS motion."),
+            ("6-12 months", "Add marketplace templates, multi-tenant account model, billing, usage controls, template review status, checkout, and role-based workflow governance across industry packs.", "Repeatable SaaS and ecosystem motion."),
             ("12-18 months", "Partner program, enterprise deployment kit, advanced AI agent orchestration, and analytics.", "Scale beyond founder-led implementation.")
         ],
     },
     {
-        "title": "18. Revenue Forecast",
+        "title": "19. Revenue Forecast",
         "body": [
-            "The following forecast is an investor-case planning model, not an audited financial forecast. It assumes CellX begins with high-touch paid pilots, converts the most repeatable workflows into monthly subscriptions, and uses partners plus template packs to accelerate adoption. Revenue is split into four layers: subscription, implementation, template and integration packs, and pass-through usage.",
-            "The upside case is built around a narrow wedge that can expand quickly after proof. By Year 1, CellX aims to show paid demand and referenceable outcomes. By Year 2, partner and template motions begin to scale monthly recurring revenue. By Year 3, the target is approximately $6.0M ARR run-rate, supported by 900 paid accounts, higher Growth/Enterprise mix, and reusable workflow assets."
+            "The following forecast is an investor-case planning model, not an audited financial forecast. It assumes Cell AI Data begins with high-touch paid pilots, converts the most repeatable workflows into monthly subscriptions, and uses partners, customer-created templates, and marketplace commissions to accelerate adoption. Revenue is split into five layers: subscription, implementation, marketplace commission, template and integration packs, and pass-through usage.",
+            "The upside case is built around a narrow wedge that can expand quickly after proof. By Year 1, Cell AI Data aims to show paid demand and referenceable outcomes. By Year 2, partner and marketplace motions begin to scale monthly recurring revenue. By Year 3, the target is approximately $6.0M ARR run-rate, supported by 900 paid accounts, higher Growth/Enterprise mix, and reusable workflow assets."
         ],
         "custom_table": {
             "headers": ["Investor Case", "Year 1", "Year 2", "Year 3"],
@@ -389,7 +407,7 @@ pages = [
                 ("ARR run-rate", "$180k", "$1.25M", "$6.0M"),
                 ("Recognized subscription revenue", "$80k", "$650k", "$3.45M"),
                 ("Implementation revenue", "$135k", "$360k", "$720k"),
-                ("Templates, connectors, usage", "$35k", "$190k", "$630k"),
+                ("Templates, marketplace, connectors, usage", "$35k", "$190k", "$630k"),
                 ("Total recognized revenue", "$250k", "$1.20M", "$4.80M")
             ],
         },
@@ -397,13 +415,13 @@ pages = [
             "Year 1 account mix assumption: 22 Starter, 10 Growth, 3 Enterprise by year end.",
             "Year 2 account mix assumption: 110 Starter, 85 Growth, 25 Enterprise by year end.",
             "Year 3 account mix assumption: 360 Starter, 400 Growth, 140 Enterprise by year end.",
-            "Investor upside depends on repeatable acquisition, partner delivery, and workflow expansion after the first paid use case."
+            "Investor upside depends on repeatable acquisition, partner delivery, marketplace supply, and workflow expansion after the first paid use case."
         ],
     },
     {
-        "title": "19. Profitability Analysis",
+        "title": "20. Profitability Analysis",
         "body": [
-            "CellX can become profitable when three things happen together: subscription revenue grows, implementation work is productized into reusable templates, and AI usage costs are either passed through or owned by the customer. The platform should avoid absorbing unpredictable model costs in low-priced plans. BYOK and manual handoff modes protect gross margin while still letting customers use AI.",
+            "Cell AI Data can become profitable when three things happen together: subscription revenue grows, implementation work is productized into reusable templates, and customer-created workflow sales add high-margin marketplace commission. The platform should avoid absorbing unpredictable model costs in low-priced plans. BYOK and manual handoff modes protect gross margin while still letting customers use AI.",
             "The operating model should stay lean through the first three years, but the investor case assumes faster commercial execution and stronger partner leverage than the conservative case. Product development, cloud infrastructure, security review, connector maintenance, and customer success are the main costs. Break-even becomes realistic when recurring revenue and template margin grow faster than founder-led implementation costs."
         ],
         "custom_table": {
@@ -419,12 +437,13 @@ pages = [
         "bullets": [
             "Keep cloud and model costs variable through usage limits, BYOK, pass-through billing, and manual AI handoff.",
             "Use paid pilots to fund discovery while building template assets that can be sold repeatedly.",
+            "Use marketplace commission to make customer creativity part of the profit engine: customers save work, move faster, stay flexible, and can earn by selling proven workflows.",
             "Prioritize integrations that directly unlock revenue workflows: social distribution, CRM, payments, shipping, Amazon/Shopify, email, and Excel exports.",
             "Break-even target: reach during Year 3 once ARR run-rate approaches $6.0M and implementation delivery becomes partner-assisted."
         ],
     },
     {
-        "title": "20. Thank You, Competition Ask, and References",
+        "title": "21. Thank You, Competition Ask, and References",
         "body": [
             "Presented by Harrison Huang and David Cai from Tarbut V' Torah (TVT) Community Day School, 9th Grade.",
             "Competition ask: introductions to pilot customers, cloud credits, partner channels, and mentoring on enterprise AI governance. Funding, if pursued, should prioritize product hardening, connector development, security review, and customer implementation support."
@@ -462,9 +481,9 @@ def build_docx():
     # Cover
     add_visual(doc, "cellx_hero_ad.png", 7.1)
     add_para(doc, "Competition Business Plan", 13, True, BLUE, 8)
-    add_para(doc, "CellX RDP", 34, True, NAVY, 4)
+    add_para(doc, "Cell AI Data", 34, True, NAVY, 4)
     add_para(doc, "Rapid Development Platform for Data Apps, AI Workflow Skills, and Enterprise Integrations", 16, False, "334155", 14)
-    add_para(doc, "Software-defined software for the AI-agent era: flexible business processes, one-person-company leverage, and cost-down automation.", 12.5, True, BLUE, 12)
+    add_para(doc, "Big save. Big fast. Big flexible. And even more earn: software-defined workflows that cut cost, speed operations, and let customers sell reusable business templates.", 12.5, True, BLUE, 12)
     add_para(doc, "Presented by Harrison Huang and David Cai", 11.5, True, NAVY, 3)
     add_para(doc, "Tarbut V' Torah (TVT) Community Day School | 9th Grade", 10.5, False, MUTED, 12)
     add_para(doc, "Prepared for startup and innovation competition review", 10.5, False, MUTED, 18)
@@ -473,7 +492,7 @@ def build_docx():
         ("Backend", "https://app.cellaidata.com", "Operational CellX admin platform and data system."),
         ("Workflow", "https://app.cellaidata.com/workflow/", "AI workflow skill design and extension surface.")
     ])
-    add_para(doc, "This document is an English competition draft based on the current CellX prototype, deployed pages, workflow designer work, and public market sources listed in the reference page.", 9.2, False, MUTED, 2)
+    add_para(doc, "This document is an English competition draft based on the current Cell AI Data prototype, deployed pages, workflow designer work, marketplace concept, and public market sources listed in the reference page.", 9.2, False, MUTED, 2)
 
     for idx, page in enumerate(pages):
         add_heading(doc, page["title"])
@@ -483,9 +502,9 @@ def build_docx():
             add_visual(doc, "cellx_architecture.png", 6.75)
         if page["title"].startswith("5."):
             add_visual(doc, "cellx_workflow_ad.png", 6.75)
-        if page["title"].startswith("8."):
+        if page["title"].startswith("9."):
             add_visual(doc, "cellx_market_ad.png", 6.75)
-        if page["title"].startswith("15."):
+        if page["title"].startswith("16."):
             add_visual(doc, "cellx_architecture.png", 6.75)
         if "table" in page:
             add_metric_table(doc, page["table"])

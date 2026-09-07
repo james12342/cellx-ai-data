@@ -1,0 +1,175 @@
+{
+  "templateType": "cellx-workflow-designer",
+  "version": "1.0",
+  "exportedAt": "2026-09-06T00:00:00.000Z",
+  "name": "Duke University Fit Email and SMS",
+  "description": "Fetch Duke University's public website, analyze why Duke is a strong fit for a student founder, then email and text the recommendation.",
+  "nodes": [
+    {
+      "id": "node-1",
+      "type": "trigger",
+      "name": "Schedule",
+      "action": "cron",
+      "notes": "Run manually when you want to refresh the Duke fit analysis.",
+      "icon": "material-symbols:schedule-rounded",
+      "x": 60,
+      "y": 170,
+      "integrationSettings": {
+        "owner": "Duke Fit Research",
+        "timeout": "30"
+      },
+      "connection": null,
+      "testResult": null
+    },
+    {
+      "id": "node-2",
+      "type": "script",
+      "name": "Fetch Duke Website",
+      "action": "/ext-api/scripts/run",
+      "notes": "Fetch Duke public website signals and build structured fit-analysis rows.",
+      "icon": "material-symbols:school-outline-rounded",
+      "x": 315,
+      "y": 170,
+      "integrationSettings": {
+        "scriptName": "duke_attendance_fit.py",
+        "inputJson": "{\"source_url\":\"https://www.duke.edu/\",\"student_profile\":\"High-school founder building Cell AI Data; interested in AI workflow automation, entrepreneurship, data, business strategy, and research-backed products.\",\"fallback_sample\":true}",
+        "timeout": "25",
+        "args": ""
+      },
+      "connection": null,
+      "testResult": null
+    },
+    {
+      "id": "node-3",
+      "type": "ai",
+      "name": "OpenAI Duke Fit Analyst",
+      "action": "/ext-api/ai/openai/gpt-5",
+      "notes": "Use Duke website facts and the student-founder profile to create a concise personal recommendation.",
+      "icon": "logos:openai-icon",
+      "x": 570,
+      "y": 170,
+      "integrationSettings": {
+        "authMode": "platform_api_key",
+        "model": "gpt-5",
+        "maxInputRows": "8",
+        "compactInputFields": "rank,factor,evidence,why_it_matters,fit_score",
+        "platformSecretName": "OPENAI_API_KEY",
+        "promptTemplate": "Use only the Duke website facts and fit rows below. Explain why Duke is a good choice for Harrison, a high-school founder building Cell AI Data. Focus on engineering, data/AI, research, entrepreneurship, business thinking, campus community, and realistic cautions. Do not overclaim admissions outcomes. Return email-ready output plus a short SMS.\\n\\nDuke fit data:\\n{{previous_step}}",
+        "returnFormat": "{\n  \"summary\": \"short personal recommendation\",\n  \"best_reasons\": [\n    {\n      \"reason\": \"reason title\",\n      \"why_it_matters\": \"short explanation\"\n    }\n  ],\n  \"cautions\": [\"short caution\"],\n  \"email\": {\n    \"subject\": \"Duke University fit analysis\",\n    \"body\": \"clear email analysis\"\n  },\n  \"sms\": \"short text under 300 characters\"\n}",
+        "dataPolicy": "Use public Duke website facts only. Do not claim official admissions advantage."
+      },
+      "connection": null,
+      "testResult": null
+    },
+    {
+      "id": "node-4",
+      "type": "tool",
+      "name": "Build Email and Text",
+      "action": "/ext-api/tools/json-transform",
+      "notes": "Extract OpenAI email and SMS fields. If AI is skipped, the script output already contains email and SMS fields.",
+      "icon": "vscode-icons:file-type-json",
+      "x": 825,
+      "y": 170,
+      "integrationSettings": {
+        "sourcePath": "previous_step",
+        "transformMapping": "summary <- {{summary}}\nemail_subject <- {{email.subject}}\nemail_body <- {{email.body}}\nsms <- {{sms}}\nreason_1 <- {{best_reasons.0.reason}}\nreason_2 <- {{best_reasons.1.reason}}\ncaution_1 <- {{cautions.0}}",
+        "outputMode": "object",
+        "timeout": "30"
+      },
+      "connection": null,
+      "testResult": null
+    },
+    {
+      "id": "node-5",
+      "type": "communication",
+      "name": "Email and Text Duke Analysis",
+      "action": "/ext-api/gmail/send",
+      "notes": "Send the Duke fit analysis to email and T-Mobile text recipients.",
+      "icon": "logos:google-gmail",
+      "x": 1080,
+      "y": 170,
+      "integrationSettings": {
+        "deliveryMode": "connected_provider",
+        "to": "harrisonhuang98@gmail.com,workad_009@icloud.com",
+        "smsGatewayEmail": "9493128694@tmomail.net,6263833666@tmomail.net",
+        "phoneNumber": "9493128694,6263833666",
+        "subjectTemplate": "{{row.email_subject}}",
+        "bodyTemplate": "{{row.email_body}}\n\nSMS summary:\n{{row.sms}}",
+        "smtpHost": "smtp.gmail.com",
+        "smtpPort": "587",
+        "smtpSecurity": "starttls",
+        "username": "harrison20120512@gmail.com",
+        "fromEmail": "harrison20120512@gmail.com",
+        "passwordSecretName": "GMAIL_APP_PASSWORD"
+      },
+      "connection": null,
+      "testResult": null
+    },
+    {
+      "id": "node-6",
+      "type": "tool",
+      "name": "Export Duke Fit Excel",
+      "action": "/ext-api/tools/excel-export",
+      "notes": "Export the Duke fit-analysis rows to Excel.",
+      "icon": "vscode-icons:file-type-excel",
+      "x": 825,
+      "y": 345,
+      "integrationSettings": {
+        "endpoint": "/ext-api/tools/excel-export",
+        "sourcePath": "{{previous_step.rows}}",
+        "fileName": "duke_university_fit_analysis.xlsx",
+        "sheetName": "Duke Fit",
+        "timeout": "60"
+      },
+      "connection": null,
+      "testResult": null
+    },
+    {
+      "id": "node-7",
+      "type": "log",
+      "name": "Write Duke Fit Log",
+      "action": "cx_workflow_log",
+      "notes": "Record Duke fit analysis and delivery status.",
+      "icon": "vscode-icons:file-type-word",
+      "x": 1325,
+      "y": 170,
+      "integrationSettings": {
+        "owner": "Duke Fit Research",
+        "timeout": "30"
+      },
+      "connection": null,
+      "testResult": null
+    }
+  ],
+  "links": [
+    {
+      "from": "node-1",
+      "to": "node-2"
+    },
+    {
+      "from": "node-2",
+      "to": "node-3"
+    },
+    {
+      "from": "node-3",
+      "to": "node-4"
+    },
+    {
+      "from": "node-4",
+      "to": "node-5"
+    },
+    {
+      "from": "node-2",
+      "to": "node-6"
+    },
+    {
+      "from": "node-5",
+      "to": "node-7"
+    },
+    {
+      "from": "node-6",
+      "to": "node-7"
+    }
+  ]
+}
+

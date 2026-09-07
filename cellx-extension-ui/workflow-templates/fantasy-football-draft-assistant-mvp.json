@@ -1,0 +1,170 @@
+{
+  "templateType": "cellx-workflow-designer",
+  "version": "1.0",
+  "exportedAt": "2026-09-06T00:00:00.000Z",
+  "name": "Fantasy Football Draft Assistant MVP",
+  "description": "Manual draft-room assistant: paste drafted players after each real pick, filter the available pool, calculate roster needs, recommend the next best picks, and export the draft board to Excel.",
+  "nodes": [
+    {
+      "id": "node-1",
+      "type": "trigger",
+      "name": "Manual Draft Update",
+      "action": "manual",
+      "notes": "Run this after each group of real draft picks. Paste the latest drafted player names into the script node.",
+      "icon": "material-symbols:sports-football-rounded",
+      "x": 70,
+      "y": 170,
+      "integrationSettings": {
+        "owner": "Fantasy Draft",
+        "timeout": "30"
+      },
+      "connection": null,
+      "testResult": null
+    },
+    {
+      "id": "node-2",
+      "type": "script",
+      "name": "Paste Picks Draft Advisor",
+      "action": "/ext-api/scripts/run",
+      "notes": "MVP mode: manually paste drafted players and your roster. The script removes drafted players and recommends the best available options.",
+      "icon": "material-symbols:edit-note-rounded",
+      "x": 330,
+      "y": 170,
+      "integrationSettings": {
+        "scriptName": "fantasy_football_draft_assistant.py",
+        "inputJson": "{\"scoring\":\"PPR\",\"pick_number\":1,\"recommendation_count\":10,\"drafted_players\":\"\",\"my_roster\":\"\",\"rankings_csv\":\"\"}",
+        "timeout": "20",
+        "args": ""
+      },
+      "connection": null,
+      "testResult": null
+    },
+    {
+      "id": "node-3",
+      "type": "tool",
+      "name": "Recommendation Table",
+      "action": "/ext-api/tools/json-transform",
+      "notes": "Turn recommendations into a clean draft table with player, position, projected points, score, and reason.",
+      "icon": "vscode-icons:file-type-json",
+      "x": 590,
+      "y": 170,
+      "integrationSettings": {
+        "sourcePath": "{{previous_step.recommendations}}",
+        "transformMapping": "rank <- {{item.rank}}\nplayer <- {{item.player}}\nposition <- {{item.position}}\nteam <- {{item.team}}\noverall_rank <- {{item.overall_rank}}\ntier <- {{item.tier}}\nprojected_points <- {{item.projected_points}}\nbye <- {{item.bye}}\ndraft_score <- {{item.draft_score}}\nrecommendation <- {{item.recommendation}}\nnotes <- {{item.notes}}",
+        "outputMode": "rows",
+        "timeout": "30"
+      },
+      "connection": null,
+      "testResult": null
+    },
+    {
+      "id": "node-4",
+      "type": "tool",
+      "name": "Export Draft Excel",
+      "action": "/ext-api/tools/excel-export",
+      "notes": "Export the recommendation table to an Excel draft sheet for quick review during the league draft.",
+      "icon": "vscode-icons:file-type-excel",
+      "x": 850,
+      "y": 170,
+      "integrationSettings": {
+        "endpoint": "/ext-api/tools/excel-export",
+        "sourcePath": "{{previous_step.rows}}",
+        "fileName": "fantasy_football_draft_recommendations.xlsx",
+        "sheetName": "Recommendations",
+        "timeout": "60"
+      },
+      "connection": null,
+      "testResult": null
+    },
+    {
+      "id": "node-5",
+      "type": "tool",
+      "name": "Available Player Pool",
+      "action": "/ext-api/tools/json-transform",
+      "notes": "Optional full available-player table. Use this when you want to inspect all remaining players, not only the top recommendations.",
+      "icon": "vscode-icons:file-type-json",
+      "x": 590,
+      "y": 340,
+      "integrationSettings": {
+        "sourcePath": "{{previous_step.available_players}}",
+        "transformMapping": "rank <- {{item.rank}}\nplayer <- {{item.player}}\nposition <- {{item.position}}\nteam <- {{item.team}}\noverall_rank <- {{item.overall_rank}}\ntier <- {{item.tier}}\nprojected_points <- {{item.projected_points}}\nbye <- {{item.bye}}\nnotes <- {{item.notes}}",
+        "outputMode": "rows",
+        "timeout": "30"
+      },
+      "connection": null,
+      "testResult": null
+    },
+    {
+      "id": "node-6",
+      "type": "log",
+      "name": "Write Draft Log",
+      "action": "cx_workflow_log",
+      "notes": "Record pick number, drafted count, and recommendation count for the draft session.",
+      "icon": null,
+      "x": 1110,
+      "y": 170,
+      "integrationSettings": {
+        "owner": "Fantasy Draft",
+        "timeout": "30"
+      },
+      "connection": null,
+      "testResult": null
+    },
+    {
+      "id": "node-7",
+      "type": "communication",
+      "name": "Text Draft Recommendation",
+      "action": "/ext-api/gmail/send",
+      "notes": "Send compact fantasy draft recommendations by Gmail and T-Mobile SMS gateway recipients.",
+      "icon": "logos:google-gmail",
+      "x": 850,
+      "y": 340,
+      "integrationSettings": {
+        "deliveryMode": "connected_provider",
+        "to": "harrison20120512@gmail.com,workad_009@icloud.com",
+        "smsGatewayEmail": "9496597928@tmomail.net,6263833666@tmomail.net,9493128694@tmomail.net",
+        "phoneNumber": "9496597928,6263833666,9493128694",
+        "subjectTemplate": "Fantasy draft pick recommendation",
+        "bodyTemplate": "Fantasy pick #{{pick_number}}: 1) {{recommendations.0.player}} {{recommendations.0.position}} {{recommendations.0.team}}; 2) {{recommendations.1.player}} {{recommendations.1.position}}; 3) {{recommendations.2.player}} {{recommendations.2.position}}. Need: RB {{roster_needs.1.need}}, WR {{roster_needs.2.need}}, QB {{roster_needs.0.need}}, TE {{roster_needs.3.need}}.",
+        "smtpHost": "smtp.gmail.com",
+        "smtpPort": "587",
+        "smtpSecurity": "starttls",
+        "username": "harrison20120512@gmail.com",
+        "fromEmail": "harrison20120512@gmail.com",
+        "passwordSecretName": "GMAIL_APP_PASSWORD"
+      },
+      "connection": null,
+      "testResult": null
+    }
+  ],
+  "links": [
+    {
+      "from": "node-1",
+      "to": "node-2"
+    },
+    {
+      "from": "node-2",
+      "to": "node-3"
+    },
+    {
+      "from": "node-3",
+      "to": "node-4"
+    },
+    {
+      "from": "node-2",
+      "to": "node-5"
+    },
+    {
+      "from": "node-4",
+      "to": "node-6"
+    },
+    {
+      "from": "node-2",
+      "to": "node-7"
+    },
+    {
+      "from": "node-7",
+      "to": "node-6"
+    }
+  ]
+}

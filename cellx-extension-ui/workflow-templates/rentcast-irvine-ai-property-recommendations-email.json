@@ -110,7 +110,7 @@
       "y": 270,
       "integrationSettings": {
         "deliveryMode": "connected_provider",
-        "to": "",
+        "to": "workad_009@icloud.com",
         "subjectTemplate": "{{row.email_subject}}",
         "bodyTemplate": "Hi {{client.name}},\n\n{{row.email_body}}",
         "smtpHost": "smtp.gmail.com",
