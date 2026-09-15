@@ -16,7 +16,26 @@ $customerScriptsDir = Join-Path $root "cellx-extension-api\customer-scripts"
 $workflowTemplatesDir = Join-Path $root "cellx-extension-ui\workflow-templates"
 $marketingIndex = Join-Path $root "rdp-marketing-site\index.html"
 $marketingStyles = Join-Path $root "rdp-marketing-site\styles.css"
+$knownHosts = Join-Path $env:TEMP "cellx-known-hosts"
 $remote = "$UserName@$HostName"
+$sshOptions = @(
+  "-o", "StrictHostKeyChecking=accept-new",
+  "-o", "UserKnownHostsFile=$knownHosts",
+  "-o", "BatchMode=yes",
+  "-o", "ConnectTimeout=20"
+)
+
+function Invoke-Checked {
+  param(
+    [Parameter(Mandatory = $true)][string]$Command,
+    [Parameter(ValueFromRemainingArguments = $true)][string[]]$Arguments
+  )
+
+  & $Command @Arguments
+  if ($LASTEXITCODE -ne 0) {
+    throw "$Command failed with exit code $LASTEXITCODE"
+  }
+}
 
 foreach ($path in @($KeyPath, $uiApp, $uiStyles, $uiIndex, $apiServer, $customerScriptsDir, $workflowTemplatesDir, $marketingIndex, $marketingStyles)) {
   if (!(Test-Path -LiteralPath $path)) {
@@ -31,21 +50,21 @@ Get-ChildItem -LiteralPath $customerScriptsDir -Filter *.py | ForEach-Object {
 }
 
 Write-Host "Uploading CellX workflow UI..."
-scp -i $KeyPath $uiApp "${remote}:/tmp/cellx-workflow-app.js"
-scp -i $KeyPath $uiStyles "${remote}:/tmp/cellx-workflow-styles.css"
-scp -i $KeyPath $uiIndex "${remote}:/tmp/cellx-workflow-index.html"
+Invoke-Checked scp @sshOptions -i $KeyPath $uiApp "${remote}:/tmp/cellx-workflow-app.js"
+Invoke-Checked scp @sshOptions -i $KeyPath $uiStyles "${remote}:/tmp/cellx-workflow-styles.css"
+Invoke-Checked scp @sshOptions -i $KeyPath $uiIndex "${remote}:/tmp/cellx-workflow-index.html"
 
 Write-Host "Uploading CellX extension API..."
-scp -i $KeyPath $apiServer "${remote}:/tmp/cellx-extension-server.py"
+Invoke-Checked scp @sshOptions -i $KeyPath $apiServer "${remote}:/tmp/cellx-extension-server.py"
 
 Write-Host "Uploading customer scripts and workflow templates..."
-ssh -i $KeyPath $remote "rm -rf /tmp/cellx-customer-scripts /tmp/cellx-workflow-templates && mkdir -p /tmp/cellx-customer-scripts /tmp/cellx-workflow-templates"
-scp -i $KeyPath "$customerScriptsDir\*.py" "${remote}:/tmp/cellx-customer-scripts/"
-scp -i $KeyPath "$workflowTemplatesDir\*.json" "${remote}:/tmp/cellx-workflow-templates/"
+Invoke-Checked ssh @sshOptions -i $KeyPath $remote "rm -rf /tmp/cellx-customer-scripts /tmp/cellx-workflow-templates && mkdir -p /tmp/cellx-customer-scripts /tmp/cellx-workflow-templates"
+Invoke-Checked scp @sshOptions -i $KeyPath "$customerScriptsDir\*.py" "${remote}:/tmp/cellx-customer-scripts/"
+Invoke-Checked scp @sshOptions -i $KeyPath "$workflowTemplatesDir\*.json" "${remote}:/tmp/cellx-workflow-templates/"
 
 Write-Host "Uploading marketing site..."
-scp -i $KeyPath $marketingIndex "${remote}:/tmp/rdp-marketing-index.html"
-scp -i $KeyPath $marketingStyles "${remote}:/tmp/rdp-marketing-styles.css"
+Invoke-Checked scp @sshOptions -i $KeyPath $marketingIndex "${remote}:/tmp/rdp-marketing-index.html"
+Invoke-Checked scp @sshOptions -i $KeyPath $marketingStyles "${remote}:/tmp/rdp-marketing-styles.css"
 
 $restartCommand = if ($SkipApiRestart) { "true" } else { "sudo systemctl restart cellx-extension-api && sudo systemctl is-active cellx-extension-api" }
 $remoteCommand = @"
@@ -66,6 +85,6 @@ $restartCommand
 "@ -replace "`r?`n", " "
 
 Write-Host "Installing files on AWS..."
-ssh -i $KeyPath $remote $remoteCommand
+Invoke-Checked ssh @sshOptions -i $KeyPath $remote $remoteCommand
 
-Write-Host "Done. Open https://app.cellaidata.com/workflow/ and hard refresh if the browser cache still shows the old UI."
+Write-Host "Done. Open https://app.cellaidata.com/agent/ and hard refresh if the browser cache still shows the old UI."

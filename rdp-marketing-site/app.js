@@ -14,13 +14,50 @@ const logoutButton = document.querySelector("[data-auth-logout]");
 const loginButton = document.querySelector('[data-open-auth="login"]');
 const registerButton = document.querySelector('[data-open-auth="register"]');
 
-function showToast(message) {
-  toast.textContent = message;
+function localize(element, english, params = {}) {
+  element.dataset.i18n = english;
+  element.dataset.i18nParams = JSON.stringify(params);
+  element.textContent = window.CellI18n.t(english, params);
+}
+
+function showToast(message, params = {}) {
+  showToast.current = { message, params };
+  localize(toast, message, typeof params === "function" ? params() : params);
   toast.hidden = false;
   clearTimeout(showToast.timer);
   showToast.timer = setTimeout(() => {
     toast.hidden = true;
   }, 2800);
+}
+
+function trackMarketingVisit() {
+  try {
+    const storageKey = "cell-ai-data-visitor-id";
+    let visitorId = localStorage.getItem(storageKey);
+    if (!visitorId) {
+      visitorId = `v_${Date.now()}_${Math.random().toString(16).slice(2)}`;
+      localStorage.setItem(storageKey, visitorId);
+    }
+    const payload = {
+      visitorId,
+      eventType: "page_view",
+      pageUrl: window.location.href,
+      pagePath: window.location.pathname || "/",
+      pageTitle: document.title,
+      referrer: document.referrer || "",
+      language: navigator.language || "",
+      timezone: Intl.DateTimeFormat().resolvedOptions().timeZone || "",
+      screen: `${window.screen.width}x${window.screen.height}`,
+    };
+    fetch("https://app.cellaidata.com/ext-api/analytics/track", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(payload),
+      keepalive: true,
+    }).catch(() => {});
+  } catch {
+    // Analytics must never block the customer-facing page.
+  }
 }
 
 function updatePrices() {
@@ -31,7 +68,7 @@ function updatePrices() {
       state.price = amount;
     }
   });
-  summaryPlan.textContent = state.plan;
+  localize(summaryPlan, state.plan);
   summaryPrice.textContent = state.price;
 }
 
@@ -64,7 +101,12 @@ document.querySelectorAll("[data-payment]").forEach(button => {
 
 document.querySelector("[data-checkout-form]").addEventListener("submit", event => {
   event.preventDefault();
-  showToast(`${state.plan} checkout selected with ${state.payment}. Connect this button to your payment backend on Lightsail.`);
+  const plan = state.plan;
+  const payment = state.payment;
+  showToast("{plan} checkout selected with {payment}. Connect this button to your payment backend on Lightsail.", () => ({
+    plan: window.CellI18n.t(plan),
+    payment: payment === "Card" ? window.CellI18n.t("Bank card") : payment,
+  }));
 });
 
 const modal = document.querySelector("[data-demo-modal]");
@@ -84,7 +126,12 @@ function renderAuthState() {
   const signedIn = Boolean(account?.email);
   if (authStatus) {
     authStatus.hidden = !signedIn;
-    authStatus.textContent = signedIn ? `Signed in: ${account.email}` : "";
+    if (signedIn) localize(authStatus, "Signed in: {email}", { email: account.email });
+    else {
+      delete authStatus.dataset.i18n;
+      delete authStatus.dataset.i18nParams;
+      authStatus.textContent = "";
+    }
   }
   if (logoutButton) logoutButton.hidden = !signedIn;
   if (loginButton) loginButton.hidden = signedIn;
@@ -115,7 +162,7 @@ function setAuthMode(mode) {
   document.querySelectorAll("[data-auth-tab]").forEach(button => {
     button.classList.toggle("active", button.dataset.authTab === authMode);
   });
-  document.getElementById("authTitle").textContent = authMode === "register" ? "Create developer marketplace account" : "Login to Cell AI Data";
+  localize(document.getElementById("authTitle"), authMode === "register" ? "Create developer marketplace account" : "Login to Cell AI Data");
   document.querySelector("[data-auth-name]").closest("label").style.display = authMode === "register" ? "grid" : "none";
 }
 
@@ -153,17 +200,17 @@ document.querySelector("[data-auth-form]").addEventListener("submit", async even
       body: JSON.stringify({ name, email, password, role }),
     });
     const data = await response.json();
-    if (!response.ok || !data.ok) throw new Error(data.message || "Account request failed.");
+    if (!response.ok || !data.ok) throw new Error(data.message || "");
     localStorage.setItem("cell-ai-data-marketplace-user", JSON.stringify(data.user));
     if (data.sessionToken) localStorage.setItem("cell-ai-data-marketplace-token", data.sessionToken);
     closeAuth();
     renderAuthState();
-    showToast(`${data.user.email} ${authMode === "register" ? "registered" : "logged in"}: marketplace access enabled.`);
+    showToast(authMode === "register" ? "{email} registered: marketplace access enabled." : "{email} logged in: marketplace access enabled.", { email: data.user.email });
   } catch (error) {
     localStorage.setItem("cell-ai-data-demo-account", JSON.stringify({ name, email, role, mode: authMode, signedInAt: new Date().toISOString() }));
     closeAuth();
     renderAuthState();
-    showToast(`Account saved locally for demo. Backend note: ${error.message}`);
+    showToast(error.message ? "Account saved locally for demo. Backend note: {message}" : "Account saved locally for demo. Account request failed.", { message: error.message });
   }
 });
 
@@ -191,7 +238,7 @@ document.querySelector("[data-contact-form]")?.addEventListener("submit", async 
       body: JSON.stringify(payload),
     });
     const data = await response.json().catch(() => ({}));
-    if (!response.ok || data.ok === false) throw new Error(data.message || "Contact API is not ready yet.");
+    if (!response.ok || data.ok === false) throw new Error(data.message || "");
     event.target.reset();
     showToast("Contact request sent. We will follow up soon.");
   } catch (error) {
@@ -199,7 +246,7 @@ document.querySelector("[data-contact-form]")?.addEventListener("submit", async 
     saved.unshift(payload);
     localStorage.setItem("cell-ai-data-contact-requests", JSON.stringify(saved.slice(0, 20)));
     event.target.reset();
-    showToast(`Contact request saved for demo. Backend note: ${error.message}`);
+    showToast(error.message ? "Contact request saved for demo. Backend note: {message}" : "Contact request saved for demo. Contact API is not ready yet.", { message: error.message });
   }
 });
 
@@ -213,3 +260,10 @@ document.querySelectorAll(".site-nav a").forEach(link => {
 
 updatePrices();
 renderAuthState();
+window.addEventListener("cell-language-change", () => {
+  const current = showToast.current;
+  if (current && !toast.hidden) {
+    localize(toast, current.message, typeof current.params === "function" ? current.params() : current.params);
+  }
+});
+trackMarketingVisit();

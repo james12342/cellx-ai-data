@@ -1,0 +1,197 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title data-i18n="Cell AI Data Traffic Dashboard">Cell AI Data Traffic Dashboard</title>
+  <link rel="stylesheet" href="./styles.css?v=20260905-contact-auth">
+  <link rel="stylesheet" href="./i18n.css?v=20260914-i18n-v1">
+  <style>
+    body { background: #eef5ff; }
+    .analytics-shell { min-height: 100vh; padding: 24px clamp(16px, 4vw, 44px); }
+    .analytics-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 18px;
+      padding: 18px 20px;
+      background: #fff;
+      border: 1px solid #cfe0f7;
+      border-radius: 8px;
+      box-shadow: 0 18px 55px rgba(22, 48, 86, .09);
+    }
+    .analytics-brand { display: flex; align-items: center; gap: 12px; }
+    .analytics-brand img { width: 38px; height: 38px; }
+    .analytics-brand h1 { margin: 0; font-size: clamp(24px, 3vw, 36px); }
+    .analytics-brand p { margin: 3px 0 0; color: #53657f; }
+    .analytics-actions { display: flex; gap: 10px; flex-wrap: wrap; justify-content: flex-end; }
+    .analytics-actions input, .analytics-actions select {
+      min-height: 42px;
+      border: 1px solid #bcd3f5;
+      border-radius: 7px;
+      padding: 0 12px;
+      background: #fff;
+    }
+    .analytics-grid {
+      display: grid;
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+      gap: 14px;
+      margin: 18px 0;
+    }
+    .analytics-card {
+      background: #fff;
+      border: 1px solid #cfe0f7;
+      border-radius: 8px;
+      padding: 16px;
+      box-shadow: 0 12px 38px rgba(22, 48, 86, .07);
+    }
+    .analytics-card span { display: block; color: #64748b; font-size: 12px; font-weight: 800; text-transform: uppercase; }
+    .analytics-card strong { display: block; margin-top: 8px; font-size: 30px; color: #111c34; }
+    .analytics-main {
+      display: grid;
+      grid-template-columns: minmax(0, 1.2fr) minmax(320px, .8fr);
+      gap: 16px;
+    }
+    .analytics-panel {
+      background: #fff;
+      border: 1px solid #cfe0f7;
+      border-radius: 8px;
+      padding: 16px;
+      min-width: 0;
+      box-shadow: 0 12px 38px rgba(22, 48, 86, .07);
+    }
+    .analytics-panel h2 { margin: 0 0 12px; font-size: 18px; }
+    .bar-list { display: grid; gap: 10px; }
+    .bar-row { display: grid; grid-template-columns: 110px 1fr 48px; align-items: center; gap: 10px; font-size: 13px; }
+    .bar-track { height: 12px; background: #e8f1ff; border-radius: 999px; overflow: hidden; }
+    .bar-fill { height: 100%; background: linear-gradient(90deg, #1b67f2, #16a3c7); border-radius: inherit; }
+    .table-wrap {
+      overflow: auto;
+      max-height: 430px;
+      border: 1px solid #d7e4f5;
+      border-radius: 8px;
+    }
+    .analytics-table {
+      width: 100%;
+      min-width: 980px;
+      border-collapse: collapse;
+      font-size: 12px;
+    }
+    .analytics-table th {
+      position: sticky;
+      top: 0;
+      z-index: 1;
+      background: #eaf4ff;
+      color: #10203a;
+      text-align: left;
+      padding: 10px;
+      border-bottom: 1px solid #cfdef2;
+      white-space: nowrap;
+    }
+    .analytics-table td {
+      padding: 9px 10px;
+      border-bottom: 1px solid #e4edf8;
+      max-width: 260px;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+      vertical-align: top;
+    }
+    .analytics-table a { color: #125ee8; text-decoration: underline; }
+    .stack { display: grid; gap: 16px; }
+    .muted-line { color: #667085; font-size: 13px; }
+    .status-line { margin-top: 12px; color: #475569; font-size: 13px; }
+    @media (max-width: 980px) {
+      .analytics-header, .analytics-main { grid-template-columns: 1fr; display: grid; }
+      .analytics-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+      .analytics-actions { justify-content: start; }
+    }
+    @media (max-width: 560px) {
+      .analytics-grid { grid-template-columns: 1fr; }
+      .analytics-card strong { font-size: 25px; }
+      .bar-row { grid-template-columns: 88px 1fr 38px; }
+    }
+  </style>
+</head>
+<body>
+  <main class="analytics-shell">
+    <header class="analytics-header">
+      <div class="analytics-brand">
+        <img src="./assets/logo.png" alt="Cell AI Data logo">
+        <div>
+          <h1 data-i18n="Traffic Dashboard">Traffic Dashboard</h1>
+          <p data-i18n="Monitor Cell AI Data website visits, pages, referrers, IPs, and device signals.">Monitor Cell AI Data website visits, pages, referrers, IPs, and device signals.</p>
+        </div>
+      </div>
+      <div class="analytics-actions">
+        <select data-language-picker aria-label="Language" data-i18n-aria-label="Language"><option value="en">English</option><option value="zh-CN">中文</option></select>
+        <select data-days>
+          <option value="1" data-i18n="Last 24 hours">Last 24 hours</option>
+          <option value="7" selected data-i18n="Last 7 days">Last 7 days</option>
+          <option value="30" data-i18n="Last 30 days">Last 30 days</option>
+          <option value="90" data-i18n="Last 90 days">Last 90 days</option>
+        </select>
+        <input data-token type="password" placeholder="Admin token if enabled" data-i18n-placeholder="Admin token if enabled">
+        <button class="btn secondary" type="button" data-refresh data-i18n="Refresh">Refresh</button>
+        <a class="btn primary" href="./index.html" data-i18n="Back to site">Back to site</a>
+      </div>
+    </header>
+
+    <section class="analytics-grid">
+      <div class="analytics-card"><span data-i18n="Total visits">Total visits</span><strong data-total-visits>0</strong></div>
+      <div class="analytics-card"><span data-i18n="Unique visitors">Unique visitors</span><strong data-unique-visitors>0</strong></div>
+      <div class="analytics-card"><span data-i18n="Unique IPs">Unique IPs</span><strong data-unique-ips>0</strong></div>
+      <div class="analytics-card"><span data-i18n="Recent rows">Recent rows</span><strong data-recent-count>0</strong></div>
+    </section>
+
+    <section class="analytics-main">
+      <div class="stack">
+        <article class="analytics-panel">
+          <h2 data-i18n="Daily Traffic">Daily Traffic</h2>
+          <div class="bar-list" data-daily-bars></div>
+        </article>
+        <article class="analytics-panel">
+          <h2 data-i18n="Recent Visits">Recent Visits</h2>
+          <div class="table-wrap">
+            <table class="analytics-table">
+              <thead>
+                <tr>
+                  <th data-i18n="Time">Time</th>
+                  <th data-i18n="IP">IP</th>
+                  <th data-i18n="Page">Page</th>
+                  <th data-i18n="Referrer">Referrer</th>
+                  <th data-i18n="Location">Location</th>
+                  <th data-i18n="Timezone">Timezone</th>
+                  <th data-i18n="Language">Language</th>
+                  <th data-i18n="Screen">Screen</th>
+                  <th data-i18n="User Agent">User Agent</th>
+                </tr>
+              </thead>
+              <tbody data-recent-table></tbody>
+            </table>
+          </div>
+        </article>
+      </div>
+      <div class="stack">
+        <article class="analytics-panel">
+          <h2 data-i18n="Top Pages">Top Pages</h2>
+          <div class="bar-list" data-pages></div>
+        </article>
+        <article class="analytics-panel">
+          <h2 data-i18n="Traffic Sources">Traffic Sources</h2>
+          <div class="bar-list" data-referrers></div>
+        </article>
+        <article class="analytics-panel">
+          <h2 data-i18n="Locations">Locations</h2>
+          <div class="bar-list" data-locations></div>
+          <p class="muted-line" data-i18n="City/region depends on headers from Nginx, CDN, or a future GeoIP provider.">City/region depends on headers from Nginx, CDN, or a future GeoIP provider.</p>
+        </article>
+      </div>
+    </section>
+    <p class="status-line" data-status data-i18n="Loading analytics...">Loading analytics...</p>
+  </main>
+  <script src="./i18n.js?v=20260914-i18n-v1"></script>
+  <script src="./i18n-zh.js?v=20260914-i18n-v1"></script>
+  <script src="./analytics.js?v=20260914-i18n-v1"></script>
+</body>
+</html>

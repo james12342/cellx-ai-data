@@ -1,0 +1,20 @@
+{
+  "templateType": "cellx-workflow-designer",
+  "version": "1.0",
+  "name": "Instagram Browse, Like and Comment",
+  "description": "One manual run in the Windows local edition: process 5 to 8 distinct feed posts, like if needed, publish the configured public comment, then stop. No recurring schedule.",
+  "nodes": [
+    {
+      "id": "node-1", "type": "trigger", "name": "Manual Start", "action": "manual",
+      "notes": "Runs only when Run Workflow is clicked. No timer is created.",
+      "x": 70, "y": 160, "integrationSettings": {"owner": "Local user", "timeout": "300"}
+    },
+    {
+      "id": "node-2", "type": "script", "name": "Instagram Browse, Like and Comment", "action": "/ext-api/instagram/run",
+      "notes": "Windows portable edition only. Opens a dedicated Edge profile; sign in manually on first run. Selects 5-8 eligible posts. Skips posts previously recorded by this runner and never retries an uncertain comment submission. Stop Instagram cancels remaining work. Test Selected does not like or comment. Run Workflow does.",
+      "x": 370, "y": 160,
+      "integrationSettings": {"minPosts": "5", "maxPosts": "8", "commentText": "hello, I like your image"}
+    }
+  ],
+  "links": [{"from": "node-1", "to": "node-2"}]
+}

@@ -137,8 +137,8 @@ textarea {
 }
 
 .toolbar > div:first-child {
-  min-width: 0;
-  flex: 1 1 auto;
+  min-width: 240px;
+  flex: 1 1 340px;
 }
 
 h1 {
@@ -153,16 +153,26 @@ h1 {
 }
 
 .toolbar-actions {
-  display: flex;
-  gap: 10px;
-  flex: 0 0 auto;
-  flex-wrap: nowrap;
-  align-items: center;
-  justify-content: flex-end;
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(152px, 1fr));
+  gap: 8px;
+  min-width: 0;
+  flex: 1 1 800px;
+  align-items: stretch;
 }
 
 .toolbar-actions button {
-  height: 34px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  box-sizing: border-box;
+  width: 100%;
+  min-width: 0;
+  height: 38px;
+  margin: 0;
+  padding: 0 12px;
+  font-size: 14px;
+  line-height: 1.2;
   white-space: nowrap;
 }
 
@@ -436,6 +446,200 @@ h1 {
   border: 1px solid var(--line);
   margin-bottom: 12px;
   min-height: calc(100vh - 210px);
+}
+
+.template-manager-panel {
+  background: var(--panel);
+  border: 1px solid var(--line);
+  margin-bottom: 12px;
+}
+
+.ai-voice-builder-panel {
+  background: var(--panel);
+  border: 1px solid var(--line);
+  margin-bottom: 12px;
+}
+
+.ai-voice-builder-body {
+  display: grid;
+  grid-template-columns: minmax(0, 0.9fr) minmax(0, 1.1fr);
+  gap: 14px;
+  padding: 14px 16px 16px;
+}
+
+.ai-voice-input,
+.ai-voice-preview {
+  min-width: 0;
+  background: #fbfdff;
+  padding: 12px;
+}
+
+.ai-voice-input input { width: 100%; margin: 6px 0 10px; }
+.ai-voice-conversation { height: clamp(280px, 45vh, 420px); overflow-y: auto; border-bottom: 1px solid var(--line); margin-bottom: 10px; }
+.ai-voice-conversation p { margin: 8px 0; white-space: pre-wrap; overflow-wrap: anywhere; }
+.ai-voice-conversation strong { color: #087c70; }
+.ai-voice-actions button { min-height: 32px; }
+.ai-voice-actions button[aria-pressed="true"] { background: #fbe3e3; color: #912626; }
+@media (max-width: 900px) {
+  .ai-voice-builder-body { grid-template-columns: minmax(0, 1fr); padding: 10px; }
+}
+
+.ai-voice-input textarea {
+  width: 100%;
+  height: 62px;
+  min-height: 62px;
+  max-height: 140px;
+  font-size: 14px;
+  line-height: 20px;
+  overflow-y: auto;
+  resize: vertical;
+  border: 1px solid var(--line-dark);
+  padding: 10px;
+  background: #fff;
+}
+
+.ai-voice-actions {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  justify-content: flex-end;
+  flex-wrap: wrap;
+  margin-top: 10px;
+}
+
+.ai-voice-input span {
+  display: block;
+  margin-top: 10px;
+  color: var(--muted);
+  font-size: 13px;
+}
+
+.ai-voice-preview pre {
+  min-height: 180px;
+  max-height: 320px;
+  overflow: auto;
+  margin: 0;
+  padding: 12px;
+  border-top: 1px solid var(--line);
+  background: #fff;
+  color: #14213d;
+  font: 12px/1.45 Consolas, "Courier New", monospace;
+  white-space: pre-wrap;
+}
+
+.template-manager-tools {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 12px 16px;
+  border-bottom: 1px solid var(--line);
+}
+
+.template-manager-tools span {
+  color: var(--muted);
+  font-size: 13px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.template-manager-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 14px;
+  padding: 14px 16px 16px;
+}
+
+.manager-section {
+  min-width: 0;
+  border: 1px solid var(--line);
+  background: #fbfdff;
+}
+
+.manager-section-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 10px 12px;
+  border-bottom: 1px solid var(--line);
+  background: #f7fbff;
+}
+
+.manager-section-head strong {
+  font-size: 14px;
+}
+
+.manager-section-head span {
+  color: var(--muted);
+  font-size: 12px;
+  white-space: nowrap;
+}
+
+.manager-list {
+  display: grid;
+  gap: 8px;
+  max-height: 430px;
+  overflow: auto;
+  padding: 10px;
+}
+
+.manager-item {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 10px;
+  border: 1px solid var(--line);
+  background: #fff;
+  padding: 10px;
+}
+
+.manager-item strong,
+.manager-item span,
+.manager-item small {
+  display: block;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.manager-item strong {
+  font-size: 13px;
+  color: #111827;
+  white-space: nowrap;
+}
+
+.manager-item span {
+  margin-top: 4px;
+  color: #4b5a73;
+  font-size: 12px;
+  white-space: nowrap;
+}
+
+.manager-item small {
+  margin-top: 4px;
+  color: var(--muted);
+  font-size: 11px;
+  white-space: nowrap;
+}
+
+.manager-actions {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  justify-content: flex-end;
+}
+
+.manager-item button.danger,
+.manager-actions button.danger {
+  color: #b42318;
+  background: #fff7f5;
+  border-color: #fecdca;
+}
+
+.manager-timer {
+  align-items: start;
 }
 
 .marketplace-grid {
@@ -1179,6 +1383,35 @@ button.active {
   font-size: 12px;
 }
 
+.daily-time-field {
+  min-width: 0;
+}
+
+.daily-time-field input {
+  min-width: 0;
+  max-width: 100%;
+  box-sizing: border-box;
+}
+
+.daily-time-field input[type="time"] {
+  min-height: 40px;
+  font-size: 16px;
+  font-variant-numeric: tabular-nums;
+}
+
+.daily-cron-advanced summary {
+  cursor: pointer;
+  color: var(--muted);
+  font-size: 12px;
+}
+
+.daily-cron-status {
+  font-size: 12px;
+  line-height: 1.4;
+  color: #92400e;
+  overflow-wrap: anywhere;
+}
+
 .required-mark,
 .optional-mark {
   float: right;
@@ -1770,6 +2003,43 @@ button.active {
   text-transform: uppercase;
 }
 
+.io-title-row {
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+  gap: 6px;
+  margin-bottom: 7px;
+}
+
+.io-title-row b {
+  margin-bottom: 0;
+}
+
+[data-copy-node-output] {
+  min-width: 44px;
+  min-height: 22px;
+  height: 22px;
+  padding: 2px 7px;
+  color: var(--blue);
+  background: #eff6ff;
+  border: 1px solid #bfdbfe;
+  font-size: 10px;
+  font-weight: 800;
+  line-height: 1;
+}
+
+[data-copy-node-output].copied {
+  color: #047857;
+  background: #ecfdf5;
+  border-color: #86efac;
+}
+
+[data-copy-node-output].copy-failed {
+  color: #991b1b;
+  background: #fef2f2;
+  border-color: #fca5a5;
+}
+
 .io-grid pre {
   max-height: 112px;
   margin: 0;
@@ -2024,8 +2294,13 @@ button.active {
 
   .toolbar-actions {
     display: grid;
-    grid-template-columns: repeat(3, minmax(0, 1fr));
+    grid-template-columns: repeat(auto-fit, minmax(124px, 1fr));
     gap: 8px;
+  }
+
+  .toolbar-actions button {
+    padding: 0 8px;
+    font-size: 12px;
   }
 
   button {

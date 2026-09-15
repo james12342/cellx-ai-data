@@ -3,132 +3,137 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Cell AI Data | Rapid Development Platform</title>
-  <meta name="description" content="Cell AI Data is an enterprise low-code platform for configuration-driven CRUD apps, workflow extensions, AI-assisted page building, permissions, import/export, and one-click deployment.">
+  <title data-i18n="Cell AI Data | AI Agents for Business">Cell AI Data | AI Agents for Business</title>
+  <meta name="description" content="Build AI agents for your business with Cell AI Data. Connect skills, tools and business data, review results, and discover reusable agents in the marketplace.">
   <link rel="icon" href="./assets/logo.png">
-  <link rel="stylesheet" href="./styles.css?v=20260905-contact-auth">
+  <link rel="stylesheet" href="./styles.css?v=20260913-workflow-home">
+  <link rel="stylesheet" href="./workflow-motion.css?v=20260914-1">
+  <link rel="stylesheet" href="./i18n.css?v=20260914-i18n-v1">
+  <script src="./i18n.js?v=20260914-i18n-v1"></script>
+  <script src="./i18n-zh.js?v=20260914-i18n-v1"></script>
 </head>
 <body>
   <header class="site-header">
-    <a class="brand" href="#top" aria-label="Cell AI Data home">
+    <a class="brand" href="#top" aria-label="Cell AI Data home" data-i18n-aria-label="Cell AI Data home">
       <img src="./assets/logo.png" alt="">
       <span>Cell AI Data</span>
     </a>
-    <button class="nav-toggle" aria-label="Open navigation" data-nav-toggle>Menu</button>
+    <button class="nav-toggle" aria-label="Open navigation" data-nav-toggle data-i18n-aria-label="Open navigation" data-i18n="Menu">Menu</button>
     <nav class="site-nav" data-nav>
-      <a href="#platform">Platform</a>
-      <a href="#capabilities">Capabilities</a>
-      <a href="#pricing">Pricing</a>
-      <a href="#checkout">Payment</a>
-      <a href="#ai-workflow">AI Workflow</a>
-      <a href="#marketplace">Marketplace</a>
-      <a href="#contact">Contact</a>
-      <a href="#demo">Demo</a>
+      <a href="#ai-workflow" data-i18n="AI Agents">AI Agents</a>
+      <a href="#capabilities" data-i18n="Use Cases">Use Cases</a>
+      <a href="#platform" data-i18n="Platform">Platform</a>
+      <a href="#pricing" data-i18n="Pricing">Pricing</a>
+      <a href="#checkout" data-i18n="Payment">Payment</a>
+      <a href="#marketplace" data-i18n="Marketplace">Marketplace</a>
+      <a href="#contact" data-i18n="Contact">Contact</a>
+      <a href="#demo" data-i18n="Demo">Demo</a>
     </nav>
     <div class="header-actions">
+      <select data-language-picker aria-label="Language" data-i18n-aria-label="Language"><option value="en">English</option><option value="zh-CN">中文</option></select>
       <span class="auth-status" data-auth-status hidden></span>
-      <button class="header-link" type="button" data-open-auth="login">Login</button>
-      <button class="header-link" type="button" data-open-auth="register">Register</button>
-      <button class="header-link" type="button" data-auth-logout hidden>Logout</button>
-      <a class="header-link" href="#contact">Contact Us</a>
-      <a class="header-cta" href="https://app.cellaidata.com/workflow/">AI Workflow</a>
+      <button class="header-link" type="button" data-open-auth="login" data-i18n="Login">Login</button>
+      <button class="header-link" type="button" data-open-auth="register" data-i18n="Register">Register</button>
+      <button class="header-link" type="button" data-auth-logout hidden data-i18n="Logout">Logout</button>
+      <a class="header-link" href="#contact" data-i18n="Contact Us">Contact Us</a>
+      <a class="header-cta" href="https://app.cellaidata.com/agent/" data-i18n="Build an Agent">Build an Agent</a>
     </div>
   </header>
 
   <main id="top">
     <section class="hero">
       <div class="hero-copy">
-        <p class="eyebrow">Enterprise low-code delivery platform</p>
-        <h1>Build data apps in days, customize them without touching the core.</h1>
-        <p class="lead">Cell AI Data turns database tables and page configuration into production-ready business applications with runtime rendering, enterprise permissions, import/export, workflow extension points, and AI-assisted page building.</p>
+        <p class="eyebrow" data-i18n="AI agents, skills &amp; business tools">AI agents, skills &amp; business tools</p>
+        <h1>Cell AI Data</h1>
+        <p class="workflow-promise" data-i18n="Put AI agents to work for your business.">Put AI agents to work for your business.</p>
+        <p class="lead" data-i18n="Give your agent a task and connect the skills, tools, and data it needs. Bring together AI analysis, websites, scripts, databases, email, and Excel, with results you can inspect and capabilities you can reuse.">Give your agent a task and connect the skills, tools, and data it needs. Bring together AI analysis, websites, scripts, databases, email, and Excel, with results you can inspect and capabilities you can reuse.</p>
         <div class="hero-actions">
-          <a class="btn primary" href="http://app.cellaidata.com/">Start a free trial</a>
-          <a class="btn secondary" href="http://app.cellaidata.com/">Try the demo</a>
-          <a class="btn secondary" href="https://app.cellaidata.com/workflow/">Design AI Workflow Skills</a>
+          <a class="btn primary" href="https://app.cellaidata.com/agent/" data-i18n="Build an Agent">Build an Agent</a>
+          <a class="btn secondary" href="#capabilities" data-i18n="Explore Use Cases">Explore Use Cases</a>
         </div>
         <div class="trust-row">
-          <span>80% standard CRUD with zero code</span>
-          <span>21 frontend extension points</span>
-          <span>Java + Vue3 stack</span>
+          <span data-i18n="Connect skills &amp; tools">Connect skills &amp; tools</span>
+          <span data-i18n="Review agent results">Review agent results</span>
+          <span data-i18n="Share reusable agents">Share reusable agents</span>
         </div>
       </div>
-      <div class="product-frame workflow-hero-frame" aria-label="Workflow and AI automation preview">
-        <div class="window-bar"><span></span><span></span><span></span><strong>Workflow + AI Studio</strong></div>
-        <div class="hero-workflow-preview">
-          <div class="hero-palette">
-            <b>Node Library</b>
-            <p><img src="https://api.iconify.design/logos:openai-icon.svg" alt=""><span>OpenAI Agent</span></p>
-            <p><i>JS</i><span>Custom Script</span></p>
-            <p><i>DB</i><span>CellX Data</span></p>
-            <p><img src="https://api.iconify.design/vscode-icons:file-type-excel.svg" alt=""><span>Export Excel</span></p>
-          </div>
-          <div class="hero-flow-canvas">
-            <svg class="hero-connectors" viewBox="0 0 520 390" aria-hidden="true" preserveAspectRatio="none">
-              <defs>
-                <marker id="heroArrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto-start-reverse">
-                  <path d="M 0 0 L 10 5 L 0 10 z"></path>
-                </marker>
-              </defs>
-              <path d="M 208 96 H 315"></path>
-              <path d="M 132 150 V 244"></path>
-              <path d="M 205 296 H 302"></path>
-              <path d="M 394 152 V 242"></path>
-            </svg>
-            <div class="hero-node script-node">
-              <small><i>JS</i> Script</small>
-              <strong>Fetch Website Data</strong>
-              <span>tarbut.com / valorant agents</span>
-            </div>
-            <div class="hero-node ai-node">
-              <small><img src="https://api.iconify.design/logos:openai-icon.svg" alt=""> OpenAI</small>
-              <strong>Classify + Summarize</strong>
-              <span>extract fields, clean text</span>
-            </div>
-            <div class="hero-node db-node">
-              <small><i>DB</i> CellX DB</small>
-              <strong>Map Into Tables</strong>
-              <span>rows -> selected columns</span>
-            </div>
-            <div class="hero-node export-node">
-              <small><img src="https://api.iconify.design/vscode-icons:file-type-excel.svg" alt=""> Excel</small>
-              <strong>Export XLSX</strong>
-              <span>download structured output</span>
-            </div>
-          </div>
+      <section class="workflow-motion" data-workflow-motion aria-label="Animated order agent demonstration" data-i18n-aria-label="Animated order agent demonstration">
+        <header class="motion-heading">
+          <div><img src="./assets/logo.png" width="24" height="24" alt=""><span data-i18n="AGENT IN MOTION">AGENT IN MOTION</span></div>
+          <span class="motion-demo-label" data-i18n="Illustrative demo">Illustrative demo</span>
+        </header>
+        <div class="motion-caption"><h2 data-i18n="From request to result.">From request to result.</h2><span data-motion-status data-i18n="Agent receives new orders">Agent receives new orders</span></div>
+        <div class="motion-graph" aria-label="An order agent uses review, data and email skills to prepare results" data-i18n-aria-label="An order agent uses review, data and email skills to prepare results">
+          <article class="motion-node motion-source" data-motion-node="0" data-state="running">
+            <div class="motion-node-top"><span data-i18n="01 / INPUT">01 / INPUT</span><i aria-hidden="true"></i></div>
+            <h3 data-i18n="Orders arrive">Orders arrive</h3><p data-i18n="Connected store">Connected store</p><small data-motion-note data-i18n="Receiving 3 orders">Receiving 3 orders</small>
+          </article>
+          <div class="motion-wire motion-wire-one" data-motion-wire="1" aria-hidden="true"><i></i><b></b></div>
+          <article class="motion-node motion-ai" data-motion-node="1" data-state="waiting">
+            <div class="motion-node-top"><span data-i18n="02 / AI AGENT">02 / AI AGENT</span><i aria-hidden="true"></i></div>
+            <h3 data-i18n="Review &amp; route">Review &amp; route</h3><p data-i18n="Match each carrier">Match each carrier</p><small data-motion-note data-i18n="Waiting for orders">Waiting for orders</small>
+          </article>
+          <div class="motion-wire motion-wire-two" data-motion-wire="2" aria-hidden="true"><i></i><b></b></div>
+          <article class="motion-node motion-data" data-motion-node="2" data-state="waiting">
+            <div class="motion-node-top"><span data-i18n="03 / DATA SKILL">03 / DATA SKILL</span><i aria-hidden="true"></i></div>
+            <h3 data-i18n="Save every row">Save every row</h3><p data-i18n="Table + Excel">Table + Excel</p><small data-motion-note data-i18n="Waiting for review">Waiting for review</small>
+          </article>
+          <div class="motion-wire motion-wire-three" data-motion-wire="3" aria-hidden="true"><i></i><b></b></div>
+          <article class="motion-node motion-send" data-motion-node="3" data-state="waiting">
+            <div class="motion-node-top"><span data-i18n="04 / EMAIL SKILL">04 / EMAIL SKILL</span><i aria-hidden="true"></i></div>
+            <h3 data-i18n="Prepare summary">Prepare summary</h3><p data-i18n="Email notification">Email notification</p><small data-motion-note data-i18n="Waiting for results">Waiting for results</small>
+          </article>
         </div>
-      </div>
+        <div class="motion-results">
+          <div class="motion-results-heading"><strong data-i18n="Agent results">Agent results</strong><span data-motion-count data-i18n="{count} / {total} processed" data-i18n-params='{"count":0,"total":3}'>0 / 3 processed</span></div>
+          <table aria-label="Sample order results" data-i18n-aria-label="Sample order results"><thead><tr><th data-i18n="Order">Order</th><th data-i18n="Carrier">Carrier</th><th data-i18n="Result">Result</th></tr></thead>
+            <tbody>
+              <tr><td>#1042</td><td data-motion-carrier="UPS">&mdash;</td><td data-motion-result data-i18n="Pending">Pending</td></tr>
+              <tr><td>#1043</td><td data-motion-carrier="FedEx">&mdash;</td><td data-motion-result data-i18n="Pending">Pending</td></tr>
+              <tr><td>#1044</td><td data-motion-carrier="UPS">&mdash;</td><td data-motion-result data-i18n="Pending">Pending</td></tr>
+            </tbody>
+          </table>
+        </div>
+        <footer class="motion-controls">
+          <button type="button" class="motion-control" data-motion-toggle aria-label="Pause agent demo" title="Pause agent demo" data-i18n-aria-label="Pause agent demo" data-i18n-title="Pause agent demo"><span class="motion-pause-icon" aria-hidden="true"></span></button>
+          <button type="button" class="motion-control" data-motion-replay aria-label="Replay agent demo" title="Replay agent demo" data-i18n-aria-label="Replay agent demo" data-i18n-title="Replay agent demo"><span aria-hidden="true">&#8634;</span></button>
+          <div class="motion-timeline" role="progressbar" aria-label="Agent demo progress" aria-valuemin="0" aria-valuemax="16" aria-valuenow="0" data-i18n-aria-label="Agent demo progress"><span data-motion-progress></span></div>
+          <span class="motion-time" data-motion-time>00:00 / 00:16</span>
+        </footer>
+      </section>
     </section>
 
     <section class="section workflow-promo" id="ai-workflow">
       <div class="workflow-copy">
-        <p class="eyebrow">AI Workflow Skill Designer</p>
-        <h2>Turn third-party apps, AI models and order operations into drag-and-drop workflows.</h2>
-        <p>Design automation skills visually with ready-made nodes for Google Docs, Outlook, Shopify, Amazon SP-API, FedEx, UPS, Stripe, PayPal, MySQL and AI model agents. Keep your existing CellX backend stable while adding new workflow capability beside it.</p>
+        <p class="eyebrow" data-i18n="Your expertise. Your AI agent.">Your expertise. Your AI agent.</p>
+        <h2 data-i18n="Build an agent around the work you know best.">Build an agent around the work you know best.</h2>
+        <p data-i18n="Start with a business task, then equip an agent with the right skills: collect information, analyze it with AI, apply business rules, update records, prepare reports, and send notifications. Configure its execution flow and review the output of each skill.">Start with a business task, then equip an agent with the right skills: collect information, analyze it with AI, apply business rules, update records, prepare reports, and send notifications. Configure its execution flow and review the output of each skill.</p>
+        <p data-i18n="Describe your idea to AI Voice Builder, then review and apply the draft. Choose the Cell AI Data cloud, a customer local runner, or a private server for supported agent integrations, with tools and data connected where you need them.">Describe your idea to AI Voice Builder, then review and apply the draft. Choose the Cell AI Data cloud, a customer local runner, or a private server for supported agent integrations, with tools and data connected where you need them.</p>
         <div class="workflow-actions">
-          <a class="btn primary" href="https://app.cellaidata.com/workflow/">Open Workflow Designer</a>
-          <a class="btn secondary" href="http://app.cellaidata.com/">Open CellX Backend</a>
+          <a class="btn primary" href="https://app.cellaidata.com/agent/" data-i18n="Open Agent Builder">Open Agent Builder</a>
+          <a class="btn secondary" href="http://app.cellaidata.com/" data-i18n="Open CellX Backend">Open CellX Backend</a>
         </div>
       </div>
-      <div class="workflow-showcase" aria-label="AI workflow designer preview">
+      <div class="workflow-showcase" aria-label="AI agent builder preview" data-i18n-aria-label="AI agent builder preview">
         <div class="mini-window">
           <div class="mini-toolbar">
             <span></span><span></span><span></span>
-            <b>AI Order Automation</b>
+            <b data-i18n="Order Operations Agent">Order Operations Agent</b>
           </div>
           <div class="mini-designer">
             <aside>
-              <strong>Node Library</strong>
+              <strong data-i18n="Skills &amp; Tools">Skills &amp; Tools</strong>
               <p><i>G</i><span>Google Docs</span></p>
               <p><i>M</i><span>Outlook</span></p>
               <p><i>F</i><span>FedEx</span></p>
               <p><i>AI</i><span>OpenAI</span></p>
             </aside>
             <section>
-              <div class="flow-node trigger">Order Created</div>
+              <div class="flow-node trigger" data-i18n="Order Created">Order Created</div>
               <div class="flow-line"></div>
-              <div class="flow-node ai">AI Agent</div>
+              <div class="flow-node ai" data-i18n="AI Agent">AI Agent</div>
               <div class="flow-line"></div>
-              <div class="flow-node action">Update Status</div>
+              <div class="flow-node action" data-i18n="Update Status">Update Status</div>
             </section>
           </div>
         </div>
@@ -137,48 +142,48 @@
 
     <section class="section marketplace-home" id="marketplace">
       <div class="section-head marketplace-head">
-        <p class="eyebrow">Workflow marketplace</p>
-        <h2>Let customers sell the workflows they already know how to run.</h2>
-        <p>Cell AI Data is not only a workflow builder. It can become a business automation marketplace where real operators package proven processes, sell them to peers, and help other companies move faster without starting from zero.</p>
+        <p class="eyebrow" data-i18n="Agent marketplace">Agent marketplace</p>
+        <h2 data-i18n="Turn your expertise into an agent others can use.">Turn your expertise into an agent others can use.</h2>
+        <p data-i18n="Package your industry knowledge as a reusable agent template with connected skills and tools. Share it with your team or submit it to the marketplace, where other businesses can discover, customize, and use it.">Package your industry knowledge as a reusable agent template with connected skills and tools. Share it with your team or submit it to the marketplace, where other businesses can discover, customize, and use it.</p>
       </div>
       <div class="marketplace-layout">
         <div class="marketplace-story">
           <article>
             <span>1</span>
-            <h3>Create a workflow</h3>
-            <p>A real estate agent, e-commerce operator, agency, or consultant builds a repeatable workflow with scripts, AI, email, database nodes, and business logic.</p>
+            <h3 data-i18n="Create an agent">Create an agent</h3>
+            <p data-i18n="Real estate professionals, e-commerce operators, agencies, and consultants combine their business knowledge with AI, scripts, data tools, and communication skills.">Real estate professionals, e-commerce operators, agencies, and consultants combine their business knowledge with AI, scripts, data tools, and communication skills.</p>
           </article>
           <article>
             <span>2</span>
-            <h3>Publish as a template</h3>
-            <p>The workflow is submitted for review, categorized by industry, priced by the creator, and listed in the template marketplace.</p>
+            <h3 data-i18n="Publish as a template">Publish as a template</h3>
+            <p data-i18n="Submit the agent template for review, choose its industry and price, and make it available in the marketplace.">Submit the agent template for review, choose its industry and price, and make it available in the marketplace.</p>
           </article>
           <article>
             <span>3</span>
-            <h3>Sell and reuse</h3>
-            <p>Other customers import the template, customize it, and launch faster. The creator earns revenue and Cell AI Data takes a platform commission.</p>
+            <h3 data-i18n="Sell and reuse">Sell and reuse</h3>
+            <p data-i18n="Other customers import the template, customize it, and launch faster. The creator earns revenue and Cell AI Data takes a platform commission.">Other customers import the template, customize it, and launch faster. The creator earns revenue and Cell AI Data takes a platform commission.</p>
           </article>
         </div>
-        <div class="marketplace-card-home" aria-label="Marketplace revenue preview">
+        <div class="marketplace-card-home" aria-label="Marketplace revenue preview" data-i18n-aria-label="Marketplace revenue preview">
           <div class="marketplace-window-bar">
             <span></span><span></span><span></span>
-            <strong>Template Marketplace</strong>
+            <strong data-i18n="Agent Marketplace">Agent Marketplace</strong>
           </div>
           <div class="marketplace-preview-card real-estate">
-            <b>Real Estate</b>
-            <strong>AI Property Recommendation Email</strong>
-            <p>Fetch listings, analyze with OpenAI, write to CellX, and email each client.</p>
-            <small>$49 template · platform commission · creator payout</small>
+            <b data-i18n="Real Estate">Real Estate</b>
+            <strong data-i18n="Property Recommendation Agent">Property Recommendation Agent</strong>
+            <p data-i18n="Fetch listings, analyze with OpenAI, write to CellX, and email each client.">Fetch listings, analyze with OpenAI, write to CellX, and email each client.</p>
+            <small data-i18n="$49 template · platform commission · creator payout">$49 template · platform commission · creator payout</small>
           </div>
           <div class="marketplace-preview-card ecommerce">
-            <b>E-Commerce</b>
-            <strong>Order Desk UPS/FedEx Fulfillment</strong>
-            <p>Fetch orders, route by carrier, prepare shipment payloads, and log results.</p>
-            <small>Reusable workflow for stores and agencies</small>
+            <b data-i18n="E-Commerce">E-Commerce</b>
+            <strong data-i18n="Order Fulfillment Agent">Order Fulfillment Agent</strong>
+            <p data-i18n="Fetch orders, route by carrier, prepare shipment payloads, and log results.">Fetch orders, route by carrier, prepare shipment payloads, and log results.</p>
+            <small data-i18n="Reusable agent template for stores and agencies">Reusable agent template for stores and agencies</small>
           </div>
           <div class="marketplace-metrics">
-            <div><strong>15%-30%</strong><span>commission model</span></div>
-            <div><strong>More earn</strong><span>customer-created templates</span></div>
+            <div><strong>15%-30%</strong><span data-i18n="commission model">commission model</span></div>
+            <div><strong data-i18n="More earn">More earn</strong><span data-i18n="customer-created templates">customer-created templates</span></div>
           </div>
         </div>
       </div>
@@ -186,154 +191,169 @@
 
     <section class="section band" id="platform">
       <div class="section-head">
-        <p class="eyebrow">Why RDP</p>
-        <h2>A configuration-driven engine for enterprise application delivery.</h2>
-        <p>RDP uses released configuration as the runtime source of truth. Teams configure fields, pages, permissions, imports, exports and extension chains, then publish changes without regenerating code or restarting the system.</p>
+        <p class="eyebrow" data-i18n="The data foundation behind your agents">The data foundation behind your agents</p>
+        <h2 data-i18n="Keep your work connected to your data.">Keep your work connected to your data.</h2>
+        <p data-i18n="CellX provides the tables, business pages, permissions, and import/export tools your agents work with. Connect each agent to the right information and keep its results available to your team.">CellX provides the tables, business pages, permissions, and import/export tools your agents work with. Connect each agent to the right information and keep its results available to your team.</p>
       </div>
       <div class="stats">
-        <div><strong>5</strong><span>views generated per table</span></div>
-        <div><strong>4</strong><span>permission layers</span></div>
-        <div><strong>20+</strong><span>field display types</span></div>
-        <div><strong>V5.3</strong><span>current platform version</span></div>
+        <div><strong>5</strong><span data-i18n="views generated per table">views generated per table</span></div>
+        <div><strong>4</strong><span data-i18n="permission layers">permission layers</span></div>
+        <div><strong>20+</strong><span data-i18n="field display types">field display types</span></div>
+        <div><strong>V5.3</strong><span data-i18n="current platform version">current platform version</span></div>
       </div>
     </section>
 
     <section class="section" id="capabilities">
       <div class="section-head">
-        <p class="eyebrow">Capabilities</p>
-        <h2>Everything a delivery team needs after the first table is modeled.</h2>
+        <p class="eyebrow" data-i18n="AI agent use cases">AI agent use cases</p>
+        <h2 data-i18n="Different industries. Agents built for each task.">Different industries. Agents built for each task.</h2>
+        <p data-i18n="Each case starts with data, applies business logic and AI, then produces an output the team can use immediately.">Each case starts with data, applies business logic and AI, then produces an output the team can use immediately.</p>
       </div>
       <div class="feature-grid">
         <article>
           <span>01</span>
-          <h3>Runtime page generation</h3>
-          <p>Configure list, search, add, edit and detail views from one field model. Publish through draft, committed and released stages.</p>
+          <h3 data-i18n="E-commerce order fulfillment">E-commerce order fulfillment</h3>
+          <p data-i18n="Fetch Order Desk, Shopify, Amazon, or store orders, detect UPS or FedEx routing, prepare shipment payloads, update status, and log each result.">Fetch Order Desk, Shopify, Amazon, or store orders, detect UPS or FedEx routing, prepare shipment payloads, update status, and log each result.</p>
         </article>
         <article>
           <span>02</span>
-          <h3>Permission-ready apps</h3>
-          <p>Menu, button, column and department data permissions are built in, so each project starts with enterprise-grade access control.</p>
+          <h3 data-i18n="Logistics and carrier ops">Logistics and carrier ops</h3>
+          <p data-i18n="Route packages by service level, destination, carrier rule, warehouse, or exception status, then notify the right team when manual review is needed.">Route packages by service level, destination, carrier rule, warehouse, or exception status, then notify the right team when manual review is needed.</p>
         </article>
         <article>
           <span>03</span>
-          <h3>Low-code extensions</h3>
-          <p>Inject custom frontend components and backend LiteFlow chains before or after standard operations without modifying core code.</p>
+          <h3 data-i18n="Finance research">Finance research</h3>
+          <p data-i18n="Collect market, company, or portfolio data, summarize key signals with AI, export tables, and send concise alerts to analysts or clients.">Collect market, company, or portfolio data, summarize key signals with AI, export tables, and send concise alerts to analysts or clients.</p>
         </article>
         <article>
           <span>04</span>
-          <h3>Import and export</h3>
-          <p>Generate Excel templates, convert dictionary and linked-table data, support overwrite updates and handle large attachments.</p>
+          <h3 data-i18n="Education and programs">Education and programs</h3>
+          <p data-i18n="Gather school, course, tournament, or program data, compare options, build rankings, and send a short recommendation by email or SMS.">Gather school, course, tournament, or program data, compare options, build rankings, and send a short recommendation by email or SMS.</p>
         </article>
         <article>
           <span>05</span>
-          <h3>AI-assisted building</h3>
-          <p>Create pages, modify fields and export data with natural-language prompts powered by an extensible AI action handler system.</p>
+          <h3 data-i18n="Real estate automation">Real estate automation</h3>
+          <p data-i18n="Pull property listings, analyze neighborhoods and pricing, match clients to opportunities, write results to CellX, and email recommendation reports.">Pull property listings, analyze neighborhoods and pricing, match clients to opportunities, write results to CellX, and email recommendation reports.</p>
         </article>
         <article>
           <span>06</span>
-          <h3>Deployment and updates</h3>
-          <p>Ship with one-click Windows or Linux deployment, backup, restore, clone, online updates and licensing controls.</p>
+          <h3 data-i18n="Marketing and social commerce">Marketing and social commerce</h3>
+          <p data-i18n="Track trending products from approved sources, generate product angles, organize supplier data, and prepare ad or outreach ideas.">Track trending products from approved sources, generate product angles, organize supplier data, and prepare ad or outreach ideas.</p>
+        </article>
+        <article>
+          <span>07</span>
+          <h3 data-i18n="Website form to spreadsheet">Website form to spreadsheet</h3>
+          <p data-i18n="Capture lead forms, validate fields, write rows to Google Sheets or Excel, notify sales, and keep a searchable activity record.">Capture lead forms, validate fields, write rows to Google Sheets or Excel, notify sales, and keep a searchable activity record.</p>
+        </article>
+        <article>
+          <span>08</span>
+          <h3 data-i18n="Connect external agents">Connect external agents</h3>
+          <p data-i18n="Bring open-source or private agents into your execution flow through supported cloud, local, or private-server runners, with structured inputs and outputs.">Bring open-source or private agents into your execution flow through supported cloud, local, or private-server runners, with structured inputs and outputs.</p>
         </article>
       </div>
     </section>
 
     <section class="section split-section">
       <div>
-        <p class="eyebrow">Architecture</p>
-        <h2>Stable stack, clean extension boundaries.</h2>
-        <p>RDP is built on Java, Spring Boot, Spring Security, MyBatis-Plus, LiteFlow, MySQL, Redis, Vue3, Vite and Element Plus. Core packages stay isolated from custom modules, so product upgrades do not overwrite customer logic.</p>
+        <p class="eyebrow" data-i18n="Architecture">Architecture</p>
+        <h2 data-i18n="Stable stack, clean extension boundaries.">Stable stack, clean extension boundaries.</h2>
+        <p data-i18n="RDP is built on Java, Spring Boot, Spring Security, MyBatis-Plus, LiteFlow, MySQL, Redis, Vue3, Vite and Element Plus. Core packages stay isolated from custom modules, so product upgrades do not overwrite customer logic.">RDP is built on Java, Spring Boot, Spring Security, MyBatis-Plus, LiteFlow, MySQL, Redis, Vue3, Vite and Element Plus. Core packages stay isolated from custom modules, so product upgrades do not overwrite customer logic.</p>
         <ul class="check-list">
-          <li>Generic CRUD controller and query service</li>
-          <li>Pre and post extension chains for business operations</li>
-          <li>Caffeine cache for published configuration</li>
-          <li>Frontend custom component directory for project-specific UI</li>
+          <li data-i18n="Generic CRUD controller and query service">Generic CRUD controller and query service</li>
+          <li data-i18n="Pre and post extension chains for business operations">Pre and post extension chains for business operations</li>
+          <li data-i18n="Caffeine cache for published configuration">Caffeine cache for published configuration</li>
+          <li data-i18n="Frontend custom component directory for project-specific UI">Frontend custom component directory for project-specific UI</li>
         </ul>
       </div>
       <div class="pipeline">
-        <div>Database table model</div>
-        <div>Page configuration</div>
-        <div>Permissions and extension points</div>
-        <div>Published runtime app</div>
+        <div data-i18n="Database table model">Database table model</div>
+        <div data-i18n="Page configuration">Page configuration</div>
+        <div data-i18n="Permissions and extension points">Permissions and extension points</div>
+        <div data-i18n="Published runtime app">Published runtime app</div>
       </div>
     </section>
 
     <section class="section cases">
       <div class="section-head">
-        <p class="eyebrow">Use cases</p>
-        <h2>Made for business systems centered on data and process.</h2>
+        <p class="eyebrow" data-i18n="Industry coverage">Industry coverage</p>
+        <h2 data-i18n="Reusable agents for teams that run on data.">Reusable agents for teams that run on data.</h2>
       </div>
       <div class="case-row">
-        <div><b>Manufacturing</b><span>Equipment, materials, quality checks and maintenance workflows.</span></div>
-        <div><b>Education</b><span>Classes, students, training records and multi-department permissions.</span></div>
-        <div><b>IoT O&M</b><span>Device assets, work orders, maps, attachments and reporting.</span></div>
-        <div><b>Group management</b><span>Shared apps, approvals, logs, scheduling and reusable templates.</span></div>
+        <div><b data-i18n="Finance">Finance</b><span data-i18n="Market screeners, portfolio alerts, research summaries, risk notes, and client reports.">Market screeners, portfolio alerts, research summaries, risk notes, and client reports.</span></div>
+        <div><b data-i18n="Orders">Orders</b><span data-i18n="Order import, payment status, shipment routing, exception review, and fulfillment logs.">Order import, payment status, shipment routing, exception review, and fulfillment logs.</span></div>
+        <div><b data-i18n="Logistics">Logistics</b><span data-i18n="Carrier selection, warehouse rules, label preparation, route status, and delivery notifications.">Carrier selection, warehouse rules, label preparation, route status, and delivery notifications.</span></div>
+        <div><b data-i18n="Education">Education</b><span data-i18n="Program comparison, school research, student records, training support, and parent updates.">Program comparison, school research, student records, training support, and parent updates.</span></div>
+        <div><b data-i18n="Real estate">Real estate</b><span data-i18n="Property search, client matching, neighborhood analysis, email reports, and CRM updates.">Property search, client matching, neighborhood analysis, email reports, and CRM updates.</span></div>
+        <div><b data-i18n="Marketing">Marketing</b><span data-i18n="Product trend tracking, ad angles, audience notes, campaign reporting, and creator tools.">Product trend tracking, ad angles, audience notes, campaign reporting, and creator tools.</span></div>
+        <div><b data-i18n="Manufacturing">Manufacturing</b><span data-i18n="Materials, quality checks, maintenance tickets, supplier data, and production dashboards.">Materials, quality checks, maintenance tickets, supplier data, and production dashboards.</span></div>
+        <div><b data-i18n="AI services">AI services</b><span data-i18n="Package a specialized agent as a reusable template for agencies, consultants, and operators.">Package a specialized agent as a reusable template for agencies, consultants, and operators.</span></div>
       </div>
     </section>
 
     <section class="section pricing-section" id="pricing">
       <div class="section-head">
-        <p class="eyebrow">Membership pricing</p>
-        <h2>Choose the plan that fits your delivery model.</h2>
-        <div class="billing-toggle" role="group" aria-label="Billing period">
-          <button class="active" data-billing="monthly">Monthly</button>
-          <button data-billing="annual">Annual - save 18%</button>
+        <p class="eyebrow" data-i18n="Membership pricing">Membership pricing</p>
+        <h2 data-i18n="Choose the plan that fits your delivery model.">Choose the plan that fits your delivery model.</h2>
+        <div class="billing-toggle" role="group" aria-label="Billing period" data-i18n-aria-label="Billing period">
+          <button class="active" data-billing="monthly" data-i18n="Monthly">Monthly</button>
+          <button data-billing="annual" data-i18n="Annual - save 18%">Annual - save 18%</button>
         </div>
       </div>
       <div class="pricing-grid">
         <article class="price-card" data-plan="Trial" data-monthly="0" data-annual="0">
-          <p class="plan">Trial</p>
-          <h3>$<span data-price>0</span><small>/mo</small></h3>
-          <p>Explore the product workflow before committing.</p>
+          <p class="plan" data-i18n="Trial">Trial</p>
+          <h3>$<span data-price>0</span><small data-i18n="/mo">/mo</small></h3>
+          <p data-i18n="Explore agent building before committing.">Explore agent building before committing.</p>
           <ul>
-            <li>14-day hosted demo access</li>
-            <li>Sample CRUD pages</li>
-            <li>AI assistant preview</li>
+            <li data-i18n="14-day hosted demo access">14-day hosted demo access</li>
+            <li data-i18n="Sample CRUD pages">Sample CRUD pages</li>
+            <li data-i18n="AI assistant preview">AI assistant preview</li>
           </ul>
-          <a class="btn secondary" href="http://app.cellaidata.com/">Start trial</a>
+          <a class="btn secondary" href="http://app.cellaidata.com/" data-i18n="Start trial">Start trial</a>
         </article>
         <article class="price-card" data-plan="Starter" data-monthly="99" data-annual="81">
-          <p class="plan">Starter</p>
-          <h3>$<span data-price>99</span><small>/mo</small></h3>
-          <p>For small teams validating a first internal system.</p>
+          <p class="plan" data-i18n="Starter">Starter</p>
+          <h3>$<span data-price>99</span><small data-i18n="/mo">/mo</small></h3>
+          <p data-i18n="For small teams validating a first internal system.">For small teams validating a first internal system.</p>
           <ul>
-            <li>1 production environment</li>
-            <li>Up to 20 generated pages</li>
-            <li>Email support</li>
+            <li data-i18n="1 production environment">1 production environment</li>
+            <li data-i18n="Up to 20 generated pages">Up to 20 generated pages</li>
+            <li data-i18n="Email support">Email support</li>
           </ul>
-          <button class="btn secondary" data-select-plan>Choose Starter</button>
+          <button class="btn secondary" data-select-plan data-i18n="Choose Starter">Choose Starter</button>
         </article>
         <article class="price-card featured" data-plan="Growth" data-monthly="299" data-annual="245">
-          <p class="badge">Most popular</p>
-          <p class="plan">Growth</p>
-          <h3>$<span data-price>299</span><small>/mo</small></h3>
-          <p>For delivery teams building multiple apps per quarter.</p>
+          <p class="badge" data-i18n="Most popular">Most popular</p>
+          <p class="plan" data-i18n="Growth">Growth</p>
+          <h3>$<span data-price>299</span><small data-i18n="/mo">/mo</small></h3>
+          <p data-i18n="For delivery teams building multiple apps per quarter.">For delivery teams building multiple apps per quarter.</p>
           <ul>
-            <li>3 environments</li>
-            <li>Unlimited generated pages</li>
-            <li>Workflow extension support</li>
-            <li>Priority updates</li>
+            <li data-i18n="3 environments">3 environments</li>
+            <li data-i18n="Unlimited generated pages">Unlimited generated pages</li>
+            <li data-i18n="Agent integration support">Agent integration support</li>
+            <li data-i18n="Priority updates">Priority updates</li>
           </ul>
-          <button class="btn primary" data-select-plan>Choose Growth</button>
+          <button class="btn primary" data-select-plan data-i18n="Choose Growth">Choose Growth</button>
         </article>
         <article class="price-card" data-plan="Enterprise" data-monthly="899" data-annual="737">
-          <p class="plan">Enterprise</p>
-          <h3>$<span data-price>899</span><small>/mo</small></h3>
-          <p>For private deployment, strict governance and custom SLAs.</p>
+          <p class="plan" data-i18n="Enterprise">Enterprise</p>
+          <h3>$<span data-price>899</span><small data-i18n="/mo">/mo</small></h3>
+          <p data-i18n="For private deployment, strict governance and custom SLAs.">For private deployment, strict governance and custom SLAs.</p>
           <ul>
-            <li>Private Lightsail or cloud deployment</li>
-            <li>Source-level extension guidance</li>
-            <li>Dedicated onboarding</li>
+            <li data-i18n="Private Lightsail or cloud deployment">Private Lightsail or cloud deployment</li>
+            <li data-i18n="Source-level extension guidance">Source-level extension guidance</li>
+            <li data-i18n="Dedicated onboarding">Dedicated onboarding</li>
           </ul>
-          <button class="btn secondary" data-select-plan>Choose Enterprise</button>
+          <button class="btn secondary" data-select-plan data-i18n="Choose Enterprise">Choose Enterprise</button>
         </article>
       </div>
     </section>
 
     <section class="section checkout-section" id="checkout">
       <div class="checkout-copy">
-        <p class="eyebrow">Secure payment</p>
-        <h2>Checkout with PayPal, Stripe or bank card.</h2>
-        <p>This static website includes the payment experience and checkout states. For real payments on Lightsail, connect the buttons to your Stripe Checkout Session API and PayPal Orders API backend endpoint.</p>
+        <p class="eyebrow" data-i18n="Secure payment">Secure payment</p>
+        <h2 data-i18n="Checkout with PayPal, Stripe or bank card.">Checkout with PayPal, Stripe or bank card.</h2>
+        <p data-i18n="This static website includes the payment experience and checkout states. For real payments on Lightsail, connect the buttons to your Stripe Checkout Session API and PayPal Orders API backend endpoint.">This static website includes the payment experience and checkout states. For real payments on Lightsail, connect the buttons to your Stripe Checkout Session API and PayPal Orders API backend endpoint.</p>
         <div class="payment-logos">
           <span>PayPal</span>
           <span>Stripe</span>
@@ -344,95 +364,95 @@
       </div>
       <form class="checkout-card" data-checkout-form>
         <div class="summary">
-          <span>Selected plan</span>
-          <strong data-summary-plan>Growth</strong>
-          <b>$<span data-summary-price>299</span><small>/month</small></b>
+          <span data-i18n="Selected plan">Selected plan</span>
+          <strong data-summary-plan data-i18n="Growth">Growth</strong>
+          <b>$<span data-summary-price>299</span><small data-i18n="/month">/month</small></b>
         </div>
         <label>
-          Work email
-          <input type="email" placeholder="you@company.com" required>
+          <span data-i18n="Work email">Work email</span>
+          <input type="email" placeholder="you@company.com" required data-i18n-placeholder="you@company.com">
         </label>
         <label>
-          Company name
-          <input type="text" placeholder="Acme Manufacturing" required>
+          <span data-i18n="Company name">Company name</span>
+          <input type="text" placeholder="Acme Manufacturing" required data-i18n-placeholder="Acme Manufacturing">
         </label>
-        <div class="payment-tabs" role="group" aria-label="Payment method">
+        <div class="payment-tabs" role="group" aria-label="Payment method" data-i18n-aria-label="Payment method">
           <button type="button" class="active" data-payment="Stripe">Stripe</button>
           <button type="button" data-payment="PayPal">PayPal</button>
-          <button type="button" data-payment="Card">Bank card</button>
+          <button type="button" data-payment="Card" data-i18n="Bank card">Bank card</button>
         </div>
         <div class="card-fields" data-card-fields>
-          <label>Card number<input inputmode="numeric" placeholder="4242 4242 4242 4242"></label>
+          <label><span data-i18n="Card number">Card number</span><input inputmode="numeric" placeholder="4242 4242 4242 4242"></label>
           <div class="two-cols">
-            <label>Expiry<input placeholder="12 / 30"></label>
-            <label>CVC<input placeholder="123"></label>
+            <label><span data-i18n="Expiry">Expiry</span><input placeholder="12 / 30"></label>
+            <label><span data-i18n="CVC">CVC</span><input placeholder="123"></label>
           </div>
         </div>
-        <button class="btn primary full" type="submit">Continue to secure checkout</button>
-        <p class="fine-print">Demo mode: no real payment is submitted from this static page.</p>
+        <button class="btn primary full" type="submit" data-i18n="Continue to secure checkout">Continue to secure checkout</button>
+        <p class="fine-print" data-i18n="Demo mode: no real payment is submitted from this static page.">Demo mode: no real payment is submitted from this static page.</p>
       </form>
     </section>
 
     <section class="section demo-section" id="demo">
       <div>
-        <p class="eyebrow">Trial demo</p>
-        <h2>Let prospects experience RDP before a sales call.</h2>
-        <p>Create a guided trial entry with sample modules for configuration management, runtime pages, permissions, release history and AI-assisted field changes.</p>
+        <p class="eyebrow" data-i18n="Trial demo">Trial demo</p>
+        <h2 data-i18n="Let prospects experience RDP before a sales call.">Let prospects experience RDP before a sales call.</h2>
+        <p data-i18n="Create a guided trial entry with sample modules for configuration management, runtime pages, permissions, release history and AI-assisted field changes.">Create a guided trial entry with sample modules for configuration management, runtime pages, permissions, release history and AI-assisted field changes.</p>
       </div>
       <div class="demo-card">
-        <h3>Demo workspace</h3>
-        <p>Includes sample material management, class-student master-detail pages, report configuration and workflow extension examples.</p>
-        <a class="btn primary" href="http://app.cellaidata.com/">Launch demo</a>
-        <a class="btn secondary" href="https://app.cellaidata.com/workflow/">Try AI Workflow Designer</a>
+        <h3 data-i18n="Demo workspace">Demo workspace</h3>
+        <p data-i18n="Includes sample material management, class-student master-detail pages, report configuration, and agent integration examples.">Includes sample material management, class-student master-detail pages, report configuration, and agent integration examples.</p>
+        <a class="btn primary" href="http://app.cellaidata.com/" data-i18n="Launch demo">Launch demo</a>
+        <a class="btn secondary" href="https://app.cellaidata.com/agent/" data-i18n="Try Agent Builder">Try Agent Builder</a>
       </div>
     </section>
 
     <section class="section contact-section" id="contact">
       <div class="contact-copy">
-        <p class="eyebrow">Contact us</p>
-        <h2>Tell us what workflow or business system you want to build.</h2>
-        <p>Share your email, phone number, and project need. We can follow up about AI workflow demos, marketplace templates, real estate automation, e-commerce fulfillment, custom data apps, or enterprise deployment.</p>
+        <p class="eyebrow" data-i18n="Contact us">Contact us</p>
+        <h2 data-i18n="What would you like your AI agent to do?">What would you like your AI agent to do?</h2>
+        <p data-i18n="Share your email, phone number, and project need. We can follow up about AI agent demos, marketplace templates, real estate tools, e-commerce fulfillment, custom data apps, or enterprise deployment.">Share your email, phone number, and project need. We can follow up about AI agent demos, marketplace templates, real estate tools, e-commerce fulfillment, custom data apps, or enterprise deployment.</p>
         <div class="contact-points">
-          <span>AI workflow demo</span>
-          <span>Custom business app</span>
-          <span>Marketplace template</span>
-          <span>Enterprise deployment</span>
+          <span data-i18n="AI agent demo">AI agent demo</span>
+          <span data-i18n="Custom business app">Custom business app</span>
+          <span data-i18n="Marketplace template">Marketplace template</span>
+          <span data-i18n="Enterprise deployment">Enterprise deployment</span>
         </div>
       </div>
       <form class="contact-card" data-contact-form>
         <label>
-          Work email
-          <input data-contact-email type="email" placeholder="you@company.com" required>
+          <span data-i18n="Work email">Work email</span>
+          <input data-contact-email type="email" placeholder="you@company.com" required data-i18n-placeholder="you@company.com">
         </label>
         <label>
-          Phone
+          <span data-i18n="Phone">Phone</span>
           <input data-contact-phone type="tel" placeholder="+1 626 383 3666">
         </label>
         <label>
-          What do you need?
-          <textarea data-contact-message rows="5" placeholder="Describe the workflow, website, automation, data project, or AI training you want to discuss." required></textarea>
+          <span data-i18n="What do you need?">What do you need?</span>
+          <textarea data-contact-message rows="5" placeholder="Describe the agent, skills, website, data project, or AI training you want to discuss." required data-i18n-placeholder="Describe the agent, skills, website, data project, or AI training you want to discuss."></textarea>
         </label>
-        <button class="btn primary full" type="submit">Send contact request</button>
-        <p class="fine-print">Demo-safe form: if the backend contact API is not available yet, the request is saved in this browser for follow-up testing.</p>
+        <button class="btn primary full" type="submit" data-i18n="Send contact request">Send contact request</button>
+        <p class="fine-print" data-i18n="Demo-safe form: if the backend contact API is not available yet, the request is saved in this browser for follow-up testing.">Demo-safe form: if the backend contact API is not available yet, the request is saved in this browser for follow-up testing.</p>
       </form>
     </section>
 
     <section class="section faq">
       <div class="section-head">
-        <p class="eyebrow">FAQ</p>
-        <h2>Common buying questions.</h2>
+        <p class="eyebrow" data-i18n="FAQ">FAQ</p>
+        <h2 data-i18n="Common buying questions.">Common buying questions.</h2>
       </div>
       <details open>
-        <summary>Can this run on AWS Lightsail?</summary>
-        <p>Yes. This marketing website is static and can run behind Nginx on Lightsail. The RDP product itself can be deployed as Nginx plus Spring Boot JAR plus MySQL and Redis.</p>
+        <summary data-i18n="Can this run on AWS Lightsail?">Can this run on AWS Lightsail?</summary>
+        <p data-i18n="Yes. This marketing website is static and can run behind Nginx on Lightsail. The RDP product itself can be deployed as Nginx plus Spring Boot JAR plus MySQL and Redis.">Yes. This marketing website is static and can run behind Nginx on Lightsail. The RDP product itself can be deployed as Nginx plus Spring Boot JAR plus MySQL and Redis.</p>
       </details>
       <details>
-        <summary>Are payments active now?</summary>
-        <p>The checkout UI is ready. Real Stripe, PayPal and bank-card payments require backend endpoints and provider credentials, which should be configured on your Lightsail server.</p>
+        <summary data-i18n="Are payments active now?">Are payments active now?</summary>
+        <p data-i18n="The checkout UI is ready. Real Stripe, PayPal and bank-card payments require backend endpoints and provider credentials, which should be configured on your Lightsail server.">The checkout UI is ready. Real Stripe, PayPal and bank-card payments require backend endpoints and provider credentials, which should be configured on your Lightsail server.</p>
       </details>
       <details>
-        <summary>Can customers self-register for a trial?</summary>
-        <p>The site includes a trial request flow. You can connect it to email, a CRM, or a small backend API when you deploy.</p>
+        <summary data-i18n="Can customers self-register for a trial?">Can customers self-register for a trial?</summary>
+        <p data-i18n="The site includes a trial request flow. You can connect it to email, a CRM, or a small backend API when you deploy.">The site includes a trial request flow. You can connect it to email, a CRM, or a small backend API when you deploy.</p>
       </details>
     </section>
   </main>
@@ -440,67 +460,69 @@
   <footer class="site-footer">
     <div>
       <a class="brand" href="#top"><img src="./assets/logo.png" alt=""><span>Cell AI Data</span></a>
-      <p>Configuration-driven enterprise application delivery.</p>
+      <p data-i18n="Configuration-driven enterprise application delivery.">Configuration-driven enterprise application delivery.</p>
     </div>
     <div>
-      <a href="#platform">Platform</a>
-      <a href="#pricing">Pricing</a>
-      <a href="#checkout">Payment</a>
-      <a href="#ai-workflow">AI Workflow</a>
-      <a href="#marketplace">Marketplace</a>
-      <a href="#contact">Contact</a>
-      <a href="#demo">Demo</a>
+      <a href="#platform" data-i18n="Platform">Platform</a>
+      <a href="https://app.cellaidata.com/data/" data-i18n="Data Explorer">Data Explorer</a>
+      <a href="#pricing" data-i18n="Pricing">Pricing</a>
+      <a href="#checkout" data-i18n="Payment">Payment</a>
+      <a href="#ai-workflow" data-i18n="AI Agents">AI Agents</a>
+      <a href="#marketplace" data-i18n="Marketplace">Marketplace</a>
+      <a href="#contact" data-i18n="Contact">Contact</a>
+      <a href="#demo" data-i18n="Demo">Demo</a>
     </div>
   </footer>
 
   <div class="modal-backdrop" data-demo-modal hidden>
     <div class="modal" role="dialog" aria-modal="true" aria-labelledby="demoTitle">
-      <button class="modal-close" data-close-demo aria-label="Close demo request">Close</button>
-      <h2 id="demoTitle">Request your RDP demo</h2>
-      <p>Tell us where to send the trial workspace details. This demo form is ready to connect to your Lightsail backend.</p>
+      <button class="modal-close" data-close-demo aria-label="Close demo request" data-i18n-aria-label="Close demo request" data-i18n="Close">Close</button>
+      <h2 id="demoTitle" data-i18n="Request your RDP demo">Request your RDP demo</h2>
+      <p data-i18n="Tell us where to send the trial workspace details. This demo form is ready to connect to your Lightsail backend.">Tell us where to send the trial workspace details. This demo form is ready to connect to your Lightsail backend.</p>
       <form data-demo-form>
-        <label>Name<input placeholder="Your name" required></label>
-        <label>Work email<input type="email" placeholder="you@company.com" required></label>
-        <label>Primary use case<select><option>Internal CRUD systems</option><option>Manufacturing operations</option><option>IoT maintenance</option><option>Education management</option><option>Other enterprise app</option></select></label>
-        <button class="btn primary full" type="submit">Send demo request</button>
+        <label><span data-i18n="Name">Name</span><input placeholder="Your name" required data-i18n-placeholder="Your name"></label>
+        <label><span data-i18n="Work email">Work email</span><input type="email" placeholder="you@company.com" required data-i18n-placeholder="you@company.com"></label>
+        <label><span data-i18n="Primary use case">Primary use case</span><select><option data-i18n="Internal CRUD systems" value="Internal CRUD systems">Internal CRUD systems</option><option data-i18n="Manufacturing operations" value="Manufacturing operations">Manufacturing operations</option><option data-i18n="IoT maintenance" value="IoT maintenance">IoT maintenance</option><option data-i18n="Education management" value="Education management">Education management</option><option data-i18n="Other enterprise app" value="Other enterprise app">Other enterprise app</option></select></label>
+        <button class="btn primary full" type="submit" data-i18n="Send demo request">Send demo request</button>
       </form>
     </div>
   </div>
 
   <div class="modal-backdrop" data-auth-modal hidden>
     <div class="modal auth-modal" role="dialog" aria-modal="true" aria-labelledby="authTitle">
-      <button class="modal-close" data-close-auth aria-label="Close account dialog">Close</button>
-      <p class="eyebrow">Developer ecosystem</p>
-      <h2 id="authTitle">Join Cell AI Data Marketplace</h2>
-      <p>Login to save marketplace access, or register as a business buyer, creator, or agency partner. Creator members can publish paid workflow templates and earn revenue after platform commission.</p>
-      <div class="auth-tabs" role="group" aria-label="Account mode">
-        <button class="active" type="button" data-auth-tab="login">Login</button>
-        <button type="button" data-auth-tab="register">Register</button>
+      <button class="modal-close" data-close-auth aria-label="Close account dialog" data-i18n-aria-label="Close account dialog" data-i18n="Close">Close</button>
+      <p class="eyebrow" data-i18n="Developer ecosystem">Developer ecosystem</p>
+      <h2 id="authTitle" data-i18n="Join Cell AI Data Marketplace">Join Cell AI Data Marketplace</h2>
+      <p data-i18n="Login to save marketplace access, or register as a business buyer, creator, or agency partner. Creator members can publish paid agent templates and earn revenue after platform commission.">Login to save marketplace access, or register as a business buyer, creator, or agency partner. Creator members can publish paid agent templates and earn revenue after platform commission.</p>
+      <div class="auth-tabs" role="group" aria-label="Account mode" data-i18n-aria-label="Account mode">
+        <button class="active" type="button" data-auth-tab="login" data-i18n="Login">Login</button>
+        <button type="button" data-auth-tab="register" data-i18n="Register">Register</button>
       </div>
       <form data-auth-form>
-        <label>Name<input data-auth-name placeholder="Harrison Huang"></label>
-        <label>Email<input data-auth-email type="email" placeholder="you@company.com" required></label>
-        <label>Password<input data-auth-password type="password" placeholder="Demo password" required></label>
-        <label>Account type
+        <label><span data-i18n="Name">Name</span><input data-auth-name placeholder="Harrison Huang" data-i18n-placeholder="Harrison Huang"></label>
+        <label><span data-i18n="Email">Email</span><input data-auth-email type="email" placeholder="you@company.com" required data-i18n-placeholder="you@company.com"></label>
+        <label><span data-i18n="Password">Password</span><input data-auth-password type="password" placeholder="Demo password" required data-i18n-placeholder="Demo password"></label>
+        <label><span data-i18n="Account type">Account type</span>
           <select data-auth-role>
-            <option>Workflow creator</option>
-            <option>Business buyer</option>
-            <option>Agency partner</option>
+            <option value="Workflow creator" data-i18n="Agent creator">Agent creator</option>
+            <option data-i18n="Business buyer" value="Business buyer">Business buyer</option>
+            <option data-i18n="Agency partner" value="Agency partner">Agency partner</option>
           </select>
         </label>
         <div class="developer-benefits">
-          <span>Upload workflow templates</span>
-          <span>Sell paid automation packs</span>
-          <span>75% demo developer payout</span>
+          <span data-i18n="Upload agent templates">Upload agent templates</span>
+          <span data-i18n="Sell paid automation packs">Sell paid automation packs</span>
+          <span data-i18n="75% demo developer payout">75% demo developer payout</span>
         </div>
-        <button class="btn primary full" type="submit">Continue</button>
+        <button class="btn primary full" type="submit" data-i18n="Continue">Continue</button>
       </form>
-      <p class="fine-print">Demo account flow: production login should connect to your CellX user table, OAuth, and Stripe Connect.</p>
+      <p class="fine-print" data-i18n="Demo account flow: production login should connect to your CellX user table, OAuth, and Stripe Connect.">Demo account flow: production login should connect to your CellX user table, OAuth, and Stripe Connect.</p>
     </div>
   </div>
 
   <div class="toast" data-toast hidden></div>
-  <script src="./app.js?v=20260905-contact-auth"></script>
+  <script src="./app.js?v=20260914-i18n-v1"></script>
+  <script src="./workflow-motion.js?v=20260914-i18n-v1" defer></script>
 </body>
 </html>
 

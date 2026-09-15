@@ -3,6 +3,22 @@
   "updatedAt": "2026-09-06T00:00:00.000Z",
   "templates": [
     {
+      "name": "Instagram Browse, Like and Comment",
+      "description": "Windows local workflow: browse 5-8 posts, like and leave a public comment, then stop.",
+      "file": "instagram-browse-like-comment.json",
+      "category": "Social Media",
+      "tags": ["Instagram", "Local Browser", "Public Comments"],
+      "demoUse": "Bounded manual Instagram workflow"
+    },
+    {
+      "name": "Runway Product Ad Video Test",
+      "description": "Upload product photos, generate a Runway AI product-ad video, and stop for human review before publishing.",
+      "file": "runway-product-ad-video-test.json",
+      "category": "E-Commerce",
+      "tags": ["Runway", "AI Video", "Product Ad"],
+      "demoUse": "Runway product-ad recipe test"
+    },
+    {
       "name": "RentCast Irvine AI Property Recommendations Email",
       "description": "Fetch Irvine sale listings, analyze them with OpenAI, write rows into cx_property, query client records, and email recommendations through Gmail.",
       "file": "rentcast-irvine-ai-property-recommendations-email.json",
@@ -35,12 +51,28 @@
       "demoUse": "Supplier research workflow"
     },
     {
+      "name": "FB Marketplace and TikTok Shop Hot Products Radar",
+      "description": "Collect TikTok Shop sales and FB Marketplace seller/export signals, rank hot products, and report reported or estimated demand.",
+      "file": "fb-tiktok-hot-products-radar.json",
+      "category": "E-Commerce",
+      "tags": ["Facebook Marketplace", "TikTok Shop", "Product Research", "Sales"],
+      "demoUse": "Cross-platform hot product radar"
+    },
+    {
       "name": "Order Desk UPS FedEx Fulfillment",
       "description": "Fetch ecommerce orders from Order Desk, route by requested carrier, prepare UPS or FedEx shipment payloads, and write a fulfillment audit log.",
       "file": "orderdesk-ups-fedex-fulfillment.json",
       "category": "E-Commerce",
       "tags": ["Order Desk", "UPS", "FedEx", "Shipping"],
       "demoUse": "Order fulfillment carrier routing workflow"
+    },
+    {
+      "name": "Order Desk Daily Orders to Database",
+      "description": "Fetch new or recently modified Order Desk orders every day, normalize order fields, and bulk import them into the CellX database.",
+      "file": "orderdesk-daily-orders-to-db.json",
+      "category": "E-Commerce",
+      "tags": ["Order Desk", "Database", "Orders", "Daily Sync"],
+      "demoUse": "Daily order database sync"
     },
     {
       "name": "Website Form Submission to Google Sheets",
@@ -97,6 +129,14 @@
       "category": "Research",
       "tags": ["Website", "Crawler", "Game Data"],
       "demoUse": "Public page extraction demo"
+    },
+    {
+      "name": "TradingAgents GitHub External Agent Demo",
+      "description": "Use a GitHub open-source AI agent repo as an external workflow step, map ticker JSON input, preview safely, and normalize the agent output.",
+      "file": "tradingagents-github-external-agent.json",
+      "category": "Finance",
+      "tags": ["GitHub", "External Agent", "TradingAgents", "AI"],
+      "demoUse": "GitHub open-source agent workflow"
     },
     {
       "name": "JHU Programs AI Analysis Email and SMS",

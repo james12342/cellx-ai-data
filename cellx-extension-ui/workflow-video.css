@@ -1,0 +1,55 @@
+.video-dialog { box-sizing:border-box; width:min(820px,calc(100vw - 24px)); max-height:calc(100dvh - 32px); padding:0; border:1px solid #b9cdec; border-radius:6px; color:#172033; background:white; overflow:auto; }
+.video-dialog::backdrop { background:rgb(15 23 42 / 45%); }
+.video-dialog header { display:flex; justify-content:space-between; align-items:center; gap:12px; padding:14px 16px; border-bottom:1px solid #d6e2f5; }
+.video-dialog h2 { margin:0; font-size:18px; }
+.video-dialog main { padding:16px; }
+.video-options { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:12px; }
+.video-options label { display:grid; gap:6px; font-size:13px; }
+.video-options select,.video-options input { width:100%; box-sizing:border-box; }
+.video-mode { display:grid; gap:6px; margin-bottom:14px; font-size:14px; }
+.video-ai-fields { display:grid; gap:12px; margin-top:14px; }
+.video-ai-fields[hidden],.video-options label[hidden] { display:none; }
+.video-ai-fields label { display:grid; gap:6px; font-size:14px; }
+.video-ai-fields textarea,.video-ai-fields select { box-sizing:border-box; width:100%; min-width:0; font:inherit; }
+.video-ai-fields textarea { resize:vertical; }
+.video-ai-fields .audio-toggle { display:flex; align-items:center; gap:8px; }
+.video-ai-fields .audio-toggle input { width:auto; }
+.provider-status { margin:0; font-size:13px; overflow-wrap:anywhere; }
+.video-dialog video { display:block; width:100%; height:min(52vh,480px); margin:12px 0; background:#111; object-fit:contain; }
+.video-dialog video[hidden] { display:none; }
+.video-dialog footer { display:flex; gap:8px; flex-wrap:wrap; padding:12px 16px; border-top:1px solid #d6e2f5; }
+.video-status { font-size:14px; overflow-wrap:anywhere; }
+.product-brief-tools { display:grid; gap:8px; }
+.product-brief-tools>.ai-generate-brief { justify-self:start; }
+.brief-billing { font-size:12px; color:#526071; overflow-wrap:anywhere; }
+.brief-status { margin:0; font-size:13px; overflow-wrap:anywhere; }
+.brief-draft[hidden] { display:none; }
+.brief-draft>div { display:flex; gap:8px; margin-top:8px; }
+.chatgpt-photo-copies { margin-top:12px; border-top:1px solid #d6e2f5; padding-top:12px; }
+.photo-copy-heading { display:flex; gap:8px; justify-content:space-between; align-items:center; flex-wrap:wrap; }
+.photo-copy-note,.photo-copy-status { font-size:12px; overflow-wrap:anywhere; }
+.photo-copy-list { display:grid; gap:8px; }
+.photo-copy-row { display:grid; grid-template-columns:56px minmax(0,1fr) auto; align-items:center; gap:8px; }
+.photo-copy-row img { width:56px; height:56px; object-fit:contain; }
+.photo-copy-row span { overflow-wrap:anywhere; font-size:13px; }
+@media(max-width:420px) { .photo-copy-row { grid-template-columns:48px minmax(0,1fr); } .photo-copy-row button { grid-column:2; justify-self:start; } }
+.music-preview-panel { display:grid; gap:8px; margin-top:12px; }
+.music-preview-panel audio { width:100%; max-width:100%; height:40px; }
+.music-preview-panel audio[hidden] { display:none; }
+.music-preview-panel label { display:flex; align-items:center; gap:12px; font-size:13px; }
+.music-preview-panel input { flex:1; min-width:0; }
+#workflowVideoBtn { display:inline-flex; align-items:center; gap:6px; white-space:nowrap; }
+#workflowVideoBtn[hidden] { display:none; }
+#workflowVideoBtn img { width:16px; height:16px; }
+.canvas-wrap:has(#workflowVideoBtn:not([hidden])) { container-type:inline-size; }
+.canvas-head:has(#workflowVideoBtn:not([hidden])) { grid-template-columns:minmax(160px,.4fr) minmax(0,1fr) auto; }
+@container(max-width:850px) {
+  .canvas-head:has(#workflowVideoBtn:not([hidden])) { grid-template-columns:minmax(0,1fr) auto; padding:8px 12px; }
+  .canvas-head:has(#workflowVideoBtn:not([hidden])) .canvas-result-tabs-host { grid-column:1 / -1; grid-row:2; }
+}
+@container(max-width:550px) {
+  .canvas-head:has(#workflowVideoBtn:not([hidden])) { grid-template-columns:minmax(0,1fr); }
+  .canvas-head:has(#workflowVideoBtn:not([hidden])) .canvas-head-actions { grid-row:2; flex-wrap:wrap; }
+  .canvas-head:has(#workflowVideoBtn:not([hidden])) .canvas-result-tabs-host { grid-row:3; }
+}
+@media(max-width:560px) { .video-options { grid-template-columns:1fr; } }

@@ -1,0 +1,9 @@
+[Unit]
+Description=CellX OrderDesk daily order sync
+After=network-online.target mysql.service cellx-extension-api.service
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+WorkingDirectory=/opt/cellx-extension-api
+ExecStart=/opt/cellx-extension-api/orderdesk_daily_sync_runner.sh

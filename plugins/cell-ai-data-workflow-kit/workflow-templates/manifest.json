@@ -3,6 +3,14 @@
   "updatedAt": "2026-09-04T00:00:00.000Z",
   "templates": [
     {
+      "name": "Instagram Browse, Like and Comment",
+      "description": "Windows local workflow: browse 5-8 posts, like and leave an editable public comment, then stop.",
+      "file": "instagram-browse-like-comment.json",
+      "category": "Social Media",
+      "tags": ["Instagram", "Local Browser", "Public Comments"],
+      "demoUse": "Bounded manual Instagram workflow"
+    },
+    {
       "name": "RentCast Irvine AI Property Recommendations Email",
       "description": "Fetch Irvine sale listings, analyze them with OpenAI, write rows into cx_property, query client records, and email recommendations through Gmail.",
       "file": "rentcast-irvine-ai-property-recommendations-email.json",
@@ -35,12 +43,28 @@
       "demoUse": "Supplier research workflow"
     },
     {
+      "name": "FB Marketplace and TikTok Shop Hot Products Radar",
+      "description": "Collect TikTok Shop sales and FB Marketplace seller/export signals, rank hot products, and report reported or estimated demand.",
+      "file": "fb-tiktok-hot-products-radar.json",
+      "category": "E-Commerce",
+      "tags": ["Facebook Marketplace", "TikTok Shop", "Product Research", "Sales"],
+      "demoUse": "Cross-platform hot product radar"
+    },
+    {
       "name": "Amazon Best Sellers Script Demo",
       "description": "Run an Amazon Best Sellers script and return product rows as a simple script-node demo.",
       "file": "amazon-bestsellers-script-demo.json",
       "category": "E-Commerce",
       "tags": ["Amazon", "Script", "Demo"],
       "demoUse": "Custom script runner demo"
+    },
+    {
+      "name": "Order Desk Daily Orders to Database",
+      "description": "Fetch new or recently modified Order Desk orders every day, normalize order fields, and bulk import them into the CellX database.",
+      "file": "orderdesk-daily-orders-to-db.json",
+      "category": "E-Commerce",
+      "tags": ["Order Desk", "Database", "Orders", "Daily Sync"],
+      "demoUse": "Daily order database sync"
     },
     {
       "name": "Yahoo Finance Most Active Stocks",

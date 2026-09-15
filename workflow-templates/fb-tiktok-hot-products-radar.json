@@ -1,0 +1,210 @@
+{
+  "templateType": "cellx-workflow-designer",
+  "version": "1.0",
+  "exportedAt": "2026-09-08T00:00:00.000Z",
+  "name": "FB Marketplace and TikTok Shop Hot Products Radar",
+  "description": "Collect TikTok Shop bestseller data and FB Marketplace seller/export signals, normalize product metrics, rank hottest products, and report sales or estimated demand.",
+  "nodes": [
+    {
+      "id": "node-1",
+      "type": "trigger",
+      "name": "Daily Product Radar",
+      "action": "cron",
+      "notes": "Run every morning after TikTok Shop T-1 analytics data is available. Use on-demand runs while testing.",
+      "icon": "material-symbols:schedule-rounded",
+      "x": 70,
+      "y": 120,
+      "integrationSettings": {
+        "schedule": "0 8 * * *",
+        "timezone": "America/Los_Angeles",
+        "owner": "Product Research"
+      },
+      "connection": null
+    },
+    {
+      "id": "node-2",
+      "type": "tool",
+      "name": "TikTok Shop Bestsellers",
+      "action": "/ext-api/tools/http",
+      "notes": "Use TikTok Shop Partner Center API with TikTok Shop Bestsellers or Analytics scope. Sales can be reported as product_sold_count; GMV may be a privacy-protected range depending on endpoint.",
+      "icon": "logos:tiktok-icon",
+      "x": 330,
+      "y": 70,
+      "integrationSettings": {
+        "endpoint": "https://partner.tiktokshop.com/docv2/page/kpkfccsa",
+        "authMode": "seller_oauth",
+        "requiredScopes": "TikTok Shop Bestsellers, TikTok Shop Analytics",
+        "dateRange": "last_7_days",
+        "currency": "USD",
+        "timeout": "60",
+        "retryPolicy": "3 retries, exponential backoff"
+      },
+      "connection": null
+    },
+    {
+      "id": "node-3",
+      "type": "tool",
+      "name": "TikTok Research Product Sales",
+      "action": "/ext-api/tools/http",
+      "notes": "Optional backup source for eligible research access. Query shop products and request product_sold_count, product_review_count, product_price, product_name, and rating fields.",
+      "icon": "logos:tiktok-icon",
+      "x": 330,
+      "y": 190,
+      "integrationSettings": {
+        "endpoint": "https://open.tiktokapis.com/v2/research/tts/product/",
+        "method": "POST",
+        "requiredScope": "research.data.basic",
+        "fields": "product_id,product_sold_count,product_description,product_price,product_review_count,product_name,product_rating_1_count,product_rating_2_count,product_rating_3_count,product_rating_4_count,product_rating_5_count",
+        "pageSize": "10",
+        "timeout": "60"
+      },
+      "connection": null
+    },
+    {
+      "id": "node-4",
+      "type": "tool",
+      "name": "FB Marketplace Seller Signals",
+      "action": "/ext-api/tools/file-or-http-import",
+      "notes": "Import your own seller exports, Meta commerce exports, ads/product breakdowns, or approved third-party Marketplace data. Broad public Marketplace sales are not available through an official Meta Marketplace API.",
+      "icon": "logos:facebook",
+      "x": 330,
+      "y": 310,
+      "integrationSettings": {
+        "acceptedInputs": "CSV, XLSX, JSON",
+        "recommendedFields": "listing_id,title,category,price,views,saves,messages,sold_count,url",
+        "fallbackMetric": "estimated sales from engagement",
+        "timeout": "60"
+      },
+      "connection": null
+    },
+    {
+      "id": "node-5",
+      "type": "script",
+      "name": "Normalize and Rank Hot Products",
+      "action": "/ext-api/scripts/run",
+      "notes": "Merge TikTok and FB product rows, normalize field names, compute hot_score, and separate reported sales from estimated demand.",
+      "icon": "material-symbols:filter-alt-outline-rounded",
+      "x": 650,
+      "y": 190,
+      "integrationSettings": {
+        "scriptName": "fb_tiktok_hot_products.py",
+        "inputJson": "{\"limit\":25,\"sources\":[{\"platform\":\"TikTok Shop\",\"name\":\"tiktok_shop_api\",\"rows\":[]},{\"platform\":\"FB Marketplace\",\"name\":\"fb_marketplace_export\",\"rows\":[]}]}",
+        "timeout": "30",
+        "args": ""
+      },
+      "connection": null,
+      "testResult": null
+    },
+    {
+      "id": "node-6",
+      "type": "condition",
+      "name": "Keep Strong Candidates",
+      "action": "filter records where rule is true",
+      "notes": "Keep products with strong hot_score and at least medium confidence; allow low-confidence FB rows only when engagement is very strong.",
+      "icon": "material-symbols:rule-rounded",
+      "x": 930,
+      "y": 190,
+      "integrationSettings": {
+        "inputSource": "previous_step.rows",
+        "filterExpression": "hot_score >= 140 && (confidence != 'low' || views >= 5000 || messages >= 30)",
+        "trueLabel": "Shortlist",
+        "falseLabel": "Watchlist"
+      },
+      "connection": null
+    },
+    {
+      "id": "node-7",
+      "type": "tool",
+      "name": "Excel Export",
+      "action": "/ext-api/tools/excel-export",
+      "notes": "Export ranked products with platform, title, category, price, sales_count, sales_type, GMV, hot_score, confidence, and product URL.",
+      "icon": "vscode-icons:file-type-excel",
+      "x": 1210,
+      "y": 110,
+      "integrationSettings": {
+        "filename": "fb_tiktok_hot_products.xlsx",
+        "sheetName": "Hot Products",
+        "timeout": "60"
+      },
+      "connection": null
+    },
+    {
+      "id": "node-8",
+      "type": "ai",
+      "name": "OpenAI Product Analyst",
+      "action": "/ext-api/ai/openai/gpt-5",
+      "notes": "Analyze the shortlist for sourcing opportunity, margin assumptions, saturation risk, ad creative angle, and next test budget.",
+      "icon": "logos:openai-icon",
+      "x": 1210,
+      "y": 270,
+      "integrationSettings": {
+        "promptTemplate": "You are an ecommerce product research analyst. Review FB Marketplace and TikTok Shop hot product rows. Prioritize products by reported sales, estimated demand, hot_score, confidence, price, review count, sourcing feasibility, and competition risk. Return a ranked shortlist with why it is trending, evidence quality, estimated demand caveats, suggested supplier keywords, target margin, and next validation step.",
+        "returnFormat": "Markdown summary plus JSON array: platform, product_id, title, price, sales_count, sales_type, hot_score, confidence, opportunity_score, sourcing_keywords, risks, next_action.",
+        "dataPolicy": "Do not claim estimated FB demand is exact sales. Preserve sales_type and confidence in the recommendation."
+      },
+      "connection": null
+    },
+    {
+      "id": "node-9",
+      "type": "communication",
+      "name": "Email Daily Radar",
+      "action": "/ext-api/outlook/mail",
+      "notes": "Send the ranked product report to the operator for manual review before sourcing or ad testing.",
+      "icon": "material-symbols:mark-email-unread-outline-rounded",
+      "x": 1490,
+      "y": 190,
+      "integrationSettings": {
+        "to": "workad_009@icloud.com",
+        "subject": "FB Marketplace + TikTok Shop Hot Products Radar",
+        "bodyTemplate": "Attached is today's hot products report. FB Marketplace sales may be estimated unless marked reported."
+      },
+      "connection": null
+    }
+  ],
+  "links": [
+    {
+      "from": "node-1",
+      "to": "node-2"
+    },
+    {
+      "from": "node-1",
+      "to": "node-3"
+    },
+    {
+      "from": "node-1",
+      "to": "node-4"
+    },
+    {
+      "from": "node-2",
+      "to": "node-5"
+    },
+    {
+      "from": "node-3",
+      "to": "node-5"
+    },
+    {
+      "from": "node-4",
+      "to": "node-5"
+    },
+    {
+      "from": "node-5",
+      "to": "node-6"
+    },
+    {
+      "from": "node-6",
+      "to": "node-7"
+    },
+    {
+      "from": "node-6",
+      "to": "node-8"
+    },
+    {
+      "from": "node-7",
+      "to": "node-9"
+    },
+    {
+      "from": "node-8",
+      "to": "node-9"
+    }
+  ]
+}

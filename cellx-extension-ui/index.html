@@ -3,8 +3,12 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>CellX Workflow Designer</title>
-  <link rel="stylesheet" href="./styles.css?v=20260906-marketplace-delete">
+  <title data-i18n="Cell AI Data | Agent Builder">Cell AI Data | Agent Builder</title>
+  <link rel="stylesheet" href="./styles.css?v=20260914-voice-layout-v1">
+  <link rel="stylesheet" href="./i18n.css?v=20260914-i18n-v1">
+  <script src="./i18n.js?v=20260914-i18n-v1"></script>
+  <script src="./i18n-static-zh.js?v=20260914-i18n-v1"></script>
+  <script src="./i18n-zh.js?v=20260914-i18n-v1"></script>
 </head>
 <body>
   <div class="app-shell">
@@ -12,62 +16,105 @@
       <div class="brand">
         <img class="brand-logo" src="./logo-Ck36VV97.png" alt="CellX logo">
         <div>
-          <strong>CellX Workflow</strong>
-          <span>Designer</span>
+          <strong>Cell AI Data</strong>
+          <span data-i18n="Agent Builder">Agent Builder</span>
         </div>
       </div>
       <nav>
-        <a href="https://cellaidata.com/">Home</a>
-        <a class="active" href="/workflow/" title="Workflow Designer">Workflow</a>
+        <a href="https://cellaidata.com/" data-i18n="Home">Home</a>
+        <a class="active" href="/agent/" title="Agent Builder" data-i18n-title="Agent Builder" data-i18n="Agents">Agents</a>
+        <a href="/data/" data-i18n="Data Explorer">Data Explorer</a>
         <a href="https://app.cellaidata.com/">CellX</a>
       </nav>
     </aside>
 
     <section class="workspace">
       <header class="topbar">
-        <div class="breadcrumbs"><a href="https://cellaidata.com/">Home</a> / Extension / <strong>Workflow Designer</strong></div>
+        <div class="breadcrumbs"><a href="https://cellaidata.com/" data-i18n="Home">Home</a> <span data-i18n="/ Extension /">/ Extension /</span> <strong data-i18n="Agent Builder">Agent Builder</strong></div>
         <div class="top-actions">
-          <input type="search" placeholder="Please enter search content">
-          <a href="https://app.cellaidata.com/">Back to CellX</a>
+          <select data-language-picker aria-label="Language"><option value="en">English</option><option value="zh-CN">中文</option></select>
+          <input type="search" placeholder="Please enter search content" data-i18n-placeholder="Please enter search content">
+          <a href="https://app.cellaidata.com/" data-i18n="Back to CellX">Back to CellX</a>
         </div>
       </header>
 
       <main class="designer">
         <section class="toolbar">
           <div>
-            <h1>Workflow Designer</h1>
-            <p>Build sidecar automations for orders, carriers, marketplaces, and AI-assisted operations.</p>
+            <h1 data-i18n="Agent Builder">Agent Builder</h1>
+            <p data-i18n="Connect AI, skills, tools, and data for orders, research, and business operations.">Connect AI, skills, tools, and data for orders, research, and business operations.</p>
           </div>
           <div class="toolbar-actions">
-            <button id="connectModeBtn" type="button">Connect Mode</button>
-            <button id="autoLayoutBtn" type="button">Auto Layout</button>
-            <button id="newWorkflowBtn" type="button">New Workflow</button>
-            <button id="browseTemplatesBtn" type="button">Browse Templates</button>
-            <button id="marketplaceBtn" type="button">Marketplace</button>
-            <button id="importTemplateBtn" type="button">Import JSON</button>
-            <button id="exportTemplateBtn" type="button">Export Template</button>
-            <button id="saveBtn" class="primary" type="button">Save Draft</button>
+            <button id="connectModeBtn" type="button" data-i18n="Connect Mode">Connect Mode</button>
+            <button id="autoLayoutBtn" type="button" data-i18n="Auto Layout">Auto Layout</button>
+            <button id="newWorkflowBtn" type="button" data-i18n="New Agent">New Agent</button>
+            <button id="aiVoiceBuilderBtn" type="button" data-i18n="AI Voice Builder">AI Voice Builder</button>
+            <button id="browseTemplatesBtn" type="button" data-i18n="Browse Templates">Browse Templates</button>
+            <button id="manageTemplatesBtn" type="button" data-i18n="Manage Templates">Manage Templates</button>
+            <button id="marketplaceBtn" type="button" data-i18n="Marketplace">Marketplace</button>
+            <button id="importTemplateBtn" type="button" data-i18n="Import JSON">Import JSON</button>
+            <button id="exportTemplateBtn" type="button" data-i18n="Export Template">Export Template</button>
+            <button id="saveBtn" class="primary" type="button" data-i18n="Save Draft">Save Draft</button>
             <input id="templateFileInput" class="template-file-input" type="file" accept="application/json,.json">
           </div>
         </section>
 
-        <section class="workflow-tabs-wrap" aria-label="Workflow tabs">
+        <section class="workflow-tabs-wrap" aria-label="Agent tabs" data-i18n-aria-label="Agent tabs">
           <div id="workflowTabs" class="workflow-tabs"></div>
         </section>
 
-        <section id="templateBrowser" class="template-browser" aria-label="Workflow template browser" hidden>
+        <section id="aiVoiceBuilderPanel" class="ai-voice-builder-panel" aria-label="AI voice agent builder" hidden data-i18n-aria-label="AI voice agent builder">
           <div class="template-browser-head">
             <div>
-              <strong>Workflow Template Library</strong>
-              <span>Browse generated JSON templates and import them as new workflow tabs.</span>
+              <strong data-i18n="AI Voice Agent Builder">AI Voice Agent Builder</strong>
+              <span data-i18n="AI voice assistant">AI voice assistant</span>
             </div>
-            <button id="closeTemplatesBtn" type="button">Close</button>
+            <button id="closeAiVoiceBuilderBtn" type="button" data-i18n="Close">Close</button>
+          </div>
+          <div class="ai-voice-builder-body">
+            <div class="ai-voice-input">
+              <label for="aiVoiceAccessToken" data-i18n="Access token">Access token</label>
+              <input id="aiVoiceAccessToken" type="password" autocomplete="off" placeholder="Management access token" data-i18n-placeholder="Management access token">
+              <div id="aiVoiceConversation" class="ai-voice-conversation" role="log" aria-label="Conversation" aria-live="polite" data-i18n-aria-label="Conversation"></div>
+              <audio id="aiVoiceAudio" autoplay></audio>
+              <textarea id="aiVoicePrompt" rows="2" placeholder="Example: Build an order agent with skills to fetch OrderDesk orders each night, save them to CellX, and summarize the results." data-i18n-placeholder="Example: Build an order agent with skills to fetch OrderDesk orders each night, save them to CellX, and summarize the results."></textarea>
+              <div class="ai-voice-actions">
+                <button id="voiceListenBtn" type="button" data-i18n="Connect Voice">Connect Voice</button>
+                <button id="voiceScreenshotBtn" type="button">Upload Screenshot</button>
+                <button id="voiceStopBtn" type="button" disabled data-i18n="Disconnect">Disconnect</button>
+                <button id="voiceMuteBtn" type="button" disabled aria-pressed="false" data-i18n="Mute">Mute</button>
+                <button id="voiceSendBtn" type="button" disabled data-i18n="Send">Send</button>
+                <button id="buildWorkflowWithAiBtn" class="primary" type="button" data-i18n="Build Agent">Build Agent</button>
+              </div>
+              <div id="voiceScreenshots" class="voice-screenshots" aria-live="polite"></div>
+              <span id="aiVoiceStatus">Ready.</span>
+            </div>
+            <div class="ai-voice-preview">
+              <div class="manager-section-head">
+                <strong data-i18n="Draft Preview">Draft Preview</strong>
+                <span id="aiVoiceDraftMeta">No draft yet</span>
+              </div>
+              <pre id="aiVoiceDraftPreview">{}</pre>
+              <div class="ai-voice-actions">
+                <button id="importAiDraftBtn" class="primary" type="button" disabled data-i18n="Apply Draft">Apply Draft</button>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <section id="templateBrowser" class="template-browser" aria-label="Agent template browser" hidden data-i18n-aria-label="Agent template browser">
+          <div class="template-browser-head">
+            <div>
+              <strong data-i18n="Agent Template Library">Agent Template Library</strong>
+              <span data-i18n="Reusable agent templates and connected skills.">Reusable agent templates and connected skills.</span>
+            </div>
+            <button id="closeTemplatesBtn" type="button" data-i18n="Close">Close</button>
           </div>
           <div class="template-browser-tools">
             <div class="template-filter-row">
-              <input id="templateSearch" type="search" placeholder="Search workflow templates">
-              <select id="templateCategoryFilter" aria-label="Filter workflow templates by category">
-                <option value="">All categories</option>
+              <input id="templateSearch" type="search" placeholder="Search agent templates" data-i18n-placeholder="Search agent templates">
+              <select id="templateCategoryFilter" aria-label="Filter agent templates by category" data-i18n-aria-label="Filter agent templates by category">
+                <option value="" data-i18n="All categories">All categories</option>
               </select>
             </div>
             <span id="templateLibraryStatus">Loading templates...</span>
@@ -75,62 +122,99 @@
           <div id="templateList" class="template-list"></div>
         </section>
 
-        <section id="marketplacePanel" class="marketplace-panel" aria-label="Workflow marketplace" hidden>
+        <section id="templateManagerPanel" class="template-manager-panel" aria-label="Agent template manager" hidden data-i18n-aria-label="Agent template manager">
           <div class="template-browser-head">
             <div>
-              <strong>Workflow Template Marketplace</strong>
-              <span>Publish, review, sell, and import reusable workflow templates. Stripe Checkout and Connect are supported when configured.</span>
+              <strong data-i18n="Template Manager">Template Manager</strong>
+              <span data-i18n="Manage backend template files, customer scripts, and scheduled jobs.">Manage backend template files, customer scripts, and scheduled jobs.</span>
             </div>
-            <button id="closeMarketplaceBtn" type="button">Close</button>
+            <button id="closeTemplateManagerBtn" type="button" data-i18n="Close">Close</button>
+          </div>
+          <div class="template-manager-tools">
+            <button id="refreshTemplateManagerBtn" type="button" data-i18n="Refresh">Refresh</button>
+            <span id="templateManagerStatus">Loading backend inventory...</span>
+          </div>
+          <div class="template-manager-grid">
+            <section class="manager-section">
+              <div class="manager-section-head">
+                <strong data-i18n="Template JSON files">Template JSON files</strong>
+                <span id="managedTemplateCount">0 files</span>
+              </div>
+              <div id="managedTemplateList" class="manager-list"></div>
+            </section>
+            <section class="manager-section">
+              <div class="manager-section-head">
+                <strong data-i18n="Customer scripts">Customer scripts</strong>
+                <span id="managedScriptCount">0 files</span>
+              </div>
+              <div id="managedScriptList" class="manager-list"></div>
+            </section>
+            <section class="manager-section">
+              <div class="manager-section-head">
+                <strong data-i18n="Scheduled jobs">Scheduled jobs</strong>
+                <span id="managedTimerCount">0 jobs</span>
+              </div>
+              <div id="managedTimerList" class="manager-list"></div>
+            </section>
+          </div>
+        </section>
+
+        <section id="marketplacePanel" class="marketplace-panel" aria-label="Agent marketplace" hidden data-i18n-aria-label="Agent marketplace">
+          <div class="template-browser-head">
+            <div>
+              <strong data-i18n="Agent Marketplace">Agent Marketplace</strong>
+              <span data-i18n="Reusable agents with skills for your industry.">Reusable agents with skills for your industry.</span>
+            </div>
+            <button id="closeMarketplaceBtn" type="button" data-i18n="Close">Close</button>
           </div>
           <div class="marketplace-grid">
             <div class="marketplace-left">
               <form id="marketplaceAccountForm" class="developer-card">
-                <strong>Marketplace account</strong>
+                <strong data-i18n="Marketplace account">Marketplace account</strong>
                 <span id="marketplaceAccountStatus">Login or register before publishing and buying.</span>
-                <label>Name<input id="marketplaceAccountName" type="text" placeholder="Developer name"></label>
-                <label>Email<input id="marketplaceAccountEmail" type="email" placeholder="you@company.com" required></label>
-                <label>Password<input id="marketplaceAccountPassword" type="password" placeholder="At least 8 characters" required></label>
-                <label>Role
+                <label><span data-i18n="Name">Name</span><input id="marketplaceAccountName" type="text" placeholder="Developer name" data-i18n-placeholder="Developer name"></label>
+                <label><span data-i18n="Email">Email</span><input id="marketplaceAccountEmail" type="email" placeholder="you@company.com" required></label>
+                <label><span data-i18n="Password">Password</span><input id="marketplaceAccountPassword" type="password" placeholder="At least 8 characters" required data-i18n-placeholder="At least 8 characters"></label>
+                <label><span data-i18n="Role">Role</span>
                   <select id="marketplaceAccountRole">
-                    <option value="developer_member">Developer member</option>
-                    <option value="business_buyer">Business buyer</option>
-                    <option value="agency_partner">Agency partner</option>
+                    <option value="developer_member" data-i18n="Developer member">Developer member</option>
+                    <option value="business_buyer" data-i18n="Business buyer">Business buyer</option>
+                    <option value="agency_partner" data-i18n="Agency partner">Agency partner</option>
                   </select>
                 </label>
                 <div class="button-row">
-                  <button class="primary" type="submit" data-marketplace-auth="login">Login</button>
-                  <button type="submit" data-marketplace-auth="register">Register</button>
+                  <button class="primary" type="submit" data-marketplace-auth="login" data-i18n="Login">Login</button>
+                  <button type="submit" data-marketplace-auth="register" data-i18n="Register">Register</button>
                 </div>
-                <button id="connectStripeBtn" type="button">Connect Stripe Payout</button>
+                <button id="connectStripeBtn" type="button" data-i18n="Connect Stripe Payout">Connect Stripe Payout</button>
               </form>
               <form id="developerPublishForm" class="developer-card">
-                <strong>Developer listing</strong>
-                <span>Submit the active workflow for review before it becomes sellable.</span>
-                <label>Template name<input id="marketplaceName" type="text" placeholder="AI property recommendations workflow"></label>
-                <label>Category
+                <strong data-i18n="Developer listing">Developer listing</strong>
+                <span data-i18n="Submit the active agent for review before it becomes sellable.">Submit the active agent for review before it becomes sellable.</span>
+                <label><span data-i18n="Template name">Template name</span><input id="marketplaceName" type="text" placeholder="Property recommendation agent" data-i18n-placeholder="Property recommendation agent"></label>
+                <label><span data-i18n="Category">Category</span>
                   <select id="marketplaceCategory">
-                    <option>Real Estate</option>
-                    <option>E-Commerce</option>
-                    <option>Finance</option>
-                    <option>Research</option>
-                    <option>Operations</option>
+                    <option data-i18n="Real Estate" value="Real Estate">Real Estate</option>
+                    <option data-i18n="E-Commerce" value="E-Commerce">E-Commerce</option>
+                    <option data-i18n="Finance" value="Finance">Finance</option>
+                    <option data-i18n="Research" value="Research">Research</option>
+                    <option data-i18n="Operations" value="Operations">Operations</option>
                   </select>
                 </label>
-                <label>Price USD<input id="marketplacePrice" type="number" min="0" step="1" value="49"></label>
-                <label>Developer name<input id="marketplaceDeveloper" type="text" value="Cell AI Data Developer"></label>
-                <label>Developer email<input id="marketplaceDeveloperEmail" type="email" placeholder="developer@company.com"></label>
-                <label>Description<textarea id="marketplaceDescription" rows="3" placeholder="What business problem does this workflow solve?"></textarea></label>
-                <button class="primary" type="submit">Submit For Review</button>
+                <label><span data-i18n="Price USD">Price USD</span><input id="marketplacePrice" type="number" min="0" step="1" value="49"></label>
+                <label><span data-i18n="Developer name">Developer name</span><input id="marketplaceDeveloper" type="text" value="Cell AI Data Developer"></label>
+                <label><span data-i18n="Developer email">Developer email</span><input id="marketplaceDeveloperEmail" type="email" placeholder="developer@company.com"></label>
+                <label><span data-i18n="Description">Description</span><textarea id="marketplaceDescription" rows="3" placeholder="What business problem does this agent solve?" data-i18n-placeholder="What business problem does this agent solve?"></textarea></label>
+                <button class="primary" type="submit" data-i18n="Submit For Review">Submit For Review</button>
               </form>
             </div>
             <div>
               <div class="marketplace-tools">
-                <input id="marketplaceSearch" type="search" placeholder="Search marketplace templates">
-                <select id="marketplaceCategoryFilter" aria-label="Filter marketplace templates">
-                  <option value="">All categories</option>
+                <input id="marketplaceSearch" type="search" placeholder="Search marketplace templates" data-i18n-placeholder="Search marketplace templates">
+                <select id="marketplaceCategoryFilter" aria-label="Filter marketplace templates" data-i18n-aria-label="Filter marketplace templates">
+                  <option value="" data-i18n="All categories">All categories</option>
                 </select>
-                <button id="refreshMarketplaceBtn" type="button">Refresh</button>
+                <button id="refreshMarketplaceBtn" type="button" data-i18n="Refresh">Refresh</button>
               </div>
               <div id="marketplaceStatus" class="marketplace-status">Loading marketplace...</div>
               <div id="marketplaceList" class="marketplace-list"></div>
@@ -140,8 +224,8 @@
 
         <section class="designer-grid">
           <aside class="palette">
-            <div class="panel-title">Node Library</div>
-            <input id="nodeSearch" class="node-search" type="search" placeholder="Search nodes">
+            <div class="panel-title" data-i18n="Skills &amp; Tools">Skills &amp; Tools</div>
+            <input id="nodeSearch" class="node-search" type="search" placeholder="Search nodes" data-i18n-placeholder="Search nodes">
             <div id="nodeLibrary" class="node-library"></div>
 
             <div class="runtime-card">
@@ -149,7 +233,7 @@
               <strong id="apiStatus">Checking...</strong>
             </div>
             <div class="runtime-card">
-              <span>Database</span>
+              <span data-i18n="Database">Database</span>
               <strong id="dbStatus">Checking...</strong>
             </div>
           </aside>
@@ -160,8 +244,11 @@
                 <strong id="workflowTitle">Order Fulfillment Flow</strong>
                 <span id="workflowDescription">Drag nodes, reposition them, then connect steps.</span>
               </div>
-              <div id="workflowResultTabsHost" class="canvas-result-tabs-host" aria-label="Workflow result tabs"></div>
-              <button id="clearBtn" type="button">Clear</button>
+              <div id="workflowResultTabsHost" class="canvas-result-tabs-host" aria-label="Agent result tabs" data-i18n-aria-label="Agent result tabs"></div>
+              <div class="canvas-head-actions">
+                <button id="uploadPhotosBtn" type="button" hidden>Upload Photos</button>
+                <button id="clearBtn" type="button" data-i18n="Clear">Clear</button>
+              </div>
             </div>
             <div id="canvas" class="canvas">
               <svg id="links" class="links" aria-hidden="true"></svg>
@@ -169,34 +256,38 @@
           </section>
 
           <aside class="properties">
-            <div class="panel-title">Properties</div>
+            <div class="panel-title" data-i18n="Properties">Properties</div>
             <div id="propertyActionBar" class="property-action-bar"></div>
             <label>
-              Node name
-              <input id="propName" type="text" placeholder="Select a node">
+              <span data-i18n="Node name">Node name</span>
+              <input id="propName" type="text" placeholder="Select a node" data-i18n-placeholder="Select a node">
             </label>
             <label>
-              Node type
+              <span data-i18n="Node type">Node type</span>
               <input id="propType" type="text" readonly>
             </label>
             <label>
-              Endpoint / Action
+              <span data-i18n="Endpoint / Action">Endpoint / Action</span>
               <input id="propAction" type="text" placeholder="/ext-api/...">
             </label>
             <label>
-              Notes
-              <textarea id="propNotes" rows="6" placeholder="Describe how this step should run"></textarea>
+              <span data-i18n="Notes">Notes</span>
+              <textarea id="propNotes" rows="6" placeholder="Describe how this step should run" data-i18n-placeholder="Describe how this step should run"></textarea>
             </label>
             <div id="integrationFields" class="integration-fields"></div>
-            <div class="hint">
-              Example: when a paid order arrives, ask the AI agent to classify risk, route shipments to UPS or FedEx, then write a status event.
-            </div>
+            <div class="hint" data-i18n="Example: when a paid order arrives, ask the AI agent to classify risk, route shipments to UPS or FedEx, then write a status event.">Example: when a paid order arrives, ask the AI agent to classify risk, route shipments to UPS or FedEx, then write a status event.</div>
           </aside>
         </section>
       </main>
     </section>
   </div>
 
-  <script src="./app.js?v=20260906-email-recipient-sync"></script>
+  <link rel="stylesheet" href="./workflow-photos.css?v=20260914-photos-v1">
+  <script src="./app.js?v=20260914-slideshow-v1"></script>
+  <script src="./workflow-photos.js?v=20260914-photos-v1"></script>
+  <link rel="stylesheet" href="./voice-screenshots.css?v=20260914-paste-v2">
+  <script src="./voice-screenshots.js?v=20260914-paste-v2"></script>
+  <link rel="stylesheet" href="./workflow-video.css?v=20260914-runway-v1">
+  <script src="./workflow-video.js?v=20260914-runway-v1"></script>
 </body>
 </html>

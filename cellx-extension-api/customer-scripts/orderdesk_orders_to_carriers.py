@@ -140,16 +140,46 @@ def normalize_order(order, rank, carrier_rules, default_package, ship_from):
     orderdesk_id = clean_text(pick(order, "id", "order_id", "orderdesk_id"))
     public_order_id = clean_text(pick(order, "source_id", "order_number", "order_id", "id"))
     ship_to = ship_to_address(order)
+    items = order_items(order)
     customer_name = " ".join(part for part in [ship_to.get("first_name"), ship_to.get("last_name")] if part).strip()
     if not customer_name:
         customer_name = ship_to.get("name")
+    quantity_total = 0
+    for item in items:
+        try:
+            quantity_total += int(float(item.get("quantity") or 1))
+        except Exception:
+            quantity_total += 1
     return {
         "rank": rank,
+        "provider": "OrderDesk",
+        "provider_listing_id": f"orderdesk:{orderdesk_id or public_order_id}",
         "orderdesk_order_id": orderdesk_id,
         "order_id": public_order_id,
         "customer_id": clean_text(pick(order, "customer_id", "source_name")),
+        "source_name": clean_text(pick(order, "source_name", "source", "store_name", "customer_id")),
+        "status": clean_text(pick(order, "folder_id", "folder_name", "status", "order_status")),
         "customer_name": customer_name,
         "customer_email": clean_text(pick(order, "email", "customer.email", "shipping.email")),
+        "customer_phone": ship_to.get("phone"),
+        "ship_name": ship_to.get("name") or customer_name,
+        "ship_company": ship_to.get("company"),
+        "ship_address1": ship_to.get("address1"),
+        "ship_address2": ship_to.get("address2"),
+        "ship_city": ship_to.get("city"),
+        "ship_state": ship_to.get("state"),
+        "ship_postal_code": ship_to.get("postal_code"),
+        "ship_country": ship_to.get("country"),
+        "currency": clean_text(pick(order, "currency", "currency_code") or "USD"),
+        "order_total": pick(order, "total", "order_total", "grand_total"),
+        "shipping_total": pick(order, "shipping_total", "shipping", "shipping_amount"),
+        "tax_total": pick(order, "tax_total", "tax", "tax_amount"),
+        "discount_total": pick(order, "discount_total", "discount", "discount_amount"),
+        "item_count": len(items),
+        "quantity_total": quantity_total,
+        "items_json": json.dumps(items, ensure_ascii=False),
+        "raw_json": json.dumps(order, ensure_ascii=False),
+        "last_synced_at": datetime.now(timezone.utc).isoformat(),
         "total": pick(order, "total", "order_total", "grand_total"),
         "quantity": pick(order, "quantity", "qty", "item_count"),
         "order_date": clean_text(pick(order, "date_added", "order_date", "date")),
@@ -161,7 +191,7 @@ def normalize_order(order, rank, carrier_rules, default_package, ship_from):
         "action": "create_shipment_payload" if carrier in ("UPS", "FEDEX") else "review_shipping_method",
         "ship_from": ship_from,
         "ship_to": ship_to,
-        "items": order_items(order),
+        "items": items,
         "package": default_package,
         "carrier_payload": {
             "carrier": carrier,
@@ -171,7 +201,7 @@ def normalize_order(order, rank, carrier_rules, default_package, ship_from):
             "ship_from": ship_from,
             "ship_to": ship_to,
             "package": default_package,
-            "items": order_items(order),
+            "items": items,
         },
     }
 
@@ -181,7 +211,11 @@ def main():
     store_id = clean_text(payload.get("store_id") or os.getenv("ORDERDESK_STORE_ID"))
     api_key = clean_text(payload.get("api_key") or os.getenv("ORDERDESK_API_KEY"))
     timeout = int(payload.get("request_timeout") or 20)
-    limit = max(1, min(500, int(payload.get("limit") or 25)))
+    page_size = max(1, min(500, int(payload.get("page_size") or payload.get("limit") or 100)))
+    page_count = max(1, min(100, int(payload.get("page_count") or payload.get("pages") or 30)))
+    requested_records = int(payload.get("limit") or payload.get("max_records") or 0)
+    limit = max(page_size * page_count, requested_records or 0)
+    limit = max(1, min(50000, limit))
     dry_run = bool(payload.get("dry_run", True))
 
     if not store_id or not api_key:
@@ -194,7 +228,7 @@ def main():
         return 2
 
     params = {
-        "limit": limit,
+        "limit": page_size,
         "offset": max(0, int(payload.get("offset") or 0)),
     }
     for key in ("folder_id", "search_start_date", "search_end_date", "modified_start_date", "modified_end_date", "order_by", "order"):
@@ -202,9 +236,35 @@ def main():
             params[key] = payload[key]
 
     base_url = clean_text(payload.get("base_url") or ORDERDESK_API_BASE).rstrip("/")
-    source_url = f"{base_url}/orders?{urlencode(params)}"
-    response = request_json(source_url, store_id, api_key, timeout)
-    orders = order_list(response)
+    first_source_url = ""
+    orders = []
+    page_offsets = []
+    next_offset = params["offset"]
+    pages_fetched = 0
+    for page_index in range(page_count):
+        if len(orders) >= limit:
+            break
+        page_params = dict(params)
+        page_params["offset"] = next_offset
+        source_url = f"{base_url}/orders?{urlencode(page_params)}"
+        if not first_source_url:
+            first_source_url = source_url
+        response = request_json(source_url, store_id, api_key, timeout)
+        page_orders = order_list(response)
+        page_offsets.append({
+            "page": page_index + 1,
+            "offset": next_offset,
+            "limit": page_size,
+            "count": len(page_orders),
+        })
+        if not page_orders:
+            break
+        pages_fetched += 1
+        remaining = limit - len(orders)
+        orders.extend(page_orders[:remaining])
+        if len(page_orders) < page_size or len(orders) >= limit:
+            break
+        next_offset += page_size
 
     carrier_rules = payload.get("carrier_rules") or {
         "ups": ["ups", "united parcel", "ground saver"],
@@ -233,9 +293,14 @@ def main():
     print(json.dumps({
         "ok": True,
         "provider": "OrderDesk",
-        "source_url": source_url,
+        "source_url": first_source_url,
         "fetched_at": datetime.now(timezone.utc).isoformat(),
         "dry_run": dry_run,
+        "page_size": page_size,
+        "pages_requested": page_count,
+        "pages_fetched": pages_fetched,
+        "max_records": limit,
+        "page_offsets": page_offsets,
         "message": "Fetched Order Desk orders and prepared UPS/FedEx shipment payloads. Dry run is on, so no label was purchased or order was mutated.",
         "orders_count": len(orders),
         "row_count": len(rows),

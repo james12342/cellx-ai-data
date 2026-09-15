@@ -1,0 +1,19 @@
+[data-language-picker] {
+  width: auto;
+  min-width: 94px;
+  max-width: 128px;
+  min-height: 34px;
+  padding: 5px 8px;
+  border: 1px solid #b9cee8;
+  border-radius: 4px;
+  background: #fff;
+  color: #163b69;
+  font: 14px/1.4 Arial, "Microsoft YaHei", sans-serif;
+  flex-shrink: 0;
+}
+html[lang="zh-CN"] body { font-family: Arial, "Microsoft YaHei", "PingFang SC", sans-serif; }
+html[lang="zh-CN"] button, html[lang="zh-CN"] label { overflow-wrap: anywhere; }
+.top-actions { flex-wrap: wrap; }
+@media (max-width: 720px) {
+  [data-language-picker] { min-width: 88px; min-height: 32px; }
+}

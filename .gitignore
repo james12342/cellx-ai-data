@@ -9,4 +9,15 @@ outputs/
 dist/
 *.pem
 key.txt
+runway_api.txt
+.env
+.env.*
+!.env.example
+!.env.sample
+*.pfx
+*.p12
 *.xlsx
+cellx-extension-api/workflow-schedules.sqlite3*
+cellx-extension-api/agent-schema-registry.sqlite3*
+cellx-extension-api/private-photos/
+cellx-extension-api/private-videos/

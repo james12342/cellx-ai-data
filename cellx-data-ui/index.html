@@ -1,0 +1,72 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title data-i18n="Data Explorer | Cell AI Data">Data Explorer | Cell AI Data</title>
+  <link rel="icon" href="./logo.png">
+  <link rel="stylesheet" href="./styles.css?v=20260914-data-v1">
+  <link rel="stylesheet" href="./i18n.css?v=20260914-i18n-v1">
+</head>
+<body>
+  <a class="skip-link" href="#workspace" data-i18n="Skip to data">Skip to data</a>
+  <header class="site-header">
+    <a class="brand" href="https://www.cellaidata.com/"><img src="./logo.png" width="30" height="30" alt=""><span>Cell AI Data</span></a>
+    <nav aria-label="Main navigation" data-i18n-aria-label="Main navigation">
+      <a href="https://www.cellaidata.com/" data-i18n="Home">Home</a>
+      <a href="/agent/" data-i18n="Agent Builder">Agent Builder</a>
+      <a href="/data/" aria-current="page" data-i18n="Data Explorer">Data Explorer</a>
+      <a href="/" data-i18n="Legacy CellX">Legacy CellX</a>
+    </nav>
+    <select data-language-picker aria-label="Language" data-i18n-aria-label="Language"><option value="en">English</option><option value="zh-CN">中文</option></select>
+  </header>
+  <section class="access-bar" aria-label="Connection" data-i18n-aria-label="Connection">
+    <div class="page-heading"><h1 data-i18n="Data Explorer">Data Explorer</h1><span class="badge" data-i18n="Read only">Read only</span></div>
+    <form id="connectionForm">
+      <label for="adminToken" data-i18n="Admin token">Admin token</label>
+      <input id="adminToken" type="password" autocomplete="off" spellcheck="false" data-i18n-placeholder="Session token" placeholder="Session token">
+      <button class="primary" type="submit" data-i18n="Connect">Connect</button>
+      <button id="disconnect" type="button" data-i18n="Disconnect">Disconnect</button>
+    </form>
+  </section>
+  <div id="connectionStatus" class="connection-status" role="status" aria-live="polite"></div>
+  <main id="workspace" tabindex="-1" class="workspace">
+    <aside class="table-browser" aria-label="Tables" data-i18n-aria-label="Tables">
+      <div class="section-heading"><h2 data-i18n="Tables">Tables</h2><button id="refreshCatalog" type="button" data-i18n="Refresh">Refresh</button></div>
+      <label class="sr-only" for="tableFilter" data-i18n="Find a table or agent">Find a table or agent</label>
+      <input id="tableFilter" type="search" placeholder="Find a table or agent" data-i18n-placeholder="Find a table or agent">
+      <div id="catalogStatus" class="status" role="status"></div>
+      <div id="catalogNotes" class="catalog-notes"></div>
+      <div id="tableList" class="table-list"></div>
+    </aside>
+    <section class="detail" aria-label="Table details" data-i18n-aria-label="Table details">
+      <div id="noSelection" class="empty" data-i18n="Select a table">Select a table</div>
+      <div id="tableDetail" hidden>
+        <div class="detail-heading"><div><h2 id="tableName" translate="no"></h2><div id="tableFacts" class="facts"></div></div><button id="refreshTable" type="button" data-i18n="Refresh">Refresh</button></div>
+        <div class="tabs" role="tablist" aria-label="Table views" data-i18n-aria-label="Table views">
+          <button id="recordsTab" role="tab" aria-selected="true" aria-controls="recordsPanel" data-view="records" data-i18n="Records">Records</button>
+          <button id="schemaTab" role="tab" aria-selected="false" aria-controls="schemaPanel" tabindex="-1" data-view="schema" data-i18n="Schema">Schema</button>
+          <button id="relationsTab" role="tab" aria-selected="false" aria-controls="relationsPanel" tabindex="-1" data-view="relations" data-i18n="Relations">Relations</button>
+        </div>
+        <div id="metadataStatus" class="status" role="status"></div>
+        <section id="recordsPanel" role="tabpanel" aria-labelledby="recordsTab" tabindex="0">
+          <form id="recordControls" class="record-controls">
+            <label class="search-field"><span data-i18n="Search records">Search records</span><input id="recordSearch" type="search" autocomplete="off" maxlength="128"></label>
+            <label><span data-i18n="Sort by">Sort by</span><select id="sortColumn"><option value="" data-i18n="Default order">Default order</option></select></label>
+            <label><span data-i18n="Direction">Direction</span><select id="sortDirection"><option value="asc" data-i18n="Ascending">Ascending</option><option value="desc" data-i18n="Descending">Descending</option></select></label>
+            <button type="submit" class="primary" data-i18n="Apply">Apply</button>
+          </form>
+          <div id="recordsStatus" class="status" role="status" aria-live="polite"></div>
+          <div class="table-scroll" tabindex="0" role="region" aria-label="Records" data-i18n-aria-label="Records"><table id="recordsTable"><thead></thead><tbody></tbody></table></div>
+          <div class="pagination"><label><span data-i18n="Rows per page">Rows per page</span><select id="pageSize"><option value="25">25</option><option value="50" selected>50</option><option value="100">100</option></select></label><span id="pageInfo" role="status"></span><div class="page-buttons"><button id="previousPage" type="button" aria-label="Previous page" data-i18n-aria-label="Previous page" title="Previous page" data-i18n-title="Previous page">&larr;</button><button id="nextPage" type="button" aria-label="Next page" data-i18n-aria-label="Next page" title="Next page" data-i18n-title="Next page">&rarr;</button></div></div>
+        </section>
+        <section id="schemaPanel" role="tabpanel" aria-labelledby="schemaTab" tabindex="0" hidden><div id="schemaStatus" class="status" role="status"></div><div class="table-scroll" tabindex="0" role="region" aria-label="Schema" data-i18n-aria-label="Schema"><table id="schemaTable"><thead></thead><tbody></tbody></table></div></section>
+        <section id="relationsPanel" role="tabpanel" aria-labelledby="relationsTab" tabindex="0" hidden><div id="relationsStatus" class="status" role="status"></div><div class="table-scroll" tabindex="0" role="region" aria-label="Relations" data-i18n-aria-label="Relations"><table id="relationsTable"><thead></thead><tbody></tbody></table></div></section>
+      </div>
+    </section>
+  </main>
+  <script src="./i18n.js?v=20260914-i18n-v1"></script>
+  <script src="./i18n-zh.js?v=20260914-data-v1"></script>
+  <script src="./app.js?v=20260914-data-v1"></script>
+</body>
+</html>

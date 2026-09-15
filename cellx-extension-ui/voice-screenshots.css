@@ -1,0 +1,13 @@
+.voice-composer { display:grid; grid-template-columns:36px minmax(0,1fr); align-items:end; gap:6px; padding:8px; border:1px solid #b9cdec; border-radius:6px; background:#fff; min-width:0; }
+.voice-composer:focus-within { border-color:#2684ff; box-shadow:0 0 0 2px rgb(38 132 255 / 12%); }
+#voiceScreenshotBtn { display:inline-flex; align-items:center; justify-content:center; width:34px; height:34px; min-width:34px; padding:6px; border-radius:50%; border:0; background:#eff5fd; margin-bottom:2px; }
+#voiceScreenshotBtn:hover { background:#dfebfb; }
+#voiceScreenshotBtn img { width:22px; height:22px; }
+.ai-voice-input .voice-composer textarea { box-sizing:border-box; width:100%; min-width:0; margin:0; border:0; box-shadow:none; outline:none; background:transparent; }
+.voice-composer .voice-screenshots { grid-column:1 / -1; margin:0; }
+.voice-screenshots { display:flex; flex-wrap:wrap; gap:8px; margin:8px 0; }
+.voice-screenshots:empty { display:none; }
+.voice-screenshot { width:132px; padding:6px; border:1px solid #c7d9f2; border-radius:4px; }
+.voice-screenshot img { display:block; width:132px; height:84px; object-fit:contain; background:#f5f8fc; }
+.voice-screenshot span { display:block; font-size:12px; overflow-wrap:anywhere; margin:4px 0; }
+.voice-screenshot button { font-size:12px; padding:3px 6px; }

@@ -1,0 +1,45 @@
+{
+  "tenant_id": "demo_company",
+  "manifest": {
+    "version": 1,
+    "tenant_id": "demo_company",
+    "agent_id": "research_agent",
+    "tables": [
+      {"entity_key": "customer", "scope": "company", "fields": [
+        {"name": "id", "type": "uuid", "nullable": false},
+        {"name": "email", "type": "string", "nullable": true},
+        {"name": "industry", "type": "string", "nullable": true}
+      ]},
+      {"entity_key": "recommendation", "scope": "agent", "fields": [
+        {"name": "id", "type": "uuid", "nullable": false},
+        {"name": "customer_id", "type": "uuid", "nullable": true},
+        {"name": "summary", "type": "text", "nullable": true}
+      ]}
+    ],
+    "relationships": [
+      {"key": "recommendation_customer", "source_table": "recommendation", "source_field": "customer_id",
+       "target_table": "customer", "target_field": "id", "on_delete": "restrict"}
+    ]
+  },
+  "snapshot": {
+    "tenant_id": "demo_company",
+    "revision": 7,
+    "agents": {"research_agent": {"status": "active"}, "sales_agent": {"status": "active"}},
+    "tables": [
+      {"id": "table_customer", "tenant_id": "demo_company", "entity_key": "customer",
+       "physical_name": "agent_customer_596204e2b187e9352d5a3fac",
+       "scope": "company", "creator_agent_id": "sales_agent", "owner_agent_id": null, "managed": true, "state": "active",
+       "references": ["sales_agent", "research_agent"], "dependency_inventory_complete": true,
+       "retention_hold": false, "dependents": [], "row_count": null,
+       "fields": [{"name": "id", "type": "uuid", "nullable": false}, {"name": "email", "type": "string", "nullable": true}],
+       "field_consumers": {"email": ["sales_agent", "research_agent"]}, "relationships": []},
+      {"id": "table_recommendation", "tenant_id": "demo_company", "entity_key": "recommendation",
+       "physical_name": "agent_recommendation_b5978dc7b65b1c1a9765bb5f",
+       "scope": "agent", "creator_agent_id": "research_agent", "owner_agent_id": "research_agent", "managed": true, "state": "active",
+       "references": ["research_agent"], "dependency_inventory_complete": true,
+       "retention_hold": false, "dependents": [], "row_count": 120,
+       "fields": [{"name": "id", "type": "uuid", "nullable": false}, {"name": "customer_id", "type": "uuid", "nullable": true}, {"name": "summary", "type": "text", "nullable": true}],
+       "relationships": [{"key": "recommendation_customer", "target_table_id": "table_customer", "on_delete": "restrict"}]}
+    ]
+  }
+}

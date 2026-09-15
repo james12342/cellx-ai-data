@@ -1,0 +1,10 @@
+[Unit]
+Description=Run CellX OrderDesk order sync every day at 9 PM Pacific
+
+[Timer]
+OnCalendar=*-*-* 21:00:00 America/Los_Angeles
+Persistent=true
+Unit=cellx-orderdesk-daily-sync.service
+
+[Install]
+WantedBy=timers.target

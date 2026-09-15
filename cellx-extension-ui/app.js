@@ -1,3 +1,210 @@
+// Keep localized status descriptors separate from serialized workflow messages.
+const agentUiMessages = new Map();
+
+function uiMessage(english, params = {}, dates = {}) {
+  const message = english.replace(/\{(\w+)\}/g, (match, key) =>
+    Object.prototype.hasOwnProperty.call(params, key) ? String(params[key]) : match);
+  agentUiMessages.set(message, { english, params, dates });
+  return message;
+}
+
+function uiSource(english, params) {
+  const message = agentUiMessages.get(english);
+  if (!message) return { english, params };
+  return { english: message.english, params: {
+    ...message.params,
+    ...Object.fromEntries(Object.entries(message.dates).map(([key, [value, options]]) => [key, uiDate(value, options)])),
+  } };
+}
+
+// Translate presentation only; workflow names, settings and API payloads stay in English.
+function agentT(english, params = {}) {
+  ({ english, params } = uiSource(english, params));
+  if (window.CellI18n?.t) return window.CellI18n.t(english, params);
+  return String(english).replace(/\{(\w+)\}/g, (match, key) =>
+    Object.prototype.hasOwnProperty.call(params, key) ? String(params[key]) : match);
+}
+
+// Only authored help is localized; example code, URLs, IDs and timezone strings are not.
+const integrationPlaceholderSources = new Set([
+  "client_id from provider console",
+  "store in backend secret manager",
+  "read/write permissions requested",
+  "provider API key",
+  "optional custom API endpoint",
+  "verify inbound webhook signatures",
+  "Choose who owns usage and billing",
+  "stored per customer/user in backend secret storage",
+  "optional OpenAI-compatible endpoint",
+  "optional project, org, or workspace id",
+  "Use {{order}}, {{customer}}, {{previous_step}} placeholders",
+  "JSON fields the model should return",
+  "Paste ChatGPT JSON output here after running the copied prompt",
+  "mask PII, customer consent, or internal-only context",
+  "Which data enters this rule",
+  "for example payment_status, total, shipping_country",
+  "Comparison operator",
+  "for example Captured, 100, US",
+  "Yes / matched",
+  "No / fallback",
+  "What to do when no items exist",
+  "Duration or exact time",
+  "15 minutes, 2 hours, 1 day",
+  "What happens after waiting",
+  "Retry spacing",
+  "30 seconds",
+  "Exception / Manual Review",
+  "Workflow result",
+  "Why this path should stop.",
+  "Operations Manager",
+  "Please review this order exception.",
+  "Approve",
+  "Reject",
+  "24 hours",
+  "preview or connected provider",
+  "your Gmail address",
+  "same as Gmail username",
+  "+1 Twilio phone number, optional",
+  "CRUD action",
+  "id or uuid",
+  "Prefer soft delete",
+  "Execution guardrail",
+  "shipping account number",
+  "FedEx developer project key",
+  "FedEx developer project secret",
+  "sandbox or production",
+  "UPS app client id",
+  "UPS app client secret",
+  "UPS shipper number",
+  "optional billing account",
+  "USPS developer app client id",
+  "USPS developer app secret",
+  "optional USPS mailer id",
+  "DHL billing account",
+  "DHL developer key",
+  "DHL developer secret",
+  "optional acct_...",
+  "live app client id",
+  "live app secret",
+  "PayPal merchant id",
+  "sandbox or live",
+  "Amazon seller id",
+  "for example ATVPDKIKX0DER",
+  "Login with Amazon client id",
+  "Login with Amazon secret",
+  "seller authorization refresh token",
+  "IAM role used by SP-API app",
+  "for example us-east-1",
+  "used to verify webhooks",
+  "127.0.0.1 or database host",
+  "least-privilege database user",
+  "database password",
+  "optional team or operator",
+  "previous_step or previous_step.result",
+  "object or rows",
+  "How Google access is provided",
+  "Google Sheet ID from the URL",
+  "Form Submissions",
+  "Append or replace rows",
+  "Sheet Column <- workflow_field",
+  "optional backend/service account credential",
+  "optional server-to-server credential",
+  "common, organizations, or tenant id",
+  "workspace, phone, or business id",
+  "bot token or access token",
+  "company instance or subdomain",
+  "target API or internal endpoint",
+  "Bearer token or signed header",
+  "3 retries, exponential backoff",
+  "Customer Lead Scoring Agent",
+  "Where this agent executes",
+  "API, webhook, script, or MCP-style",
+  "Use cached clone",
+  "How to authenticate",
+  "Dry run is safer for setup",
+  "2 retries, exponential backoff",
+  "Store ID from Order Desk API settings",
+  "API Key from Order Desk API settings",
+  "optional space-separated args",
+  "team or operator responsible",
+  "model name",
+  "provider chat console URL",
+  "If order.total > 100 route to approval.",
+  "Describe the decision in plain English.",
+  "Choose a CellX table"
+]);
+
+function uiPlaceholder(placeholder) {
+  const source = String(placeholder ?? "");
+  if (!integrationPlaceholderSources.has(source)) return `placeholder="${escapeHtml(source)}"`;
+  return `data-agent-i18n-attributes data-i18n-placeholder="${escapeHtml(source)}" placeholder="${escapeHtml(agentT(source))}"`;
+}
+
+function uiIntegrationTitle(spec, node) {
+  if (spec.title === `${node.name} Rule`) return uiLabel("{name} Rule", { name: node.name });
+  const provider = aiProviderFromNode(node);
+  if (spec.title === `${provider} Model Step`) return uiLabel("{provider} Model Step", { provider });
+  const emailProvider = node.name.includes("Gmail") ? "Gmail" : node.name.includes("Outlook") ? "Outlook" : "Email";
+  if (spec.title === `${emailProvider} Customer Email`) return uiLabel("{provider} Customer Email", { provider: emailProvider });
+  return uiLabel(spec.title);
+}
+
+function uiAttrs(english, params = {}) {
+  const message = agentUiMessages.has(english) ? `data-agent-message="${escapeHtml(english)}" ` : "";
+  ({ english, params } = uiSource(english, params));
+  return `${message}data-agent-i18n data-i18n="${escapeHtml(english)}" data-i18n-params="${escapeHtml(JSON.stringify(params))}"`;
+}
+
+function uiLabel(english, params = {}) {
+  return `<span ${uiAttrs(english, params)}>${escapeHtml(agentT(english, params))}</span>`;
+}
+
+function uiText(element, english, params = {}) {
+  if (!element) return;
+  if (agentUiMessages.has(english)) element.setAttribute("data-agent-message", english);
+  else element.removeAttribute("data-agent-message");
+  ({ english, params } = uiSource(english, params));
+  element.setAttribute("data-agent-i18n", "");
+  element.setAttribute("data-i18n", english);
+  element.setAttribute("data-i18n-params", JSON.stringify(params));
+  if (window.CellI18n?.text) window.CellI18n.text(element, english, params);
+  else element.textContent = agentT(english, params);
+}
+
+function uiDate(value, options) {
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return String(value);
+  return window.CellI18n?.formatDate
+    ? window.CellI18n.formatDate(date, options || undefined)
+    : options ? date.toLocaleString("en-US", options) : date.toLocaleString();
+}
+
+function uiDateMarkup(value, options) {
+  if (!value) return "";
+  return `<span data-agent-date="${escapeHtml(value)}" data-agent-date-options="${escapeHtml(JSON.stringify(options || null))}">${escapeHtml(uiDate(value, options))}</span>`;
+}
+
+// Only explicitly owned text/attributes are refreshed. Never recreate forms or result data.
+window.addEventListener("cell-language-change", () => {
+  document.querySelectorAll("[data-agent-message]").forEach(element => uiText(element, element.getAttribute("data-agent-message")));
+  document.querySelectorAll("[data-agent-i18n]").forEach(element => {
+    const params = JSON.parse(element.getAttribute("data-i18n-params") || "{}");
+    element.textContent = agentT(element.getAttribute("data-i18n"), params);
+  });
+  document.querySelectorAll("[data-agent-i18n-attributes]").forEach(element => {
+    for (const attribute of ["placeholder", "title", "aria-label"]) {
+      const source = element.getAttribute(`data-i18n-${attribute}`);
+      if (source !== null) element.setAttribute(attribute, agentT(source));
+    }
+  });
+  document.querySelectorAll("[data-agent-date]").forEach(element => {
+    element.textContent = uiDate(element.getAttribute("data-agent-date"),
+      JSON.parse(element.getAttribute("data-agent-date-options") || "null"));
+  });
+  const timeInput = propIntegration?.querySelector("[data-daily-run-time]");
+  if (timeInput?.validity.customError) timeInput.setCustomValidity(agentT("Choose a valid daily run time."));
+});
+
 const apiBase = "/ext-api";
 const canvas = document.getElementById("canvas");
 const linksSvg = document.getElementById("links");
@@ -12,11 +219,25 @@ const workflowTitleEl = document.getElementById("workflowTitle");
 const workflowDescriptionEl = document.getElementById("workflowDescription");
 const workflowTabsEl = document.getElementById("workflowTabs");
 const workflowResultTabsHost = document.getElementById("workflowResultTabsHost");
+const aiVoiceBuilderPanel = document.getElementById("aiVoiceBuilderPanel");
+const aiVoicePromptEl = document.getElementById("aiVoicePrompt");
+const aiVoiceStatusEl = document.getElementById("aiVoiceStatus");
+const aiVoiceDraftPreviewEl = document.getElementById("aiVoiceDraftPreview");
+const aiVoiceDraftMetaEl = document.getElementById("aiVoiceDraftMeta");
+const importAiDraftBtn = document.getElementById("importAiDraftBtn");
 const templateBrowser = document.getElementById("templateBrowser");
 const templateListEl = document.getElementById("templateList");
 const templateSearchEl = document.getElementById("templateSearch");
 const templateCategoryFilterEl = document.getElementById("templateCategoryFilter");
 const templateLibraryStatusEl = document.getElementById("templateLibraryStatus");
+const templateManagerPanel = document.getElementById("templateManagerPanel");
+const templateManagerStatusEl = document.getElementById("templateManagerStatus");
+const managedTemplateListEl = document.getElementById("managedTemplateList");
+const managedScriptListEl = document.getElementById("managedScriptList");
+const managedTimerListEl = document.getElementById("managedTimerList");
+const managedTemplateCountEl = document.getElementById("managedTemplateCount");
+const managedScriptCountEl = document.getElementById("managedScriptCount");
+const managedTimerCountEl = document.getElementById("managedTimerCount");
 const marketplacePanel = document.getElementById("marketplacePanel");
 const marketplaceListEl = document.getElementById("marketplaceList");
 const marketplaceStatusEl = document.getElementById("marketplaceStatus");
@@ -28,7 +249,9 @@ let nodes = [];
 let links = [];
 let workflows = [];
 let templateLibrary = [];
+let templateManagerState = { templates: [], scripts: [], timers: [] };
 let marketplaceItems = [];
+let aiWorkflowDraft = null;
 let activeWorkflowId = null;
 let selectedId = null;
 let activeResultNodeId = null;
@@ -48,6 +271,7 @@ const marketplaceStoreKey = "cellx-workflow-marketplace-draft";
 const marketplaceDeletedStoreKey = "cellx-marketplace-hidden-templates";
 const marketplaceUserStoreKey = "cellx-marketplace-user";
 const marketplaceTokenStoreKey = "cellx-marketplace-token";
+const workflowManagementTokenStoreKey = "cellx-workflow-management-token";
 const sensitiveSettingPattern = /(apiKey|secretKey|clientSecret|authHeader|authToken|bearerToken|apiToken|password|token|serviceAccountJson)$/i;
 const defaultEmailRecipient = "workad_009@icloud.com";
 const nodeWidth = 188;
@@ -287,7 +511,9 @@ const nodeCatalog = [
   {
     group: "Agent Skills & Tools",
     children: [
+      { name: "Video Generation", type: "script", sub: "Media", desc: "Product video with photo uploads, ad styles and background music.", action: "/ext-api/promo-videos" },
       { name: "External Agent", type: "external-agent", sub: "Developer", desc: "Call a third-party agent by API, webhook, script, or MCP-style contract.", action: "/ext-api/external-agent/run" },
+      { name: "GitHub External Agent", type: "external-agent", sub: "Developer", desc: "Clone an approved GitHub AI agent repo, map JSON input, and run a configured command.", action: "/ext-api/external-agent/run" },
       { name: "HTTP Request", type: "tool", sub: "Developer", desc: "Call any REST API endpoint.", action: "/ext-api/tools/http" },
       { name: "Custom Script / Program", type: "script", sub: "Developer", desc: "Run a customer-provided script from the approved backend script folder.", action: "/ext-api/scripts/run" },
       { name: "Webhook Reply", type: "tool", sub: "Developer", desc: "Return data back to the caller.", action: "/ext-api/tools/webhook-reply" },
@@ -429,6 +655,7 @@ const appIcons = {
   "Perplexity": "simple-icons:perplexity",
   "Ollama Local Model": "simple-icons:ollama",
   "External Agent": "material-symbols:hub-outline-rounded",
+  "GitHub External Agent": "mdi:github",
   "HTTP Request": "material-symbols:http-rounded",
   "Custom Script / Program": "material-symbols:terminal-rounded",
   "Webhook Reply": "material-symbols:reply-all-rounded",
@@ -511,13 +738,21 @@ function applySavedNodeConfigs() {
       ...(node.integrationSettings || {}),
       ...saved.integrationSettings,
     };
+    if (node.type === "trigger" && node.action === "cron") {
+      // A draft's schedule wins over the legacy cache shared by same-name templates.
+      for (const key of ["schedule", "scheduleEnabled", "timezone"]) {
+        if (Object.prototype.hasOwnProperty.call(node.integrationSettings || {}, key)) {
+          integrationSettings[key] = node.integrationSettings[key];
+        }
+      }
+    }
     if (isEmailNode(node)) {
       integrationSettings.to = appendEmailRecipient(integrationSettings.to);
     }
-    return {
-      ...node,
-      integrationSettings,
-    };
+    // Uploaded assets belong to the draft, not the shared same-name config cache.
+    delete integrationSettings.photoFilesJson;
+    if (node.integrationSettings?.photoFilesJson) integrationSettings.photoFilesJson = node.integrationSettings.photoFilesJson;
+    return { ...node, integrationSettings };
   });
 }
 
@@ -579,6 +814,58 @@ function saveWorkflowDraft(message = "") {
   return message || "Configuration saved in this browser.";
 }
 
+const workflowScheduleStatuses = new Map();
+
+function dailyTrigger() {
+  return nodes.find(node => node.type === "trigger" && node.action === "cron");
+}
+
+function serverWorkflowSnapshot() {
+  const snapshot = workflowSnapshot(false);
+  snapshot.nodes.forEach(node => {
+    delete node.testResult;
+    delete node.connection;
+  });
+  return snapshot;
+}
+
+async function saveActiveSchedule() {
+  const trigger = dailyTrigger();
+  if (!trigger) return "";
+  const timeInput = propIntegration?.querySelector("[data-daily-run-time]");
+  if (timeInput?.dataset.edited === "true" && !timeInput.checkValidity()) {
+    timeInput.reportValidity();
+    throw new Error("Choose a valid daily run time.");
+  }
+  if (typeof trigger.integrationSettings?.schedule === "string" && !trigger.integrationSettings.schedule.trim()) {
+    throw new Error("Choose a daily run time or enter a cron expression.");
+  }
+  ensureIntegrationSettings(trigger);
+  persistWorkflowStore();
+  const workflowId = activeWorkflowId;
+  const data = await workflowManagementFetch("/workflow-schedules/save", {
+    method: "POST", headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ workflow: serverWorkflowSnapshot() }),
+  });
+  workflowScheduleStatuses.set(workflowId, data);
+  if (activeWorkflowId === workflowId && selectedId === trigger.id) renderIntegrationFields(trigger);
+  if (!data.scheduler?.running && data.schedule.enabled) throw new Error("Schedule saved, but the backend scheduler is offline.");
+  return data.schedule.enabled
+    ? uiMessage("Daily schedule saved on server. Next run: {date} ({timezone}).", { date: new Date(data.schedule.nextRun).toLocaleString("en-US", { timeZone: data.schedule.timezone }), timezone: data.schedule.timezone }, { date: [data.schedule.nextRun, { timeZone: data.schedule.timezone }] })
+    : "Agent saved on server. Daily schedule is disabled.";
+}
+
+function scheduleStatusMarkup() {
+  const data = workflowScheduleStatuses.get(activeWorkflowId);
+  const schedule = data?.schedule;
+  const nextRun = schedule?.nextRun ? `${uiDateMarkup(schedule.nextRun, { timeZone: schedule.timezone })} (${escapeHtml(schedule.timezone)})` : uiLabel("None");
+  return `<section class="schedule-status"><button type="button" id="refreshScheduleBtn" ${uiAttrs("Schedule Status")}>${escapeHtml(agentT("Schedule Status"))}</button>
+    ${schedule ? `<p>${uiLabel(schedule.saved ? schedule.enabled ? "Enabled" : "Disabled" : "Not saved on server")} | ${uiLabel("Scheduler:")} ${uiLabel(data.scheduler?.running ? "Running" : "Offline")}</p><p>${uiLabel("Next run:")} ${nextRun}</p>
+      ${(schedule.runs || []).map(run => `<details><summary>${uiDateMarkup(run.started_at)} | ${escapeHtml(run.source)} | ${uiLabel(run.status)}</summary>
+        ${(run.steps || []).map(step => `<p>${escapeHtml(step.name)}: ${uiLabel(step.status)}${step.row_count != null ? uiLabel(" ({count} rows)", { count: Number(step.row_count) }) : ""}</p>`).join("")}</details>`).join("")}` : ""}
+  </section>`;
+}
+
 function persistWorkflowStore() {
   syncActiveWorkflow();
   localStorage.setItem(workflowStoreKey, JSON.stringify({
@@ -590,6 +877,44 @@ function persistWorkflowStore() {
 
 function uniqueWorkflowId() {
   return `workflow-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`;
+}
+
+function migrateOrderDeskOrderViewer(workflow) {
+  const nodesList = Array.isArray(workflow?.nodes) ? workflow.nodes : [];
+  const hasOrderDeskFetch = nodesList.some((node) => node?.integrationSettings?.scriptName === "orderdesk_orders_to_db.py");
+  const hasViewer = nodesList.some((node) => node?.name === "View CellX Orders" || node?.id === "node-view-cellx-orders");
+  if (!hasOrderDeskFetch || hasViewer) return workflow;
+
+  const importNode = nodesList.find((node) => node?.name === "CellX Bulk Import Orders" || node?.integrationSettings?.tableName === "cx_orderdesk_order");
+  const viewerNode = {
+    id: "node-view-cellx-orders",
+    type: "cellx-db",
+    name: "View CellX Orders",
+    action: "/ext-api/cellx-db/query",
+    notes: "Read the latest 500 OrderDesk order rows currently stored in CellX after the import finishes.",
+    icon: "material-symbols:table-rows-outline-rounded",
+    x: Number(importNode?.x || 650) + 290,
+    y: Math.max(90, Number(importNode?.y || 160) - 40),
+    integrationSettings: {
+      operation: "query",
+      tableName: "cx_orderdesk_order",
+      whereClause: "del_flag = '0'",
+      sortBy: "order_date desc, updated_date desc, id desc",
+      limit: "500",
+    },
+    connection: null,
+    testResult: null,
+  };
+  const linksList = Array.isArray(workflow?.links) ? workflow.links : [];
+  const nextLinks = [...linksList];
+  if (importNode?.id && !nextLinks.some((link) => link.from === importNode.id && link.to === viewerNode.id)) {
+    nextLinks.push({ from: importNode.id, to: viewerNode.id });
+  }
+  return {
+    ...workflow,
+    nodes: [...nodesList, viewerNode],
+    links: nextLinks,
+  };
 }
 
 function normalizeWorkflow(draft, fallbackName = "Untitled Workflow", stripSecrets = true) {
@@ -606,6 +931,7 @@ function normalizeWorkflow(draft, fallbackName = "Untitled Workflow", stripSecre
     nodes: valid.nodes,
     links: valid.links,
   };
+  return migrateOrderDeskOrderViewer(workflow);
 }
 
 function loadWorkflow(workflowId) {
@@ -691,7 +1017,7 @@ function renderWorkflowTabs() {
   workflowTabsEl.innerHTML = workflows.map((workflow) => `
     <button class="workflow-tab${workflow.id === activeWorkflowId ? " active" : ""}" type="button" data-workflow-id="${escapeHtml(workflow.id)}" title="${escapeHtml(workflow.name || "Untitled Workflow")}">
       <span class="workflow-tab-title">${escapeHtml(workflow.name || "Untitled Workflow")}</span>
-      <span class="workflow-tab-close" data-close-workflow-id="${escapeHtml(workflow.id)}" title="Close workflow">×</span>
+      <span class="workflow-tab-close" data-close-workflow-id="${escapeHtml(workflow.id)}" data-agent-i18n-attributes data-i18n-title="Close workflow" title="${escapeHtml(agentT("Close workflow"))}">×</span>
     </button>
   `).join("");
 }
@@ -724,13 +1050,13 @@ function validateWorkflowTemplate(template, stripSecrets = true) {
   };
 }
 
-function applyWorkflowTemplate(template) {
+function applyWorkflowTemplate(template, useSavedConfigs = true) {
   const draft = validateWorkflowTemplate(template);
   workflowTitle = draft.name;
   workflowDescription = draft.description;
   nodes = draft.nodes;
   links = draft.links;
-  applySavedNodeConfigs();
+  if (useSavedConfigs) applySavedNodeConfigs();
   selectedId = nodes[0]?.id || null;
   activeResultNodeId = selectedId;
   connectFrom = null;
@@ -772,32 +1098,32 @@ function importWorkflowTemplate(file) {
   reader.addEventListener("load", () => {
     try {
       addWorkflowFromTemplate(JSON.parse(String(reader.result || "{}")), true);
-      alert("Workflow template imported as a new tab.");
+      alert(agentT("Workflow template imported as a new tab."));
     } catch (error) {
-      alert(error.message || "Could not import this workflow template.");
+      alert(agentT(error.message || "Could not import this workflow template."));
     }
   });
   reader.addEventListener("error", () => {
-    alert("Could not read this template file.");
+    alert(agentT("Could not read this template file."));
   });
   reader.readAsText(file);
 }
 
 async function loadTemplateLibrary(force = false) {
   if (templateLibrary.length && !force) return templateLibrary;
-  if (templateLibraryStatusEl) templateLibraryStatusEl.textContent = "Loading templates...";
+  if (templateLibraryStatusEl) uiText(templateLibraryStatusEl, "Loading templates...");
   try {
     const response = await fetch(`${templateManifestPath}?v=${Date.now()}`, { cache: "no-store" });
-    if (!response.ok) throw new Error(`Template manifest returned ${response.status}`);
+    if (!response.ok) throw new Error(uiMessage("Template manifest returned {status}", { status: response.status }));
     const manifest = await response.json();
     templateLibrary = Array.isArray(manifest.templates) ? manifest.templates : [];
     if (templateLibraryStatusEl) {
-      templateLibraryStatusEl.textContent = `${templateLibrary.length} template${templateLibrary.length === 1 ? "" : "s"} available`;
+      uiText(templateLibraryStatusEl, templateLibrary.length === 1 ? "{count} template available" : "{count} templates available", { count: templateLibrary.length });
     }
     renderTemplateCategoryFilter();
   } catch (error) {
     templateLibrary = [];
-    if (templateLibraryStatusEl) templateLibraryStatusEl.textContent = "Template library unavailable";
+    if (templateLibraryStatusEl) uiText(templateLibraryStatusEl, "Template library unavailable");
     console.warn("Could not load workflow template library", error);
     renderTemplateCategoryFilter();
   }
@@ -819,7 +1145,7 @@ function renderTemplateCategoryFilter() {
   const previous = templateCategoryFilterEl.value;
   const categories = Array.from(new Set(templateLibrary.map((template) => template.category || "Workflow"))).sort();
   templateCategoryFilterEl.innerHTML = [
-    `<option value="">All categories</option>`,
+    `<option value="" ${uiAttrs("All categories")}>${escapeHtml(agentT("All categories"))}</option>`,
     ...categories.map((category) => `<option value="${escapeHtml(category)}">${escapeHtml(category)}</option>`),
   ].join("");
   if (categories.includes(previous)) {
@@ -844,7 +1170,7 @@ function renderTemplateLibrary() {
     return matchesCategory && matchesQuery;
   });
   if (!filtered.length) {
-    templateListEl.innerHTML = `<div class="template-empty">No templates found.</div>`;
+    templateListEl.innerHTML = `<div class="template-empty" ${uiAttrs("No templates found.")}>${escapeHtml(agentT("No templates found."))}</div>`;
     return;
   }
   templateListEl.innerHTML = filtered.map((template) => `
@@ -854,15 +1180,15 @@ function renderTemplateLibrary() {
           <span class="template-category">${escapeHtml(template.category || "Workflow")}</span>
           <span class="template-file">${escapeHtml(template.file || "")}</span>
         </div>
-        <h2>${escapeHtml(template.name || "Workflow Template")}</h2>
-        <p>${escapeHtml(template.description || "Generated workflow JSON template.")}</p>
+        <h2>${template.name ? escapeHtml(template.name) : uiLabel("Workflow Template")}</h2>
+        <p>${template.description ? escapeHtml(template.description) : uiLabel("Generated workflow JSON template.")}</p>
         <div class="template-tags">
           ${(Array.isArray(template.tags) ? template.tags : []).map((tag) => `<span>${escapeHtml(tag)}</span>`).join("")}
         </div>
       </div>
       <div class="template-card-actions">
-        <button type="button" data-preview-template="${escapeHtml(template.file || "")}">Preview JSON</button>
-        <button class="primary" type="button" data-import-library-template="${escapeHtml(template.file || "")}">Import</button>
+        <button type="button" data-preview-template="${escapeHtml(template.file || "")}" ${uiAttrs("Preview JSON")}>${escapeHtml(agentT("Preview JSON"))}</button>
+        <button class="primary" type="button" data-import-library-template="${escapeHtml(template.file || "")}" ${uiAttrs("Import")}>${escapeHtml(agentT("Import"))}</button>
       </div>
     </article>
   `).join("");
@@ -871,17 +1197,17 @@ function renderTemplateLibrary() {
 async function fetchLibraryTemplate(template) {
   if (!template?.file) throw new Error("Template file is missing.");
   const response = await fetch(`./workflow-templates/${encodeURIComponent(template.file)}?v=${Date.now()}`, { cache: "no-store" });
-  if (!response.ok) throw new Error(`Could not load ${template.file}.`);
+  if (!response.ok) throw new Error(uiMessage("Could not load {name}.", { name: template.file }));
   return response.json();
 }
 
 async function importLibraryTemplate(template) {
   try {
     const workflow = addWorkflowFromTemplate(await fetchLibraryTemplate(template), true);
-    alert(`Imported "${workflow.name}" as a new workflow tab.`);
+    alert(agentT("Imported \"{name}\" as a new workflow tab.", { name: workflow.name }));
     if (templateBrowser) templateBrowser.hidden = true;
   } catch (error) {
-    alert(error.message || "Could not import this template.");
+    alert(agentT(error.message || "Could not import this template."));
   }
 }
 
@@ -897,8 +1223,416 @@ async function previewLibraryTemplate(template) {
     win.document.write(`<pre style="white-space:pre-wrap;font:13px/1.45 Consolas,monospace;padding:18px;color:#14213d;">${escapeHtml(preview)}</pre>`);
     win.document.title = data.name || template.name || "Workflow Template JSON";
   } catch (error) {
-    alert(error.message || "Could not preview this template.");
+    alert(agentT(error.message || "Could not preview this template."));
   }
+}
+
+function setAiVoiceStatus(message, params = {}) {
+  uiText(aiVoiceStatusEl, message, params);
+}
+
+function setAiWorkflowDraft(template) {
+  aiWorkflowDraft = template;
+  if (aiVoiceDraftPreviewEl) aiVoiceDraftPreviewEl.textContent = template ? JSON.stringify(template, null, 2) : "{}";
+  if (aiVoiceDraftMetaEl) {
+    uiText(aiVoiceDraftMetaEl, template ? "{nodes} nodes, {links} links" : "No draft yet", { nodes: template?.nodes?.length || 0, links: template?.links?.length || 0 });
+  }
+  if (importAiDraftBtn) importAiDraftBtn.disabled = !template;
+}
+
+let realtimeVoice = null;
+let aiDraftTarget = null;
+let aiDraftBaseline = null;
+let aiBuildVersion = 0;
+
+function aiVoiceHeaders() {
+  return { "Content-Type": "application/json", "X-Workflow-Admin-Token":
+    document.getElementById("aiVoiceAccessToken")?.value || sessionStorage.getItem("cellx-workflow-management-token") || "" };
+}
+
+// Workflow settings can contain JSON strings with nested credentials.
+function aiSafeContext(value, key = "") {
+  if (/api.?key|secret|password|token|authorization|authheader|testresult|connection/i.test(key)) return undefined;
+  if (Array.isArray(value)) return value.map((item) => aiSafeContext(item));
+  if (value && typeof value === "object") return Object.fromEntries(Object.entries(value)
+    .map(([name, item]) => [name, aiSafeContext(item, name)]).filter(([, item]) => item !== undefined));
+  if (typeof value === "string") {
+    try { const parsed = JSON.parse(value); if (parsed && typeof parsed === "object") return JSON.stringify(aiSafeContext(parsed)); } catch { /* Plain text setting. */ }
+  }
+  return value;
+}
+
+function voiceLine(role, text) {
+  if (!text) return;
+  const log = document.getElementById("aiVoiceConversation");
+  const line = document.createElement("p");
+  const label = document.createElement("strong");
+  label.innerHTML = uiLabel(role) + ": ";
+  line.append(label, document.createTextNode(text));
+  log.append(line);
+  while (log.childElementCount > 80) log.firstElementChild.remove();
+  log.scrollTop = log.scrollHeight;
+}
+
+function voiceControls(connected, connecting = false) {
+  document.getElementById("voiceListenBtn").disabled = connected || connecting;
+  document.getElementById("voiceStopBtn").disabled = !connected && !connecting;
+  document.getElementById("voiceMuteBtn").disabled = !connected;
+  document.getElementById("voiceSendBtn").disabled = !connected;
+  window.VoiceScreenshots?.render();
+}
+
+function voiceSend(session, event) {
+  if (realtimeVoice === session && session.channel?.readyState === "open") {
+    session.channel.send(JSON.stringify(event));
+  }
+}
+
+async function createVoiceWorkflowDraft(request, mode, session = null) {
+  const version = ++aiBuildVersion;
+  const target = mode === "update" ? activeWorkflowId : null;
+  const baseline = JSON.stringify(workflowSnapshot(true));
+  const usePending = mode === "update" && aiWorkflowDraft &&
+    (aiDraftTarget === null || (aiDraftTarget === target && aiDraftBaseline === baseline));
+  const draftTarget = usePending ? aiDraftTarget : target;
+  const draftBaseline = usePending ? aiDraftBaseline : baseline;
+  const current = mode === "update" ? (usePending ? aiWorkflowDraft : workflowSnapshot(true)) : {};
+  setAiVoiceStatus("Building workflow draft...");
+  const response = await fetch(`${apiBase}/ai/workflow-builder`, {
+    method: "POST", headers: aiVoiceHeaders(),
+    body: JSON.stringify({ prompt: request, currentWorkflow: aiSafeContext(current), availableNodes: nodeCatalog,
+      screenshots: window.VoiceScreenshots?.images() || [] }),
+    signal: session?.abort.signal || AbortSignal.timeout(90000),
+  });
+  const data = await response.json();
+  if (!response.ok || !data.ok) throw new Error(data.message || "Could not build workflow.");
+  if (version !== aiBuildVersion || (session && realtimeVoice !== session)) throw new Error("Draft request cancelled.");
+  const draft = validateWorkflowTemplate(data.template);
+  aiDraftTarget = draftTarget;
+  aiDraftBaseline = draftBaseline;
+  setAiWorkflowDraft(draft);
+  setAiVoiceStatus("Draft ready. Apply when ready.");
+  return { ok: true, name: draft.name, nodes: draft.nodes.length, applied: false };
+}
+
+function retainVoiceCredentials(original, draft) {
+  if (typeof original === "string" && typeof draft === "string") {
+    try {
+      const before = JSON.parse(original), after = JSON.parse(draft);
+      if (before && after && typeof before === "object" && typeof after === "object") return JSON.stringify(retainVoiceCredentials(before, after));
+    } catch { /* Non-JSON settings use the draft value. */ }
+  }
+  if (original && draft && typeof original === "object" && typeof draft === "object" && !Array.isArray(original) && !Array.isArray(draft)) {
+    const merged = { ...draft };
+    for (const [key, value] of Object.entries(original)) {
+      if (/api.?key|secret|password|token|authorization|authheader/i.test(key)) merged[key] = value;
+      else if (key in draft) merged[key] = retainVoiceCredentials(value, draft[key]);
+    }
+    return merged;
+  }
+  return draft;
+}
+
+function applyVoiceWorkflowDraft() {
+  if (!aiWorkflowDraft) throw new Error("No pending draft. Create a draft first.");
+  let workflow;
+  if (aiDraftTarget) {
+    if (activeWorkflowId !== aiDraftTarget || JSON.stringify(workflowSnapshot(true)) !== aiDraftBaseline) {
+      throw new Error("The active workflow changed. Build a fresh draft before applying.");
+    }
+    const localSettings = new Map(nodes.map(node => [node.id, node]));
+    applyWorkflowTemplate(aiWorkflowDraft, false);
+    nodes = nodes.map(node => {
+      const previous = localSettings.get(node.id);
+      if (previous?.type !== node.type || previous?.action !== node.action) return node;
+      return { ...node, integrationSettings: retainVoiceCredentials(previous.integrationSettings, node.integrationSettings) };
+    });
+    nodes.forEach(persistNodeConfig);
+    persistWorkflowStore();
+    render();
+    if (selectedId) selectNode(selectedId);
+    workflow = workflowSnapshot(true);
+  } else {
+    workflow = addWorkflowFromTemplate(aiWorkflowDraft, true);
+  }
+  setAiWorkflowDraft(null);
+  aiBuildVersion++;
+  aiDraftTarget = null;
+  aiDraftBaseline = null;
+  setAiVoiceStatus("Applied {name}. Not executed.", { name: workflow.name });
+  return { ok: true, name: workflow.name, applied: true, executed: false };
+}
+
+async function handleVoiceEvent(session, event) {
+  if (realtimeVoice !== session) return;
+  if (event.type === "conversation.item.input_audio_transcription.completed") voiceLine("You", event.transcript);
+  if (event.type === "response.output_audio_transcript.done") voiceLine("AI", event.transcript);
+  if (event.type === "error") setAiVoiceStatus(event.error?.message || "Voice request failed.");
+  if (event.type === "response.done" && event.response?.status === "failed") setAiVoiceStatus("Voice response failed. Check account access and retry.");
+  if (event.type !== "response.function_call_arguments.done" || session.calls.has(event.call_id)) return;
+  session.calls.add(event.call_id);
+  let output;
+  try {
+    const args = JSON.parse(event.arguments || "{}");
+    if (event.name === "get_current_workflow") output = aiSafeContext(workflowSnapshot(true));
+    else if (event.name === "build_workflow") {
+      if (!args.request || !["create", "update"].includes(args.mode)) throw new Error("Missing workflow request or mode.");
+      output = await createVoiceWorkflowDraft(args.request, args.mode, session);
+    } else if (event.name === "apply_workflow_draft") output = applyVoiceWorkflowDraft();
+    else throw new Error("Unsupported workflow operation.");
+  } catch (error) {
+    output = { ok: false, message: error.message };
+    if (realtimeVoice === session) setAiVoiceStatus(error.message);
+  }
+  voiceSend(session, { type: "conversation.item.create", item: {
+    type: "function_call_output", call_id: event.call_id, output: JSON.stringify(output),
+  } });
+  voiceSend(session, { type: "response.create" });
+}
+
+async function startVoiceWorkflowCapture() {
+  if (realtimeVoice) return;
+  if (!window.isSecureContext || !navigator.mediaDevices?.getUserMedia || !window.RTCPeerConnection) {
+    setAiVoiceStatus("Voice needs HTTPS or localhost and a browser with microphone support.");
+    return;
+  }
+  const session = { abort: new AbortController(), calls: new Set(), pc: null, stream: null, channel: null };
+  realtimeVoice = session;
+  voiceControls(false, true);
+  setAiVoiceStatus("Connecting voice...");
+  session.timer = setTimeout(() => {
+    if (realtimeVoice === session) { stopVoiceWorkflowCapture(); setAiVoiceStatus("Voice connection timed out. Please retry."); }
+  }, 45000);
+  try {
+    const response = await fetch(`${apiBase}/ai/realtime-session`, {
+      method: "POST", headers: aiVoiceHeaders(), body: "{}", signal: session.abort.signal,
+    });
+    const token = await response.json();
+    if (!response.ok || !token.ok) throw new Error(token.message || "Voice connection failed.");
+    const stream = await navigator.mediaDevices.getUserMedia({ audio: { echoCancellation: true, noiseSuppression: true } });
+    if (realtimeVoice !== session) { stream.getTracks().forEach((track) => track.stop()); return; }
+    session.stream = stream;
+    const pc = session.pc = new RTCPeerConnection();
+    stream.getTracks().forEach((track) => pc.addTrack(track, stream));
+    const audio = document.getElementById("aiVoiceAudio");
+    pc.ontrack = (event) => { audio.srcObject = event.streams[0]; audio.play().catch(() => setAiVoiceStatus("Allow audio playback to hear the assistant.")); };
+    pc.onconnectionstatechange = () => {
+      if (realtimeVoice === session && ["failed", "disconnected", "closed"].includes(pc.connectionState)) {
+        stopVoiceWorkflowCapture(); setAiVoiceStatus("Voice disconnected. Reconnect to continue.");
+      }
+    };
+    const channel = session.channel = pc.createDataChannel("oai-events");
+    channel.onmessage = (message) => {
+      try { handleVoiceEvent(session, JSON.parse(message.data)).catch(() => setAiVoiceStatus("Could not process voice event.")); } catch { /* Ignore non-JSON events. */ }
+    };
+    channel.onopen = () => {
+      if (realtimeVoice !== session) return;
+      clearTimeout(session.timer);
+      voiceControls(true);
+      setAiVoiceStatus("Voice connected.");
+      voiceSend(session, { type: "response.create", response: { instructions: "Briefly greet the user and ask what workflow they want to create or change. Do not call tools yet." } });
+    };
+    channel.onclose = () => { if (realtimeVoice === session) stopVoiceWorkflowCapture(); };
+    const offer = await pc.createOffer();
+    await pc.setLocalDescription(offer);
+    const answer = await fetch("https://api.openai.com/v1/realtime/calls", {
+      method: "POST", headers: { Authorization: `Bearer ${token.value}`, "Content-Type": "application/sdp" },
+      body: offer.sdp, signal: session.abort.signal,
+    });
+    if (!answer.ok) throw new Error(uiMessage("Voice session rejected (HTTP {status}).", { status: answer.status }));
+    const sdp = await answer.text();
+    if (realtimeVoice === session) await pc.setRemoteDescription({ type: "answer", sdp });
+  } catch (error) {
+    if (realtimeVoice === session) {
+      stopVoiceWorkflowCapture();
+      setAiVoiceStatus(error.name === "NotAllowedError" ? "Microphone permission denied. Allow it in browser settings." : error.message);
+    }
+  }
+}
+
+function stopVoiceWorkflowCapture() {
+  const session = realtimeVoice;
+  realtimeVoice = null;
+  if (session) {
+    clearTimeout(session.timer);
+    session.abort.abort();
+    session.stream?.getTracks().forEach((track) => track.stop());
+    session.channel?.close();
+    session.pc?.close();
+  }
+  const audio = document.getElementById("aiVoiceAudio");
+  audio.pause();
+  audio.srcObject = null;
+  const mute = document.getElementById("voiceMuteBtn");
+  mute.setAttribute("aria-pressed", "false");
+  uiText(mute, "Mute");
+  voiceControls(false);
+  setAiVoiceStatus("Voice disconnected.");
+}
+
+async function buildWorkflowWithAi() {
+  const prompt = String(aiVoicePromptEl?.value || "").trim();
+  if (!prompt) {
+    setAiVoiceStatus("Type or speak a workflow request first.");
+    return;
+  }
+  try {
+    await createVoiceWorkflowDraft(prompt, "update");
+  } catch (error) {
+    setAiVoiceStatus(error.message || "Could not build workflow.");
+  }
+}
+
+function importAiWorkflowDraft() {
+  try { applyVoiceWorkflowDraft(); } catch (error) { setAiVoiceStatus(error.message); }
+}
+
+function formatManagerBytes(value) {
+  const size = Number(value || 0);
+  if (size >= 1024 * 1024) return `${(size / 1024 / 1024).toFixed(1)} MB`;
+  if (size >= 1024) return `${Math.round(size / 1024)} KB`;
+  return `${size} B`;
+}
+
+function formatManagerDate(value) {
+  if (!value) return "";
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return String(value);
+  return uiDate(value);
+}
+
+function workflowManagementToken(forcePrompt = false) {
+  let token = sessionStorage.getItem(workflowManagementTokenStoreKey) || "";
+  if (!token || forcePrompt) {
+    token = window.prompt(agentT("Enter workflow management admin token")) || "";
+    if (token) sessionStorage.setItem(workflowManagementTokenStoreKey, token);
+  }
+  return token;
+}
+
+async function workflowManagementFetch(path, options = {}) {
+  const token = workflowManagementToken();
+  if (!token) throw new Error("Workflow management token is required.");
+  const response = await fetch(`${apiBase}${path}`, {
+    ...options,
+    headers: {
+      ...(options.headers || {}),
+      "X-Workflow-Admin-Token": token,
+    },
+  });
+  const data = await response.json();
+  if (response.status === 401) {
+    sessionStorage.removeItem(workflowManagementTokenStoreKey);
+    workflowManagementToken(true);
+  }
+  if (!response.ok || (!data.ok && !(path === "/workflows/run" && Array.isArray(data.results)))) throw new Error(data.message || "Workflow management request failed.");
+  return data;
+}
+
+async function loadTemplateManager() {
+  if (templateManagerStatusEl) uiText(templateManagerStatusEl, "Loading backend inventory...");
+  try {
+    const data = await workflowManagementFetch(`/workflow-management?v=${Date.now()}`, { cache: "no-store" });
+    templateManagerState = data;
+    renderTemplateManager();
+    if (templateManagerStatusEl) {
+      uiText(templateManagerStatusEl, "Backend: {templates} | {scripts}", { templates: data.templateDir || "templates", scripts: data.scriptDir || "scripts" });
+    }
+  } catch (error) {
+    templateManagerState = { templates: [], scripts: [], timers: [] };
+    renderTemplateManager();
+    if (templateManagerStatusEl) uiText(templateManagerStatusEl, error.message || "Template manager unavailable");
+  }
+}
+
+function renderTemplateManager() {
+  const templates = Array.isArray(templateManagerState.templates) ? templateManagerState.templates : [];
+  const scripts = Array.isArray(templateManagerState.scripts) ? templateManagerState.scripts : [];
+  const timers = Array.isArray(templateManagerState.timers) ? templateManagerState.timers : [];
+
+  if (managedTemplateCountEl) uiText(managedTemplateCountEl, templates.length === 1 ? "{count} file" : "{count} files", { count: templates.length });
+  if (managedScriptCountEl) uiText(managedScriptCountEl, scripts.length === 1 ? "{count} file" : "{count} files", { count: scripts.length });
+  if (managedTimerCountEl) uiText(managedTimerCountEl, timers.length === 1 ? "{count} job" : "{count} jobs", { count: timers.length });
+
+  if (managedTemplateListEl) {
+    managedTemplateListEl.innerHTML = templates.length ? templates.map((item) => `
+      <article class="manager-item">
+        <div>
+          <strong>${escapeHtml(item.name || item.file)}</strong>
+          <span>${escapeHtml(item.file)} · ${escapeHtml(item.category || "Workflow")} · ${formatManagerBytes(item.size)}</span>
+          <small>${uiLabel(item.inManifest ? "Listed in manifest" : "File only")} · ${uiLabel("Modified")} ${uiDateMarkup(item.modifiedAt)}</small>
+        </div>
+        <button class="danger" type="button" data-delete-managed-template="${escapeHtml(item.file)}" ${uiAttrs("Delete")}>${escapeHtml(agentT("Delete"))}</button>
+      </article>
+    `).join("") : `<div class="template-empty" ${uiAttrs("No backend template files found.")}>${escapeHtml(agentT("No backend template files found."))}</div>`;
+  }
+
+  if (managedScriptListEl) {
+    managedScriptListEl.innerHTML = scripts.length ? scripts.map((item) => `
+      <article class="manager-item">
+        <div>
+          <strong>${escapeHtml(item.file)}</strong>
+          <span>${formatManagerBytes(item.size)}</span>
+          <small>${uiLabel("Modified")} ${uiDateMarkup(item.modifiedAt)}</small>
+        </div>
+        <button class="danger" type="button" data-delete-managed-script="${escapeHtml(item.file)}" ${uiAttrs("Delete")}>${escapeHtml(agentT("Delete"))}</button>
+      </article>
+    `).join("") : `<div class="template-empty" ${uiAttrs("No customer scripts found.")}>${escapeHtml(agentT("No customer scripts found."))}</div>`;
+  }
+
+  if (managedTimerListEl) {
+    managedTimerListEl.innerHTML = timers.length ? timers.map((item) => {
+      const enabled = item.enabled === "enabled";
+      const active = item.active === "active";
+      return `
+        <article class="manager-item manager-timer">
+          <div>
+            <strong>${escapeHtml(item.label || item.name)}</strong>
+            <span>${escapeHtml(item.name)} · ${uiLabel(item.enabled || "unknown")} · ${uiLabel(item.active || "unknown")}</span>
+            <small>${item.scheduleLine || item.next ? escapeHtml(item.scheduleLine || item.next) : uiLabel("No next run found")}</small>
+          </div>
+          <div class="manager-actions">
+            <button type="button" data-managed-timer-action="${enabled || active ? "disable" : "enable"}" data-managed-timer="${escapeHtml(item.name)}">${uiLabel(enabled || active ? "Disable" : "Enable")}</button>
+            <button class="danger" type="button" data-managed-timer-action="delete" data-managed-timer="${escapeHtml(item.name)}" ${uiAttrs("Delete Timer")}>${escapeHtml(agentT("Delete Timer"))}</button>
+          </div>
+        </article>
+      `;
+    }).join("") : `<div class="template-empty" ${uiAttrs("No managed scheduled jobs found.")}>${escapeHtml(agentT("No managed scheduled jobs found."))}</div>`;
+  }
+}
+
+async function deleteManagedTemplate(file) {
+  const item = (templateManagerState.templates || []).find((entry) => entry.file === file);
+  if (!file || !window.confirm(agentT("Delete backend template \"{name}\"?\n\nThis removes the JSON file from the server and updates the template manifest.", { name: item?.name || file }))) return;
+  await workflowManagementFetch(`/workflow-management/templates/delete`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ file }),
+  });
+  templateLibrary = [];
+  await loadTemplateManager();
+  await loadTemplateLibrary(true);
+}
+
+async function deleteManagedScript(file) {
+  if (!file || !window.confirm(agentT("Delete backend script \"{name}\"?\n\nIf a workflow or timer still references it, that run will fail.", { name: file }))) return;
+  await workflowManagementFetch(`/workflow-management/scripts/delete`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ file }),
+  });
+  await loadTemplateManager();
+}
+
+async function manageTimer(timerName, action) {
+  const label = action === "delete" ? "Are you sure you want to delete this timer file?" : action === "disable" ? "Are you sure you want to stop this daily schedule?" : "Are you sure you want to enable this daily schedule?";
+  if (!timerName || !window.confirm(agentT(label))) return;
+  await workflowManagementFetch(`/workflow-management/timers`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ timerName, action }),
+  });
+  await loadTemplateManager();
 }
 
 function localMarketplaceItems() {
@@ -949,7 +1683,7 @@ function hideMarketplaceItem(item) {
   renderMarketplaceCategoryFilter();
   renderMarketplace();
   if (marketplaceStatusEl) {
-    marketplaceStatusEl.textContent = `${marketplaceItems.length} marketplace template${marketplaceItems.length === 1 ? "" : "s"} available`;
+    uiText(marketplaceStatusEl, marketplaceItems.length === 1 ? "{count} marketplace template available" : "{count} marketplace templates available", { count: marketplaceItems.length });
   }
 }
 
@@ -985,11 +1719,13 @@ function renderMarketplaceAccount() {
   if (user && developerEmail && !developerEmail.value) developerEmail.value = user.email || "";
   if (!marketplaceAccountStatusEl) return;
   if (!user) {
-    marketplaceAccountStatusEl.textContent = "Login or register before publishing and buying.";
+    uiText(marketplaceAccountStatusEl, "Login or register before publishing and buying.");
     return;
   }
   const connectState = user.stripeConnectedAccountId ? "Stripe account linked" : "Stripe payout not linked";
-  marketplaceAccountStatusEl.textContent = `${user.name || user.email} signed in as ${user.role || "user"}. ${connectState}.`;
+  marketplaceAccountStatusEl.innerHTML = uiLabel("{name} signed in as {role}.", { name: user.name || user.email, role: user.role || "user" }) + " " + uiLabel(connectState) + ".";
+  marketplaceAccountStatusEl.removeAttribute("data-agent-i18n");
+  marketplaceAccountStatusEl.removeAttribute("data-i18n");
 }
 
 async function submitMarketplaceAuth(event) {
@@ -1012,9 +1748,9 @@ async function submitMarketplaceAuth(event) {
     if (!response.ok || !data.ok) throw new Error(data.message || "Marketplace account request failed.");
     setMarketplaceUser(data.user);
     setMarketplaceToken(data.sessionToken);
-    alert(`${mode === "register" ? "Registered" : "Logged in"}: ${data.user.email}`);
+    alert(agentT("{status}: {email}", { status: agentT(mode === "register" ? "Registered" : "Logged in"), email: data.user.email }));
   } catch (error) {
-    alert(error.message || "Marketplace account request failed.");
+    alert(agentT(error.message || "Marketplace account request failed."));
   }
 }
 
@@ -1022,7 +1758,7 @@ async function connectStripePayout() {
   const user = marketplaceUser();
   const email = user?.email || document.getElementById("marketplaceAccountEmail")?.value || document.getElementById("marketplaceDeveloperEmail")?.value;
   if (!email) {
-    alert("Enter or login with a developer email first.");
+    alert(agentT("Enter or login with a developer email first."));
     return;
   }
   try {
@@ -1037,10 +1773,10 @@ async function connectStripePayout() {
     if (data.onboardingUrl) {
       window.open(data.onboardingUrl, "_blank", "noopener");
     } else {
-      alert(data.message || "Stripe Connect requires STRIPE_SECRET_KEY on the backend.");
+      alert(agentT(data.message || "Stripe Connect requires STRIPE_SECRET_KEY on the backend."));
     }
   } catch (error) {
-    alert(error.message || "Could not start Stripe onboarding.");
+    alert(agentT(error.message || "Could not start Stripe onboarding."));
   }
 }
 
@@ -1053,7 +1789,7 @@ function renderMarketplaceCategoryFilter() {
   const previous = marketplaceCategoryFilterEl.value;
   const categories = marketplaceCategories();
   marketplaceCategoryFilterEl.innerHTML = [
-    `<option value="">All categories</option>`,
+    `<option value="" ${uiAttrs("All categories")}>${escapeHtml(agentT("All categories"))}</option>`,
     ...categories.map((category) => `<option value="${escapeHtml(category)}">${escapeHtml(category)}</option>`),
   ].join("");
   if (categories.includes(previous)) marketplaceCategoryFilterEl.value = previous;
@@ -1082,7 +1818,7 @@ function marketplaceSeedItems() {
 
 async function loadMarketplace(force = false) {
   if (marketplaceItems.length && !force) return marketplaceItems;
-  if (marketplaceStatusEl) marketplaceStatusEl.textContent = "Loading marketplace...";
+  if (marketplaceStatusEl) uiText(marketplaceStatusEl, "Loading marketplace...");
   await loadTemplateLibrary();
   let apiItems = [];
   try {
@@ -1098,7 +1834,7 @@ async function loadMarketplace(force = false) {
   renderMarketplaceCategoryFilter();
   renderMarketplace();
   if (marketplaceStatusEl) {
-    marketplaceStatusEl.textContent = `${marketplaceItems.length} marketplace template${marketplaceItems.length === 1 ? "" : "s"} available`;
+    uiText(marketplaceStatusEl, marketplaceItems.length === 1 ? "{count} marketplace template available" : "{count} marketplace templates available", { count: marketplaceItems.length });
   }
   return marketplaceItems;
 }
@@ -1112,7 +1848,7 @@ function renderMarketplace() {
     return (!query || haystack.includes(query)) && (!category || item.category === category);
   });
   if (!filtered.length) {
-    marketplaceListEl.innerHTML = `<div class="template-empty">No marketplace templates found.</div>`;
+    marketplaceListEl.innerHTML = `<div class="template-empty" ${uiAttrs("No marketplace templates found.")}>${escapeHtml(agentT("No marketplace templates found."))}</div>`;
     return;
   }
   marketplaceListEl.innerHTML = filtered.map((item) => {
@@ -1126,22 +1862,22 @@ function renderMarketplace() {
         <div class="template-card-main">
           <div class="template-card-top">
             <span class="template-category">${escapeHtml(item.category || "Workflow")}</span>
-            <span class="template-file">${price ? `$${price.toFixed(2)}` : "Free"}</span>
+            <span class="template-file">${price ? `$${price.toFixed(2)}` : uiLabel("Free")}</span>
           </div>
-          <h2>${escapeHtml(item.name || "Marketplace Template")}</h2>
-          <p>${escapeHtml(item.description || "Reusable workflow template.")}</p>
-          <span class="marketplace-status-pill status-${escapeHtml(status)}">${escapeHtml(status.replaceAll("_", " "))}</span>
+          <h2>${item.name ? escapeHtml(item.name) : uiLabel("Marketplace Template")}</h2>
+          <p>${item.description ? escapeHtml(item.description) : uiLabel("Reusable workflow template.")}</p>
+          <span class="marketplace-status-pill status-${escapeHtml(status)}">${uiLabel(status.replaceAll("_", " "))}</span>
           <div class="marketplace-meta">
-            <span>Developer: ${escapeHtml(item.developerName || "Developer")}</span>
-            <span>Platform fee: $${escapeHtml(platformFee)}</span>
-            <span>Developer share: $${escapeHtml(developerShare)}</span>
+            <span>${uiLabel("Developer:")} ${item.developerName ? escapeHtml(item.developerName) : uiLabel("Developer")}</span>
+            <span>${uiLabel("Platform fee:")} $${escapeHtml(platformFee)}</span>
+            <span>${uiLabel("Developer share:")} $${escapeHtml(developerShare)}</span>
           </div>
         </div>
         <div class="template-card-actions">
-          ${status === "pending_review" ? `<button type="button" data-review-marketplace-template="${escapeHtml(item.id)}">Approve</button>` : ""}
-          <button type="button" data-buy-marketplace-template="${escapeHtml(item.id)}" ${canBuy ? "" : "disabled"}>${price ? "Checkout" : "Install"}</button>
-          <button class="primary" type="button" data-import-marketplace-template="${escapeHtml(item.id)}">Import</button>
-          <button class="danger" type="button" data-delete-marketplace-template="${escapeHtml(marketplaceItemKey(item))}">Delete</button>
+          ${status === "pending_review" ? `<button type="button" data-review-marketplace-template="${escapeHtml(item.id)}" ${uiAttrs("Approve")}>${escapeHtml(agentT("Approve"))}</button>` : ""}
+          <button type="button" data-buy-marketplace-template="${escapeHtml(item.id)}" ${canBuy ? "" : "disabled"}>${uiLabel(price ? "Checkout" : "Install")}</button>
+          <button class="primary" type="button" data-import-marketplace-template="${escapeHtml(item.id)}" ${uiAttrs("Import")}>${escapeHtml(agentT("Import"))}</button>
+          <button class="danger" type="button" data-delete-marketplace-template="${escapeHtml(marketplaceItemKey(item))}" ${uiAttrs("Delete")}>${escapeHtml(agentT("Delete"))}</button>
         </div>
       </article>
     `;
@@ -1171,7 +1907,7 @@ async function publishMarketplaceTemplate(event) {
     const data = await response.json();
     if (!response.ok || !data.ok) throw new Error(data.message || "Could not publish template.");
     marketplaceItems.unshift(data.item);
-    alert(`Submitted "${data.item.name}" for review. Approve it before paid checkout.`);
+    alert(agentT("Submitted \"{name}\" for review. Approve it before paid checkout.", { name: data.item.name }));
   } catch (error) {
     const price = Number(payload.price || 0);
     const item = {
@@ -1187,7 +1923,7 @@ async function publishMarketplaceTemplate(event) {
     };
     saveLocalMarketplaceItem(item);
     marketplaceItems.unshift(item);
-    alert(`Published locally for demo. API note: ${error.message}`);
+    alert(agentT("Published locally for demo. API note: {message}", { message: error.message }));
   }
   renderMarketplaceCategoryFilter();
   renderMarketplace();
@@ -1203,7 +1939,7 @@ async function marketplaceTemplateData(item) {
 
 async function importMarketplaceTemplate(item) {
   const workflow = addWorkflowFromTemplate(await marketplaceTemplateData(item), true);
-  alert(`Imported marketplace template "${workflow.name}" as a workflow tab.`);
+  alert(agentT("Imported marketplace template \"{name}\" as a workflow tab.", { name: workflow.name }));
   if (marketplacePanel) marketplacePanel.hidden = true;
 }
 
@@ -1224,7 +1960,7 @@ async function buyMarketplaceTemplate(item) {
         return;
       }
       if (data.mode === "setup_required") {
-        alert(`${data.message}\nPlatform commission: $${Number(data.platformFee || 0).toFixed(2)}\nDeveloper payout: $${Number(data.developerPayout || 0).toFixed(2)}`);
+        alert(agentT("{message}\nPlatform commission: ${fee}\nDeveloper payout: ${payout}", { message: data.message, fee: Number(data.platformFee || 0).toFixed(2), payout: Number(data.developerPayout || 0).toFixed(2) }));
         return;
       }
       if (response.ok && data.ok) purchase = data.purchase;
@@ -1234,11 +1970,11 @@ async function buyMarketplaceTemplate(item) {
   }
   const fee = Number(purchase?.platformFee ?? price * 0.25).toFixed(2);
   const payout = Number(purchase?.developerPayout ?? price * 0.75).toFixed(2);
-  alert(`${price ? "Checkout ready" : "Free install ready"}.\nPlatform commission: $${fee}\nDeveloper payout: $${payout}`);
+  alert(agentT("{message}\nPlatform commission: ${fee}\nDeveloper payout: ${payout}", { message: agentT(price ? "Checkout ready" : "Free install ready") + ".", fee, payout }));
 }
 
 async function approveMarketplaceTemplate(item) {
-  const adminToken = window.prompt("Enter marketplace admin review token");
+  const adminToken = window.prompt(agentT("Enter marketplace admin review token"));
   if (!adminToken) return;
   try {
     const response = await fetch(`${apiBase}/marketplace/templates/review`, {
@@ -1251,15 +1987,15 @@ async function approveMarketplaceTemplate(item) {
     const index = marketplaceItems.findIndex((entry) => entry.id === item.id);
     if (index >= 0) marketplaceItems[index] = data.item;
     renderMarketplace();
-    alert(`Approved "${data.item.name}". It is now available for checkout.`);
+    alert(agentT("Approved \"{name}\". It is now available for checkout.", { name: data.item.name }));
   } catch (error) {
-    alert(error.message || "Could not approve template.");
+    alert(agentT(error.message || "Could not approve template."));
   }
 }
 
 async function deleteMarketplaceTemplate(item) {
   const name = item.name || "this marketplace template";
-  if (!window.confirm(`Delete "${name}" from Marketplace?`)) return;
+  if (!window.confirm(agentT("Delete \"{name}\" from Marketplace?", { name }))) return;
 
   let serverDeleted = false;
   const isServerItem = item.id && !String(item.id).startsWith("library-") && !String(item.id).startsWith("local-");
@@ -1284,7 +2020,7 @@ async function deleteMarketplaceTemplate(item) {
   }
 
   hideMarketplaceItem(item);
-  alert(serverDeleted ? `Deleted "${name}" from Marketplace.` : `Removed "${name}" from this Marketplace list.`);
+  alert(agentT(serverDeleted ? "Deleted \"{name}\" from Marketplace." : "Removed \"{name}\" from this Marketplace list.", { name }));
 }
 
 const commonIntegrationFields = {
@@ -1702,6 +2438,18 @@ const integrationSpecs = {
 };
 
 function buildIntegrationSpec(node) {
+  if (node.type === "trigger" && node.action === "cron") {
+    return {
+      title: "Daily Schedule",
+      summary: "Server schedule and timezone",
+      fields: [
+        field("scheduleEnabled", "Daily Schedule", "select", "", [["false", "Disabled"], ["true", "Enabled"]]),
+        field("schedule", "Daily Run Time", "daily-time", ""),
+        field("timezone", "Timezone", "text", "America/Los_Angeles"),
+        field("owner", "Owner", "text", "optional team or operator"),
+      ],
+    };
+  }
   if (!node) return null;
   if (integrationSpecs[node.name]) return integrationSpecs[node.name];
   if (node.name === "JSON Transform" || String(node.action || "").includes("/json-transform")) {
@@ -1803,22 +2551,35 @@ function buildIntegrationSpec(node) {
       summary: "Connect a customer-owned agent to this workflow. Default dry-run previews the payload; enable Execute Live only after the endpoint and auth are verified.",
       fields: [
         field("agentName", "Agent Name", "text", "Customer Lead Scoring Agent"),
+        field("runLocation", "Run Location", "select", "Where this agent executes", [
+          ["cellai_cloud", "Cell AI Data Cloud"],
+          ["customer_local", "Customer Local Runner"],
+          ["customer_private", "Customer Private Server"],
+        ]),
+        field("runnerName", "Runner Name", "text", "office-laptop-runner", null, (settings) => settings.runLocation === "customer_local" || settings.runLocation === "customer_private"),
         field("connectionType", "Connection Type", "select", "API, webhook, script, or MCP-style", [
           ["api", "HTTP API"],
           ["webhook", "Webhook"],
           ["script", "Approved backend script"],
+          ["github_repo", "GitHub repo agent"],
           ["mcp", "MCP-style contract"],
         ]),
-        field("endpointUrl", "Endpoint URL", "url", "https://agent.example.com/run", null, (settings) => settings.connectionType !== "script"),
+        field("repoUrl", "Agent Repo", "url", "https://github.com/TauricResearch/TradingAgents", null, (settings) => settings.connectionType === "github_repo" || settings.runLocation === "customer_local"),
+        field("branch", "Branch / Ref", "text", "main", null, (settings) => settings.connectionType === "github_repo" || settings.runLocation === "customer_local"),
+        field("installCommand", "Install Command", "text", "pip install -r requirements.txt", null, (settings) => settings.connectionType === "github_repo" || settings.runLocation === "customer_local"),
+        field("runCommand", "Run Command", "text", "python cellx_agent_adapter.py", null, (settings) => settings.connectionType === "github_repo" || settings.runLocation === "customer_local"),
+        field("secretEnvNames", "Secrets from Local Runner", "text", "OPENAI_API_KEY,FINNHUB_API_KEY", null, (settings) => settings.connectionType === "github_repo" || settings.runLocation === "customer_local"),
+        field("refreshRepo", "Refresh Repo Cache", "select", "Use cached clone", [["false", "Use cached clone"], ["true", "Re-clone this run"]], (settings) => settings.connectionType === "github_repo" || settings.runLocation === "customer_local"),
+        field("endpointUrl", "Endpoint URL", "url", "https://agent.example.com/run", null, (settings) => settings.connectionType !== "script" && settings.connectionType !== "github_repo" && settings.runLocation !== "customer_local"),
         field("method", "HTTP Method", "select", "POST", [["POST", "POST"], ["GET", "GET"]], (settings) => settings.connectionType === "api" || settings.connectionType === "webhook" || settings.connectionType === "mcp"),
         field("authType", "Auth Type", "select", "How to authenticate", [
           ["none", "None"],
           ["bearer", "Bearer token"],
           ["api_key_header", "API key header"],
           ["basic", "Basic auth"],
-        ], (settings) => settings.connectionType !== "script"),
-        field("secretName", "Backend Secret Name", "text", "EXTERNAL_AGENT_TOKEN", null, (settings) => settings.connectionType !== "script" && settings.authType !== "none"),
-        field("apiKeyHeader", "API Key Header", "text", "X-API-Key", null, (settings) => settings.connectionType !== "script" && settings.authType === "api_key_header"),
+        ], (settings) => settings.connectionType !== "script" && settings.connectionType !== "github_repo" && settings.runLocation !== "customer_local"),
+        field("secretName", "Backend Secret Name", "text", "EXTERNAL_AGENT_TOKEN", null, (settings) => settings.connectionType !== "script" && settings.connectionType !== "github_repo" && settings.runLocation !== "customer_local" && settings.authType !== "none"),
+        field("apiKeyHeader", "API Key Header", "text", "X-API-Key", null, (settings) => settings.connectionType !== "script" && settings.connectionType !== "github_repo" && settings.runLocation !== "customer_local" && settings.authType === "api_key_header"),
         field("scriptName", "Script Name", "text", "approved_agent.py", null, (settings) => settings.connectionType === "script"),
         field("inputMapping", "Input Mapping JSON", "textarea", "{\"payload\":\"{{previous_step}}\",\"workflow\":\"{{workflow.name}}\"}"),
         field("outputSchema", "Expected Output Schema", "textarea", "{\"ok\":true,\"result\":{},\"rows\":[]}"),
@@ -1829,6 +2590,17 @@ function buildIntegrationSpec(node) {
     };
   }
   if (node.type === "script") {
+    if (node.action === "/ext-api/instagram/run") {
+      return {
+        title: "Instagram Local Browser",
+        summary: "Runs in the Windows portable edition. Test Selected checks configuration; Run Agent likes posts and publishes the comment. First use requires signing in to the separate browser window.",
+        fields: [
+          ["minPosts", "Minimum posts", "number", "5"],
+          ["maxPosts", "Maximum posts", "number", "8"],
+          ["commentText", "Public comment", "textarea", "hello, I like your image"],
+        ],
+      };
+    }
     const isOrderDeskScript = String(node.integrationSettings?.scriptName || "").includes("orderdesk_orders_to_carriers.py") || /order desk/i.test(node.name || "");
     if (isOrderDeskScript) {
       return {
@@ -1865,6 +2637,11 @@ function buildIntegrationSpec(node) {
 function ensureIntegrationSettings(node) {
   node.integrationSettings = node.integrationSettings || {};
   const spec = buildIntegrationSpec(node);
+  if (node.type === "trigger" && node.action === "cron") {
+    if (!node.integrationSettings.scheduleEnabled) node.integrationSettings.scheduleEnabled = node.name === "Daily Schedule" ? "true" : "false";
+    if (!node.integrationSettings.schedule) node.integrationSettings.schedule = "0 6 * * *";
+    if (!node.integrationSettings.timezone) node.integrationSettings.timezone = "America/Los_Angeles";
+  }
   for (const item of spec.fields.map(normalizeField)) {
     const key = item.key;
     if (!(key in node.integrationSettings)) node.integrationSettings[key] = "";
@@ -1945,12 +2722,25 @@ function ensureIntegrationSettings(node) {
   }
   if (node.type === "external-agent") {
     if (!node.integrationSettings.agentName) node.integrationSettings.agentName = node.name || "External Agent";
-    if (!node.integrationSettings.connectionType) node.integrationSettings.connectionType = "api";
-    if (!node.integrationSettings.endpointUrl) node.integrationSettings.endpointUrl = "https://agent.example.com/run";
+    if (!node.integrationSettings.runLocation) node.integrationSettings.runLocation = /github/i.test(node.name || "") ? "customer_local" : "customer_private";
+    if (!node.integrationSettings.runnerName) node.integrationSettings.runnerName = "customer-runner-1";
+    if (!node.integrationSettings.connectionType) node.integrationSettings.connectionType = /github/i.test(node.name || "") ? "github_repo" : "api";
+    if (node.integrationSettings.runLocation === "customer_local" && node.integrationSettings.connectionType === "api") {
+      node.integrationSettings.connectionType = "github_repo";
+    }
+    if (!node.integrationSettings.endpointUrl && node.integrationSettings.connectionType !== "github_repo" && node.integrationSettings.runLocation !== "customer_local") node.integrationSettings.endpointUrl = "https://agent.example.com/run";
     if (!node.integrationSettings.method) node.integrationSettings.method = "POST";
     if (!node.integrationSettings.authType) node.integrationSettings.authType = "bearer";
     if (!node.integrationSettings.secretName) node.integrationSettings.secretName = "EXTERNAL_AGENT_TOKEN";
     if (!node.integrationSettings.apiKeyHeader) node.integrationSettings.apiKeyHeader = "X-API-Key";
+    if (node.integrationSettings.connectionType === "github_repo" || node.integrationSettings.runLocation === "customer_local") {
+      if (!node.integrationSettings.repoUrl) node.integrationSettings.repoUrl = "https://github.com/TauricResearch/TradingAgents";
+      if (!node.integrationSettings.branch) node.integrationSettings.branch = "main";
+      if (!node.integrationSettings.installCommand) node.integrationSettings.installCommand = "pip install -r requirements.txt";
+      if (!node.integrationSettings.runCommand) node.integrationSettings.runCommand = "python cellx_agent_adapter.py";
+      if (!node.integrationSettings.secretEnvNames) node.integrationSettings.secretEnvNames = "OPENAI_API_KEY,FINNHUB_API_KEY";
+      if (!node.integrationSettings.refreshRepo) node.integrationSettings.refreshRepo = "false";
+    }
     if (!node.integrationSettings.inputMapping) node.integrationSettings.inputMapping = '{"payload":"{{previous_step}}","workflow":"{{workflow.name}}"}';
     if (!node.integrationSettings.outputSchema) node.integrationSettings.outputSchema = '{\n  "ok": true,\n  "result": {},\n  "rows": []\n}';
     if (!node.integrationSettings.executeLive) node.integrationSettings.executeLive = "false";
@@ -1961,7 +2751,7 @@ function ensureIntegrationSettings(node) {
     if (!node.integrationSettings.scriptName) node.integrationSettings.scriptName = "amazon_bestsellers_demo.py";
     if (!node.integrationSettings.inputJson) node.integrationSettings.inputJson = '{"source_url":"https://www.amazon.com/Best-Sellers/zgbs","limit":20}';
     if (!node.integrationSettings.timeout) node.integrationSettings.timeout = "20";
-    if (String(node.integrationSettings.scriptName || "").includes("orderdesk_orders_to_carriers.py") || /order desk/i.test(node.name || "")) {
+    if (String(node.integrationSettings.scriptName || "").includes("orderdesk_orders_to_carriers.py") || (/order desk/i.test(node.name || "") && node.integrationSettings.scriptName === "amazon_bestsellers_demo.py")) {
       node.integrationSettings.scriptName = "orderdesk_orders_to_carriers.py";
       if (!node.integrationSettings.inputJson || node.integrationSettings.inputJson.includes("amazon_bestsellers_demo.py")) {
         node.integrationSettings.inputJson = '{"limit":100,"order_by":"date_added","order":"desc","dry_run":true}';
@@ -1983,7 +2773,7 @@ function ensureIntegrationSettings(node) {
 }
 
 function isOptionalIntegrationField(key, placeholder = "") {
-  return /optional/i.test(placeholder) || ["baseUrl", "projectId", "accountId", "apiToken", "webhookSecret", "serviceAccountJson", "authHeader", "retryPolicy", "dataPolicy", "chatUrl", "manualResult", "args", "trueLabel", "falseLabel", "expressionPreview"].includes(key);
+  return /optional/i.test(placeholder) || ["baseUrl", "projectId", "accountId", "apiToken", "webhookSecret", "serviceAccountJson", "authHeader", "retryPolicy", "dataPolicy", "chatUrl", "manualResult", "args", "trueLabel", "falseLabel", "expressionPreview", "installCommand", "secretEnvNames", "outputSchema"].includes(key);
 }
 
 function requiredIntegrationFields(spec, node) {
@@ -2003,7 +2793,7 @@ function requiredIntegrationFields(spec, node) {
 function integrationStatusMarkup(status) {
   if (!status) return "";
   const label = status.status === "success" ? "Connected" : status.status === "manual" ? "Manual handoff ready" : status.status === "testing" ? "Testing" : "Connection failed";
-  return `<div class="connection-status ${status.status}"><strong>${label}</strong><span>${status.message || ""}</span></div>`;
+  return `<div class="connection-status ${status.status}"><strong>${uiLabel(label)}</strong>${uiLabel(status.message || "")}</div>`;
 }
 
 function escapeHtml(value) {
@@ -2016,15 +2806,71 @@ function escapeHtml(value) {
 }
 
 function testBadgeLabel(status) {
-  if (status === "success") return "Pass";
-  if (status === "manual") return "Manual";
-  if (status === "testing") return "Testing";
-  if (status === "pending") return "Pending";
-  return "Error";
+  if (status === "success") return uiLabel("Pass");
+  if (status === "manual") return uiLabel("Manual");
+  if (status === "testing") return uiLabel("Testing");
+  if (status === "pending") return uiLabel("Pending");
+  return uiLabel("Error");
 }
 
 function compactJson(value) {
   return JSON.stringify(value, null, 2);
+}
+
+async function copyTextToClipboard(text) {
+  if (navigator.clipboard?.writeText) {
+    await navigator.clipboard.writeText(text);
+    return;
+  }
+  const textarea = document.createElement("textarea");
+  textarea.value = text;
+  textarea.setAttribute("readonly", "");
+  textarea.style.position = "fixed";
+  textarea.style.left = "-9999px";
+  document.body.appendChild(textarea);
+  textarea.select();
+  document.execCommand("copy");
+  textarea.remove();
+}
+
+function selectTextElement(element) {
+  if (!element) return;
+  const selection = window.getSelection();
+  const range = document.createRange();
+  range.selectNodeContents(element);
+  selection.removeAllRanges();
+  selection.addRange(range);
+}
+
+async function copyNodeResultOutput(nodeId, button) {
+  const node = nodes.find((item) => item.id === nodeId);
+  const output = node?.testResult?.output || { ok: null, message: "No output available yet." };
+  const outputBlock = button?.closest(".io-block");
+  const outputPre = outputBlock?.querySelector("pre");
+  const visibleOutput = outputPre?.innerText || outputPre?.textContent;
+  const originalText = button?.getAttribute("data-i18n") || "Copy";
+  const originalParams = JSON.parse(button?.getAttribute("data-i18n-params") || "{}");
+  try {
+    await copyTextToClipboard(visibleOutput || compactJson(output));
+    if (button) {
+      uiText(button, "Copied");
+      button.classList.add("copied");
+      setTimeout(() => {
+        uiText(button, originalText, originalParams);
+        button.classList.remove("copied");
+      }, 1400);
+    }
+  } catch {
+    selectTextElement(outputPre);
+    if (button) {
+      uiText(button, "Selected");
+      button.classList.add("copied");
+      setTimeout(() => {
+        uiText(button, originalText, originalParams);
+        button.classList.remove("copied");
+      }, 1800);
+    }
+  }
 }
 
 function parseJsonText(value) {
@@ -2058,6 +2904,8 @@ function parseJsonText(value) {
     if (firstArray >= 0 && lastArray > firstArray) candidates.push(variant.slice(firstArray, lastArray + 1));
     const extractedRows = extractJsonArrayAfterKey(variant, "rows");
     if (extractedRows) candidates.push(`{"rows":${extractedRows}}`);
+    const partialRows = extractJsonObjectsAfterKey(variant, "rows");
+    if (partialRows.length) candidates.push(`{"rows":[${partialRows.join(",")}]}`);
   }
   for (const candidate of candidates) {
     try {
@@ -2106,6 +2954,48 @@ function extractJsonArrayAfterKey(text, key) {
     }
   }
   return null;
+}
+
+function extractJsonObjectsAfterKey(text, key) {
+  const keyIndex = text.indexOf(`"${key}"`);
+  if (keyIndex < 0) return [];
+  const colonIndex = text.indexOf(":", keyIndex);
+  const arrayStart = text.indexOf("[", colonIndex);
+  if (colonIndex < 0 || arrayStart < 0) return [];
+  const objects = [];
+  let objectStart = -1;
+  let depth = 0;
+  let inString = false;
+  let escaping = false;
+  for (let index = arrayStart + 1; index < text.length; index += 1) {
+    const char = text[index];
+    if (escaping) {
+      escaping = false;
+      continue;
+    }
+    if (char === "\\") {
+      escaping = true;
+      continue;
+    }
+    if (char === '"') {
+      inString = !inString;
+      continue;
+    }
+    if (inString) continue;
+    if (char === "{") {
+      if (depth === 0) objectStart = index;
+      depth += 1;
+    } else if (char === "}") {
+      depth -= 1;
+      if (depth === 0 && objectStart >= 0) {
+        objects.push(text.slice(objectStart, index + 1));
+        objectStart = -1;
+      }
+    } else if (char === "]" && depth === 0) {
+      break;
+    }
+  }
+  return objects;
 }
 
 function hasPrimaryRows(value) {
@@ -2162,23 +3052,22 @@ function renderTableCellValue(value) {
   return `<a class="result-cell-link" href="${escapeHtml(url)}" target="_blank" rel="noopener noreferrer" title="${escapeHtml(url)}">${escapeHtml(label)}</a>`;
 }
 
-function flattenRow(row) {
-  if (!isPlainObject(row)) return { value: row };
+function flattenRow(row, prefix = "", depth = 0) {
+  if (!isPlainObject(row)) return { [prefix || "value"]: row };
   const flat = {};
   Object.entries(row).forEach(([key, value]) => {
+    const flatKey = prefix ? `${prefix}.${key}` : key;
     if (value === null || value === undefined || typeof value !== "object") {
-      flat[key] = value;
+      flat[flatKey] = value;
     } else if (Array.isArray(value)) {
-      flat[key] = value.length ? `${value.length} items` : "";
-    } else {
-      const simpleEntries = Object.entries(value).filter(([, child]) => child === null || child === undefined || typeof child !== "object");
-      if (simpleEntries.length && simpleEntries.length <= 4) {
-        simpleEntries.forEach(([childKey, child]) => {
-          flat[`${key}.${childKey}`] = child;
-        });
-      } else {
-        flat[key] = JSON.stringify(value);
+      flat[flatKey] = value.length ? `${value.length} items` : "";
+      if (value.length && isPlainObject(value[0]) && depth < 2) {
+        Object.assign(flat, flattenRow(value[0], `${flatKey}.0`, depth + 1));
       }
+    } else if (depth < 3) {
+      Object.assign(flat, flattenRow(value, flatKey, depth + 1));
+    } else {
+      flat[flatKey] = JSON.stringify(value);
     }
   });
   return flat;
@@ -2205,18 +3094,29 @@ function summaryRowsFromObject(value) {
 }
 
 function resultTableModel(value) {
+  const tablePayload = tablePayloadFromResult(value);
+  const parsedStdout = tablePayload !== value;
+  const rows = primaryResultRows(tablePayload);
+  if (rows.length) {
+    const tableRows = rows.map((row) => flattenRow(row));
+    const columns = [...new Set(tableRows.flatMap((row) => Object.keys(row)))].slice(0, 80);
+    return {
+      columns,
+      rows: tableRows.slice(0, 100),
+      totalRows: rows.length,
+      sourceRows: rows.length,
+      parsedStdout,
+    };
+  }
   if (isPlainObject(value?.outputTable) && Array.isArray(value.outputTable.rows) && value.outputTable.rows.length) {
     return {
       columns: Array.isArray(value.outputTable.columns) ? value.outputTable.columns.slice(0, 80) : [...new Set(value.outputTable.rows.flatMap((row) => Object.keys(row || {})))].slice(0, 80),
       rows: value.outputTable.rows.slice(0, 100),
       totalRows: Number(value.outputTable.totalRows || value.outputTable.rows.length),
       sourceRows: Number(value.outputTable.totalRows || value.outputTable.rows.length),
-      parsedStdout: true,
+      parsedStdout: false,
     };
   }
-  const tablePayload = tablePayloadFromResult(value);
-  const parsedStdout = tablePayload !== value;
-  const rows = primaryResultRows(tablePayload);
   const tableRows = rows.length ? rows.map(flattenRow) : summaryRowsFromObject(tablePayload);
   const columns = [...new Set(tableRows.flatMap((row) => Object.keys(row)))].slice(0, 80);
   return {
@@ -2242,12 +3142,12 @@ function normalizeNodeOutput(value) {
 function renderResultTable(value, emptyText = "No table data available yet.") {
   const model = resultTableModel(value);
   if (!model.columns.length || !model.rows.length) {
-    return `<div class="result-table-empty">${escapeHtml(emptyText)}</div>`;
+    return `<div class="result-table-empty">${uiLabel(emptyText)}</div>`;
   }
   const minTableWidth = Math.max(760, model.columns.length * 132);
   return `
     <div class="result-table-shell">
-      <div class="result-scroll-hint">Scroll right to see more fields</div>
+      <div class="result-scroll-hint" ${uiAttrs("Scroll right to see more fields")}>${escapeHtml(agentT("Scroll right to see more fields"))}</div>
       <div class="result-table-wrap">
       <table class="result-data-table" style="min-width:${minTableWidth}px">
         <thead>
@@ -2261,7 +3161,7 @@ function renderResultTable(value, emptyText = "No table data available yet.") {
       </table>
       </div>
     </div>
-    <div class="result-table-foot">${model.totalRows > model.rows.length ? `Showing first ${model.rows.length} of ${model.totalRows} rows.` : `${model.totalRows} row${model.totalRows === 1 ? "" : "s"} shown.`}</div>
+    <div class="result-table-foot">${model.totalRows > model.rows.length ? uiLabel("Showing first {shown} of {total} rows.", { shown: model.rows.length, total: model.totalRows }) : uiLabel(model.totalRows === 1 ? "{count} row shown." : "{count} rows shown.", { count: model.totalRows })}</div>
   `;
 }
 
@@ -2377,21 +3277,21 @@ function renderCellXMappingBuilder(node) {
   const targetOptions = cellxColumnOptions(node);
   const sourceMarkup = sourceOptions.length
     ? sourceOptions.map(([value, text]) => `<option value="${escapeHtml(value)}">${escapeHtml(text)}</option>`).join("")
-    : '<option value="">Run previous node first</option>';
+    : `<option value="" ${uiAttrs("Run previous node first")}>${escapeHtml(agentT("Run previous node first"))}</option>`;
   const targetMarkup = targetOptions.length
     ? targetOptions.map(([value, text]) => `<option value="${escapeHtml(value)}">${escapeHtml(text)}</option>`).join("")
-    : '<option value="">Choose a table first</option>';
+    : `<option value="" ${uiAttrs("Choose a table first")}>${escapeHtml(agentT("Choose a table first"))}</option>`;
   return `
     <div class="mapping-builder">
       <div class="mapping-title">
-        <strong>Field Map Builder</strong>
-        <span>Map previous result fields into the selected CellX table.</span>
+        <strong ${uiAttrs("Field Map Builder")}>${escapeHtml(agentT("Field Map Builder"))}</strong>
+        <span ${uiAttrs("Map previous result fields into the selected CellX table.")}>${escapeHtml(agentT("Map previous result fields into the selected CellX table."))}</span>
       </div>
       <div class="mapping-row">
-        <label>Source Field<select id="sourceFieldSelect">${sourceMarkup}</select></label>
-        <label>CellX Field<select id="targetFieldSelect">${targetMarkup}</select></label>
+        <label>${uiLabel("Source Field")}<select id="sourceFieldSelect">${sourceMarkup}</select></label>
+        <label>${uiLabel("CellX Field")}<select id="targetFieldSelect">${targetMarkup}</select></label>
       </div>
-      <button id="addMappingBtn" type="button">Add Mapping</button>
+      <button id="addMappingBtn" type="button" ${uiAttrs("Add Mapping")}>${escapeHtml(agentT("Add Mapping"))}</button>
     </div>
   `;
 }
@@ -2400,8 +3300,8 @@ function renderManualHandoffTools(node) {
   if (node?.type !== "ai" || node.integrationSettings?.authMode !== "manual_web_handoff") return "";
   return `
     <div class="manual-handoff-tools">
-      <button id="copyGptPromptBtn" class="primary" type="button">Copy GPT Prompt</button>
-      <button id="openChatGptBtn" type="button">Open ChatGPT</button>
+      <button id="copyGptPromptBtn" class="primary" type="button" ${uiAttrs("Copy GPT Prompt")}>${escapeHtml(agentT("Copy GPT Prompt"))}</button>
+      <button id="openChatGptBtn" type="button" ${uiAttrs("Open ChatGPT")}>${escapeHtml(agentT("Open ChatGPT"))}</button>
     </div>
   `;
 }
@@ -2451,8 +3351,16 @@ function buildNodeTestInput(node) {
     }
   } else if (node.type === "external-agent") {
     base.agentName = node.integrationSettings?.agentName || node.name;
+    base.runLocation = node.integrationSettings?.runLocation || "customer_private";
+    base.runnerName = node.integrationSettings?.runnerName || "";
     base.connectionType = node.integrationSettings?.connectionType || "api";
     base.endpointUrl = node.integrationSettings?.endpointUrl || "";
+    base.repoUrl = node.integrationSettings?.repoUrl || "";
+    base.branch = node.integrationSettings?.branch || "";
+    base.installCommand = node.integrationSettings?.installCommand || "";
+    base.runCommand = node.integrationSettings?.runCommand || "";
+    base.secretEnvNames = node.integrationSettings?.secretEnvNames || "";
+    base.refreshRepo = node.integrationSettings?.refreshRepo || "false";
     base.method = node.integrationSettings?.method || "POST";
     base.authType = node.integrationSettings?.authType || "none";
     base.executeLive = node.integrationSettings?.executeLive || "false";
@@ -2583,17 +3491,17 @@ function buildCarrierShipmentOutput(node) {
 function summarizeResultPayload(output) {
   if (!output || typeof output !== "object") return [];
   const rows = [];
-  if ("orders_count" in output) rows.push(["Orders fetched", output.orders_count]);
-  if ("row_count" in output) rows.push(["Rows", output.row_count]);
-  if ("ups_count" in output) rows.push(["UPS", output.ups_count]);
-  if ("fedex_count" in output) rows.push(["FedEx", output.fedex_count]);
-  if ("manual_review_count" in output) rows.push(["Manual review", output.manual_review_count]);
-  if ("shipment_payload_count" in output) rows.push(["Shipment payloads", output.shipment_payload_count]);
+  if ("orders_count" in output) rows.push(["Orders fetched", output.orders_count, true]);
+  if ("row_count" in output) rows.push(["Rows", output.row_count, true]);
+  if ("ups_count" in output) rows.push(["UPS", output.ups_count, true]);
+  if ("fedex_count" in output) rows.push(["FedEx", output.fedex_count, true]);
+  if ("manual_review_count" in output) rows.push(["Manual review", output.manual_review_count, true]);
+  if ("shipment_payload_count" in output) rows.push(["Shipment payloads", output.shipment_payload_count, true]);
   if (Array.isArray(output.routes)) {
     output.routes.forEach((route) => rows.push([route.carrier, route.count]));
   }
-  if (output.message) rows.push(["Message", output.message]);
-  if (output.note) rows.push(["Note", output.note]);
+  if (output.message) rows.push(["Message", output.message, true]);
+  if (output.note) rows.push(["Note", output.note, true]);
   return rows;
 }
 
@@ -2604,7 +3512,7 @@ function showNodeResultDialog(nodeId) {
     status: "pending",
     message: "Not tested yet.",
     input: buildNodeTestInput(node),
-    output: { ok: null, message: "Click Test Selected or Run Workflow first." },
+    output: { ok: null, message: "Click Test Selected or Run Agent first." },
   };
   document.getElementById("resultDialog")?.remove();
   const summary = summarizeResultPayload(result.output || {});
@@ -2617,29 +3525,32 @@ function showNodeResultDialog(nodeId) {
       <header>
         <div>
           <strong id="resultDialogTitle">${escapeHtml(node.name)}</strong>
-          <span>${escapeHtml(result.message || "Workflow node result")}</span>
+          <span>${uiLabel(result.message || "Workflow node result")}</span>
         </div>
-        <button type="button" data-close-result-dialog>Close</button>
+        <button type="button" data-close-result-dialog ${uiAttrs("Close")}>${escapeHtml(agentT("Close"))}</button>
       </header>
       ${summary.length ? `
         <div class="result-summary">
-          ${summary.map(([label, value]) => `<div><span>${escapeHtml(label)}</span><strong>${escapeHtml(value)}</strong></div>`).join("")}
+          ${summary.map(([label, value, chrome]) => `<div><span>${chrome ? uiLabel(label) : escapeHtml(label)}</span><strong>${escapeHtml(value)}</strong></div>`).join("")}
         </div>
       ` : ""}
       <div class="result-dialog-table">
         <div class="result-dialog-section-title">
-          <b>Output Table</b>
-          <span>${tableModel.sourceRows ? `${tableModel.sourceRows} source rows detected` : tableModel.parsedStdout ? "Parsed stdout JSON" : "Summary fields"}</span>
+          <b ${uiAttrs("Output Table")}>${escapeHtml(agentT("Output Table"))}</b>
+          <span>${tableModel.sourceRows ? uiLabel("{count} source rows detected", { count: tableModel.sourceRows }) : uiLabel(tableModel.parsedStdout ? "Parsed stdout JSON" : "Summary fields")}</span>
         </div>
         ${renderResultTable(result.output || {})}
       </div>
       <div class="result-dialog-grid">
         <div>
-          <b>Input</b>
+          <b ${uiAttrs("Input")}>${escapeHtml(agentT("Input"))}</b>
           <pre>${escapeHtml(compactJson(result.input || {}))}</pre>
         </div>
-        <div>
-          <b>Output</b>
+        <div class="io-block">
+          <div class="io-title-row">
+            <b ${uiAttrs("Output")}>${escapeHtml(agentT("Output"))}</b>
+            <button type="button" data-copy-node-output="${escapeHtml(node.id)}" ${uiAttrs("Copy")}>${escapeHtml(agentT("Copy"))}</button>
+          </div>
           <pre>${escapeHtml(compactJson(result.output || {}))}</pre>
         </div>
       </div>
@@ -2668,12 +3579,12 @@ function renderWorkflowResultTabs() {
     status: "pending",
     message: "Not tested yet.",
     input: buildNodeTestInput(activeNode),
-    output: { ok: null, message: "Click Test Selected or Run Workflow first." },
+    output: { ok: null, message: "Click Test Selected or Run Agent first." },
   };
   return `
     <div class="canvas-result-tabs-shell">
-      <strong>Results</strong>
-      <div class="canvas-result-tabs" role="tablist" aria-label="Workflow step results">
+      <strong ${uiAttrs("Results")}>${escapeHtml(agentT("Results"))}</strong>
+      <div class="canvas-result-tabs" role="tablist" data-agent-i18n-attributes data-i18n-aria-label="Workflow step results" aria-label="${escapeHtml(agentT("Workflow step results"))}">
         ${orderedNodes.map((node, index) => {
           const nodeResult = node.testResult || { status: "pending" };
           const status = nodeResult.status || "pending";
@@ -2682,7 +3593,7 @@ function renderWorkflowResultTabs() {
             <button type="button" class="${node.id === activeNode.id ? "active" : ""}" data-result-tab="${escapeHtml(node.id)}" title="${index + 1}. ${escapeHtml(node.name)}">
               <span class="result-step-number ${escapeHtml(status)}">${index + 1}</span>
               <b>${escapeHtml(node.name)}</b>
-              <em class="${escapeHtml(status)}">${rowCount ? `${rowCount} rows` : testBadgeLabel(status)}</em>
+              <em class="${escapeHtml(status)}">${rowCount ? uiLabel("{count} rows", { count: rowCount }) : testBadgeLabel(status)}</em>
             </button>
           `;
         }).join("")}
@@ -2702,16 +3613,16 @@ function renderWorkflowResultTablePanel() {
     status: "pending",
     message: "Not tested yet.",
     input: buildNodeTestInput(activeNode),
-    output: { ok: null, message: "Click Test Selected or Run Workflow first." },
+    output: { ok: null, message: "Click Test Selected or Run Agent first." },
   };
   return `
     <div class="canvas-result-panel">
       <div class="result-tab-panel-head">
         <div>
           <strong>${escapeHtml(activeNode.name)}</strong>
-          <span>${escapeHtml(result.message || "Workflow step result")}</span>
+          <span>${uiLabel(result.message || "Workflow step result")}</span>
         </div>
-        <button type="button" data-view-node-result="${escapeHtml(activeNode.id)}">View Full Result</button>
+        <button type="button" data-view-node-result="${escapeHtml(activeNode.id)}" ${uiAttrs("View Full Result")}>${escapeHtml(agentT("View Full Result"))}</button>
       </div>
       ${renderResultTable(result.output || {}, "Run this workflow step to see rows and columns.")}
     </div>
@@ -2720,13 +3631,13 @@ function renderWorkflowResultTablePanel() {
 
 function renderNodeTestResults() {
   if (!nodes.length) {
-    return '<div class="test-results empty">No workflow nodes to test.</div>';
+    return `<div class="test-results empty" ${uiAttrs("No workflow nodes to test.")}>${escapeHtml(agentT("No workflow nodes to test."))}</div>`;
   }
   return `
     <section id="nodeTestResults" class="test-results">
       <div class="test-results-title">
-        <strong>Node Test Results</strong>
-        <span>Input and Output for each workflow node</span>
+        <strong ${uiAttrs("Node Test Results")}>${escapeHtml(agentT("Node Test Results"))}</strong>
+        <span ${uiAttrs("Input and Output for each workflow node")}>${escapeHtml(agentT("Input and Output for each workflow node"))}</span>
       </div>
       ${workflowOrder().map((node, index) => {
         const result = node.testResult || {
@@ -2740,18 +3651,21 @@ function renderNodeTestResults() {
             <div class="test-result-head">
               <strong>${index + 1}. ${escapeHtml(node.name)}</strong>
               <span>
-                <button type="button" data-view-node-result="${escapeHtml(node.id)}">View Result</button>
+                <button type="button" data-view-node-result="${escapeHtml(node.id)}" ${uiAttrs("View Result")}>${escapeHtml(agentT("View Result"))}</button>
                 <em>${testBadgeLabel(result.status)}</em>
               </span>
             </div>
-            <p>${escapeHtml(result.message || "")}</p>
+            <p>${uiLabel(result.message || "")}</p>
             <div class="io-grid">
               <div>
-                <b>Input</b>
+                <b ${uiAttrs("Input")}>${escapeHtml(agentT("Input"))}</b>
                 <pre>${escapeHtml(compactJson(result.input || {}))}</pre>
               </div>
-              <div>
-                <b>Output</b>
+              <div class="io-block">
+                <div class="io-title-row">
+                  <b ${uiAttrs("Output")}>${escapeHtml(agentT("Output"))}</b>
+                  <button type="button" data-copy-node-output="${escapeHtml(node.id)}" ${uiAttrs("Copy")}>${escapeHtml(agentT("Copy"))}</button>
+                </div>
                 <pre>${escapeHtml(compactJson(result.output || {}))}</pre>
               </div>
             </div>
@@ -2762,6 +3676,35 @@ function renderNodeTestResults() {
   `;
 }
 
+function dailyCronToTime(expression) {
+  const match = String(expression || "").trim().match(/^(\d{1,2})\s+(\d{1,2})\s+\*\s+\*\s+\*$/);
+  if (!match || Number(match[1]) > 59 || Number(match[2]) > 23) return "";
+  return `${match[2].padStart(2, "0")}:${match[1].padStart(2, "0")}`;
+}
+
+function dailyTimeToCron(value) {
+  const match = String(value || "").match(/^(\d{2}):(\d{2})$/);
+  if (!match || Number(match[1]) > 23 || Number(match[2]) > 59) return "";
+  return `${Number(match[2])} ${Number(match[1])} * * *`;
+}
+
+function renderDailyTimeField(node) {
+  const cron = String(node.integrationSettings.schedule || "");
+  const time = dailyCronToTime(cron);
+  return `<div class="daily-time-field">
+    <label class="integration-field">${uiLabel("Daily Run Time")}<b class="required-mark" ${uiAttrs("Required")}>${escapeHtml(agentT("Required"))}</b>
+      <input type="time" data-daily-run-time value="${time}" step="60" aria-describedby="dailyCronStatus">
+    </label>
+    <p id="dailyCronStatus" class="daily-cron-status" ${time ? "hidden" : ""} ${uiAttrs("Custom cron retained. The daily scheduler requires one daily run time.")}>${escapeHtml(agentT("Custom cron retained. The daily scheduler requires one daily run time."))}</p>
+    <details class="daily-cron-advanced" ${time ? "" : "open"}>
+      <summary ${uiAttrs("Advanced Cron")}>${escapeHtml(agentT("Advanced Cron"))}</summary>
+      <label class="integration-field">${uiLabel("Cron Expression")}
+        <input type="text" data-integration-key="schedule" value="${escapeHtml(cron)}" spellcheck="false">
+      </label>
+    </details>
+  </div>`;
+}
+
 function renderIntegrationFields(node) {
   if (!propIntegration || !node) return;
   const spec = ensureIntegrationSettings(node);
@@ -2769,36 +3712,67 @@ function renderIntegrationFields(node) {
   const requiredKeys = new Set(requiredIntegrationFields(spec, node));
   propIntegration.innerHTML = `
     <div class="integration-title">
-      <strong>${spec.title}</strong>
-      <span>${spec.summary}</span>
+      <strong>${uiIntegrationTitle(spec, node)}</strong>
+      <span>${uiLabel(spec.summary)}</span>
     </div>
-    ${fields.map(({ key, label, type, placeholder, options }) => `
+    ${fields.map(({ key, label, type, placeholder, options }) => type === "daily-time" ? renderDailyTimeField(node) : `
       <label class="integration-field">
-        ${label}${requiredKeys.has(key) ? '<b class="required-mark">Required</b>' : '<b class="optional-mark">Optional</b>'}
+        ${/^[A-Z][A-Z0-9]*_[A-Z0-9_]+$/.test(label) ? escapeHtml(label) : uiLabel(label)}${requiredKeys.has(key) ? `<b class="required-mark" ${uiAttrs("Required")}>${escapeHtml(agentT("Required"))}</b>` : `<b class="optional-mark" ${uiAttrs("Optional")}>${escapeHtml(agentT("Optional"))}</b>`}
         ${type === "select" ? `
           <select data-integration-key="${key}">
-            ${(options || []).map(([value, text]) => `<option value="${value}"${node.integrationSettings[key] === value ? " selected" : ""}>${text}</option>`).join("")}
+            ${(options || []).map(([value, text]) => `<option value="${value}"${node.integrationSettings[key] === value ? " selected" : ""} ${(["tableName", "timezone", "method"].includes(key) || ["STARTTLS", "SSL"].includes(text)) ? "" : uiAttrs(text)}>${escapeHtml((["tableName", "timezone", "method"].includes(key) || ["STARTTLS", "SSL"].includes(text)) ? text : agentT(text))}</option>`).join("")}
           </select>
         ` : type === "textarea" ? `
-          <textarea data-integration-key="${key}" rows="4" placeholder="${placeholder}">${node.integrationSettings[key] || ""}</textarea>
+          <textarea data-integration-key="${key}" rows="4" ${uiPlaceholder(placeholder)}>${node.integrationSettings[key] || ""}</textarea>
         ` : `
-          <input data-integration-key="${key}" type="${type}" value="${node.integrationSettings[key] || ""}" placeholder="${placeholder}">
+          <input data-integration-key="${key}" type="${type}" value="${node.integrationSettings[key] || ""}" ${uiPlaceholder(placeholder)}>
         `}
       </label>
     `).join("")}
     ${renderCellXMappingBuilder(node)}
     ${renderManualHandoffTools(node)}
+    ${node.type === "trigger" && node.action === "cron" ? scheduleStatusMarkup() : ""}
     ${integrationStatusMarkup(node.connection)}
     ${renderNodeTestResults()}
-    <p class="secret-note">Secrets should be stored on the backend or a secret manager. This designer keeps placeholders only.</p>
+    <p class="secret-note" ${uiAttrs("Secrets should be stored on the backend or a secret manager. This designer keeps placeholders only.")}>${escapeHtml(agentT("Secrets should be stored on the backend or a secret manager. This designer keeps placeholders only."))}</p>
   `;
   renderPropertyActionBar(node);
+  document.getElementById("refreshScheduleBtn")?.addEventListener("click", async () => {
+    const workflowId = activeWorkflowId;
+    try {
+      const data = await workflowManagementFetch(`/workflow-schedules?id=${encodeURIComponent(workflowId)}`, { cache: "no-store" });
+      workflowScheduleStatuses.set(workflowId, data);
+      if (activeWorkflowId === workflowId && selectedId === node.id) renderIntegrationFields(node);
+    } catch (error) {
+      alert(agentT(error.message || "Could not load schedule status."));
+    }
+  });
+  const dailyTimeInput = propIntegration.querySelector("[data-daily-run-time]");
+  const updateDailyTime = () => {
+    const cron = dailyTimeToCron(dailyTimeInput.value);
+    dailyTimeInput.dataset.edited = "true";
+    dailyTimeInput.setCustomValidity(cron ? "" : agentT("Choose a valid daily run time."));
+    const current = nodes.find(item => item.id === selectedId);
+    if (!cron || !current) return;
+    current.integrationSettings.schedule = cron;
+    current.connection = null;
+    propIntegration.querySelector('[data-integration-key="schedule"]').value = cron;
+    propIntegration.querySelector("#dailyCronStatus").hidden = true;
+  };
+  dailyTimeInput?.addEventListener("input", updateDailyTime);
+  dailyTimeInput?.addEventListener("change", updateDailyTime);
   propIntegration.querySelectorAll("[data-integration-key]").forEach((input) => {
     const updateSetting = () => {
       const current = nodes.find((item) => item.id === selectedId);
       if (!current) return;
     current.integrationSettings = current.integrationSettings || {};
     current.integrationSettings[input.dataset.integrationKey] = input.value;
+      if (input.dataset.integrationKey === "schedule" && dailyTimeInput) {
+        dailyTimeInput.value = dailyCronToTime(input.value);
+        dailyTimeInput.dataset.edited = "false";
+        dailyTimeInput.setCustomValidity("");
+        propIntegration.querySelector("#dailyCronStatus").hidden = Boolean(dailyTimeInput.value);
+      }
       current.connection = null;
       if (input.dataset.integrationKey === "authMode") {
         renderIntegrationFields(current);
@@ -2858,20 +3832,32 @@ function renderPropertyActionBar(node) {
   }
   propertyActionBar.innerHTML = `
     <div class="connection-actions property-actions">
-      <button id="testConnectionBtn" class="primary" type="button">Test Selected</button>
-      <button id="runWorkflowBtn" type="button">Run Workflow</button>
-      <button id="exportResultsBtn" type="button">Export Results</button>
-      <button id="saveCredentialBtn" type="button">Save Config</button>
+      <button id="testConnectionBtn" class="primary" type="button" ${uiAttrs("Test Selected")}>${escapeHtml(agentT("Test Selected"))}</button>
+      <button id="runWorkflowBtn" type="button" ${uiAttrs("Run Agent")}>${escapeHtml(agentT("Run Agent"))}</button>
+      <button id="exportResultsBtn" type="button" ${uiAttrs("Export Results")}>${escapeHtml(agentT("Export Results"))}</button>
+      <button id="saveCredentialBtn" type="button" ${uiAttrs("Save Config")}>${escapeHtml(agentT("Save Config"))}</button>
+      ${nodes.some(item => item.action === "/ext-api/instagram/run") ? `<button id="stopInstagramBtn" type="button" ${uiAttrs("Stop Instagram")}>${escapeHtml(agentT("Stop Instagram"))}</button><a href="http://127.0.0.1:3001/agent/" target="_blank" rel="noopener" ${uiAttrs("Open Local Edition")}>${escapeHtml(agentT("Open Local Edition"))}</a>` : ""}
     </div>
   `;
   document.getElementById("testConnectionBtn")?.addEventListener("click", () => testSelectedIntegration());
   document.getElementById("runWorkflowBtn")?.addEventListener("click", () => testWorkflowIntegrations());
+  document.getElementById("stopInstagramBtn")?.addEventListener("click", async () => {
+    const response = await fetch(`${apiBase}/instagram/stop`, { method: "POST", headers: aiVoiceHeaders(), body: "{}" });
+    const result = await response.json();
+    alert(agentT(result.message || "Stop requested."));
+  });
   document.getElementById("exportResultsBtn")?.addEventListener("click", () => exportWorkflowResults());
-  document.getElementById("saveCredentialBtn")?.addEventListener("click", () => {
+  document.getElementById("saveCredentialBtn")?.addEventListener("click", async () => {
     const current = nodes.find((item) => item.id === selectedId);
     if (!current) return;
     persistNodeConfig(current);
-    current.connection = { status: "success", message: saveWorkflowDraft("Configuration saved in this browser for this workflow step. Refresh or re-import will keep this node setup on this browser.") };
+    saveWorkflowDraft();
+    try {
+      const message = await saveActiveSchedule();
+      current.connection = { status: "success", message: message || "Configuration saved in this browser for this workflow step." };
+    } catch (error) {
+      current.connection = { status: "error", message: uiMessage("Saved locally, but server schedule was not updated: {message}", { message: error.message }) };
+    }
     renderIntegrationFields(current);
     render();
   });
@@ -2908,7 +3894,7 @@ async function loadJson(path) {
 async function postJson(path, payload) {
   const response = await fetch(`${apiBase}${path}`, {
     method: "POST",
-    headers: { "Content-Type": "application/json", Accept: "application/json" },
+    headers: { "Content-Type": "application/json", Accept: "application/json", ...(payload.action === "/ext-api/instagram/run" ? aiVoiceHeaders() : {}) },
     body: JSON.stringify(payload),
   });
   const data = await response.json().catch(() => ({}));
@@ -2921,13 +3907,24 @@ async function postJson(path, payload) {
 }
 
 function findExportRows(value) {
-  if (!value || typeof value !== "object") return null;
+  if (!value) return null;
+  if (typeof value === "string") {
+    const parsed = parseJsonText(value);
+    return parsed ? findExportRows(parsed) : null;
+  }
   if (Array.isArray(value)) {
     return value.length ? value : null;
   }
+  if (typeof value !== "object") return null;
   if (Array.isArray(value.rows) && value.rows.length) return value.rows;
   if (Array.isArray(value.items) && value.items.length) return value.items;
-  for (const item of Object.values(value)) {
+  for (const key of ["stdout", "body", "output", "result", "payload", "data"]) {
+    if (!(key in value)) continue;
+    const found = findExportRows(value[key]);
+    if (found) return found;
+  }
+  for (const [key, item] of Object.entries(value)) {
+    if (key === "outputTable") continue;
     const found = findExportRows(item);
     if (found) return found;
   }
@@ -2956,7 +3953,7 @@ async function exportWorkflowResults() {
 
   const fileName = `${(sourceNode?.name || "cellx-workflow-results").toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "") || "cellx-workflow-results"}.xlsx`;
   if (current) {
-    current.connection = { status: "testing", message: `Exporting ${rows.length} rows to Excel...` };
+    current.connection = { status: "testing", message: uiMessage("Exporting {count} rows to Excel...", { count: rows.length }) };
     renderIntegrationFields(current);
   }
 
@@ -2979,7 +3976,7 @@ async function exportWorkflowResults() {
     link.click();
     link.remove();
     URL.revokeObjectURL(url);
-    if (current) current.connection = { status: "success", message: `Exported ${rows.length} rows to ${fileName}.` };
+    if (current) current.connection = { status: "success", message: uiMessage("Exported {count} rows to {name}.", { count: rows.length, name: fileName }) };
   } catch (error) {
     if (current) current.connection = { status: "error", message: error.message || "Could not export results." };
   }
@@ -2989,14 +3986,18 @@ async function exportWorkflowResults() {
   }
 }
 
-async function testNodeIntegration(node) {
+async function testNodeIntegration(node, execute = false) {
+  if (window.WorkflowVideo?.isNode(node)) return window.WorkflowVideo.test(node);
+  if (window.WorkflowPhotos?.isNode(node)) {
+    return window.WorkflowPhotos.test(node);
+  }
   const spec = ensureIntegrationSettings(node);
   const required = requiredIntegrationFields(spec, node);
   const missing = required.filter((key) => !String(node.integrationSettings[key] || "").trim());
   const input = buildNodeTestInput(node);
 
   if (missing.length) {
-    const message = `Missing required fields: ${missing.join(", ")}`;
+    const message = uiMessage("Missing required fields: {fields}", { fields: missing.join(", ") });
     node.connection = { status: "error", message };
     node.testResult = { status: "error", message, input, output: buildNodeTestOutput(node, "error", message) };
     return;
@@ -3010,6 +4011,7 @@ async function testNodeIntegration(node) {
       settings: node.integrationSettings,
       previousOutputs: previousNodeOutputs(node),
       required,
+      execute: node.action === "/ext-api/instagram/run" && execute,
     });
     const status = result.status || "success";
     const message = result.message || "Connection test passed.";
@@ -3029,7 +4031,7 @@ async function testSelectedIntegration() {
   const button = document.getElementById("testConnectionBtn");
   if (button) {
     button.disabled = true;
-    button.textContent = "Running...";
+    uiText(button, "Running...");
   }
   node.connection = { status: "testing", message: "Testing selected node..." };
   node.testResult = {
@@ -3048,11 +4050,14 @@ async function testSelectedIntegration() {
 
 async function testWorkflowIntegrations() {
   if (!nodes.length) return;
+  if (dailyTrigger() && nodes.every(node => ["trigger", "script", "cellx-db", "log"].includes(node.type) || (node.type === "tool" && String(node.action).includes("json-transform")))) {
+    return runServerWorkflow();
+  }
   const selected = nodes.find((item) => item.id === selectedId) || nodes[0];
   const button = document.getElementById("runWorkflowBtn");
   if (button) {
     button.disabled = true;
-    button.textContent = "Running...";
+    uiText(button, "Running...");
   }
   for (const node of nodes) {
     node.connection = { status: "testing", message: "Waiting for workflow test..." };
@@ -3076,7 +4081,12 @@ async function testWorkflowIntegrations() {
     };
     renderIntegrationFields(selected);
     render();
-    await testNodeIntegration(node);
+    await testNodeIntegration(node, true);
+    if (window.WorkflowVideo?.isNode(node)) {
+      window.WorkflowVideo.pauseFollowing(node);
+      break;
+    }
+    if (node.action === "/ext-api/instagram/run" && node.connection?.status === "error") break;
   }
 
   renderIntegrationFields(selected);
@@ -3084,23 +4094,51 @@ async function testWorkflowIntegrations() {
   document.getElementById("nodeTestResults")?.scrollIntoView({ behavior: "smooth", block: "nearest" });
 }
 
-function setStatus(id, value, ok = true) {
+async function runServerWorkflow() {
+  const workflowId = activeWorkflowId;
+  const runNodes = nodes;
+  const selected = nodes.find(node => node.id === selectedId) || nodes[0];
+  ensureIntegrationSettings(dailyTrigger());
+  const button = document.getElementById("runWorkflowBtn");
+  if (button) { button.disabled = true; uiText(button, "Running..."); }
+  try {
+    const data = await workflowManagementFetch("/workflows/run", {
+      method: "POST", headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ workflow: serverWorkflowSnapshot() }),
+    });
+    for (const result of data.results || []) {
+      const node = runNodes.find(item => item.id === result.nodeId);
+      if (!node) continue;
+      node.connection = { status: result.status, message: result.message };
+      node.testResult = { status: result.status, message: result.message, input: result.input, output: result.output };
+    }
+  } catch (error) {
+    selected.connection = { status: "error", message: error.message || "Server workflow run failed. Check Schedule Status for execution history." };
+  } finally {
+    if (workflowId === activeWorkflowId) {
+      renderIntegrationFields(selected);
+      render();
+    }
+  }
+}
+
+function setStatus(id, value, ok = true, params = {}) {
   const el = document.getElementById(id);
-  el.textContent = value;
+  uiText(el, value, params);
   el.style.color = ok ? "#047857" : "#b91c1c";
 }
 
 async function refreshStatus() {
   try {
     const health = await loadJson("/health");
-    setStatus("apiStatus", `${health.version} running`);
+    setStatus("apiStatus", "{version} running", true, { version: health.version });
   } catch {
     setStatus("apiStatus", "offline", false);
   }
 
   try {
     const db = await loadJson("/db/status");
-    setStatus("dbStatus", db.ok ? `${db.database}, ${db.tableCount} tables` : "not connected", db.ok);
+    setStatus("dbStatus", db.ok ? "{database}, {count} tables" : "not connected", db.ok, { database: db.database, count: db.tableCount });
     if (db.ok) {
       try {
         cellxSchema = await loadJson("/cellx-db/schema");
@@ -3149,8 +4187,10 @@ function addCatalogNode(item, x, y) {
     y,
   };
   nodes.push(node);
+  window.WorkflowVideo?.setupNode(node);
   render();
   selectNode(node.id);
+  saveWorkflowDraft();
 }
 
 function nextCanvasSpot() {
@@ -3175,7 +4215,7 @@ function renderNodeLibrary(filter = "") {
     const group = document.createElement("details");
     group.className = "node-group";
     group.open = Boolean(term) || ["Triggers", "Logic & Control", "CellX Database", "Shipping, Payment & Accounting", "AI Models"].includes(category.group);
-    group.innerHTML = `<summary>${iconMarkup(categoryIcons[category.group], category.group, "group-icon")}<span>${category.group}</span></summary>`;
+    group.innerHTML = `<summary>${iconMarkup(categoryIcons[category.group], category.group, "group-icon")}<span>${uiLabel(category.group)}</span></summary>`;
 
     const bySub = matches.reduce((map, item) => {
       map[item.sub] = map[item.sub] || [];
@@ -3187,7 +4227,7 @@ function renderNodeLibrary(filter = "") {
       const subgroup = document.createElement("details");
       subgroup.className = "node-subgroup";
       subgroup.open = Boolean(term);
-      subgroup.innerHTML = `<summary class="node-subgroup-title">${sub}</summary>`;
+      subgroup.innerHTML = `<summary class="node-subgroup-title">${uiLabel(sub)}</summary>`;
       for (const item of items) {
         const nodeEl = document.createElement("div");
         nodeEl.className = `palette-node type-${item.type}`;
@@ -3199,8 +4239,8 @@ function renderNodeLibrary(filter = "") {
         nodeEl.innerHTML = `
           ${iconMarkup(appIcons[item.name], item.name)}
           <div class="palette-copy">
-            <strong>${item.name}</strong>
-            <span>${item.desc}</span>
+            <strong>${uiLabel(item.name)}</strong>
+            ${uiLabel(item.desc)}
             <em class="node-tag">${item.type}</em>
           </div>
         `;
@@ -3223,6 +4263,8 @@ function renderNodeLibrary(filter = "") {
 }
 
 function render() {
+  window.WorkflowVideo?.render();
+  window.WorkflowPhotos?.render();
   updateCanvasExtent();
   if (workflowTitleEl) workflowTitleEl.textContent = workflowTitle || "Order Fulfillment Flow";
   if (workflowDescriptionEl) {
@@ -3243,7 +4285,7 @@ function render() {
       <div class="node-body">
         <strong>${node.name}</strong>
         <span>${node.action}</span>
-        ${node.connection ? `<em class="node-connection ${node.connection.status}">${node.connection.status === "success" ? "Connected" : node.connection.status === "manual" ? "Handoff Ready" : node.connection.status === "testing" ? "Testing" : "Error"}</em>` : ""}
+        ${node.connection ? `<em class="node-connection ${node.connection.status}">${uiLabel(node.connection.status === "success" ? "Connected" : node.connection.status === "manual" ? "Handoff Ready" : node.connection.status === "testing" ? "Testing" : "Error")}</em>` : ""}
       </div>
     `;
     canvas.appendChild(el);
@@ -3335,7 +4377,7 @@ function clearProperties() {
 function removeNode(nodeId) {
   const node = nodes.find((item) => item.id === nodeId);
   if (!node) return;
-  const shouldRemove = window.confirm(`Remove "${node.name}" from this workflow?`);
+  const shouldRemove = window.confirm(agentT("Remove \"{name}\" from this workflow?", { name: node.name }));
   if (!shouldRemove) return;
 
   nodes = nodes.filter((item) => item.id !== nodeId);
@@ -3449,15 +4491,24 @@ document.getElementById("clearBtn").addEventListener("click", () => {
   render();
 });
 
-document.getElementById("saveBtn").addEventListener("click", () => {
+document.getElementById("saveBtn").addEventListener("click", async () => {
   persistWorkflowStore();
-  alert("All workflow tabs saved in this browser.");
+  const button = document.getElementById("saveBtn");
+  button.disabled = true;
+  try {
+    const message = await saveActiveSchedule();
+    alert(agentT(message || "All workflow tabs saved in this browser."));
+  } catch (error) {
+    alert(agentT(uiMessage("Saved locally, but server schedule was not updated: {message}", { message: error.message })));
+  } finally {
+    button.disabled = false;
+  }
 });
 
 document.getElementById("newWorkflowBtn").addEventListener("click", () => {
   syncActiveWorkflow();
-  const name = window.prompt("Workflow name", `New Workflow ${workflows.length + 1}`) || `New Workflow ${workflows.length + 1}`;
-  const workflow = createBlankWorkflow(name.trim() || `New Workflow ${workflows.length + 1}`);
+  const name = window.prompt("Agent name", `New Agent ${workflows.length + 1}`) || `New Agent ${workflows.length + 1}`;
+  const workflow = createBlankWorkflow(name.trim() || `New Agent ${workflows.length + 1}`);
   workflows.push(workflow);
   loadWorkflow(workflow.id);
   persistWorkflowStore();
@@ -3468,12 +4519,12 @@ workflowTabsEl?.addEventListener("click", (event) => {
   if (closeTarget) {
     event.stopPropagation();
     if (workflows.length <= 1) {
-      alert("Keep at least one workflow tab open.");
+      alert(agentT("Keep at least one workflow tab open."));
       return;
     }
     const workflowId = closeTarget.dataset.closeWorkflowId;
     const workflow = workflows.find((item) => item.id === workflowId);
-    if (!window.confirm(`Close "${workflow?.name || "this workflow"}"? Save Draft first if you need to keep it.`)) return;
+    if (!window.confirm(agentT("Close \"{name}\"? Save Draft first if you need to keep it.", { name: workflow?.name || agentT("this workflow") }))) return;
     const closingActive = workflowId === activeWorkflowId;
     workflows = workflows.filter((item) => item.id !== workflowId);
     if (closingActive) {
@@ -3510,6 +4561,9 @@ document.getElementById("browseTemplatesBtn")?.addEventListener("click", async (
   if (!templateBrowser) return;
   templateBrowser.hidden = !templateBrowser.hidden;
   if (!templateBrowser.hidden) {
+    if (aiVoiceBuilderPanel) aiVoiceBuilderPanel.hidden = true;
+    if (templateManagerPanel) templateManagerPanel.hidden = true;
+    if (marketplacePanel) marketplacePanel.hidden = true;
     await loadTemplateLibrary();
     templateSearchEl?.focus();
   }
@@ -3522,11 +4576,93 @@ document.getElementById("closeTemplatesBtn")?.addEventListener("click", () => {
 templateSearchEl?.addEventListener("input", renderTemplateLibrary);
 templateCategoryFilterEl?.addEventListener("change", renderTemplateLibrary);
 
+document.getElementById("aiVoiceBuilderBtn")?.addEventListener("click", () => {
+  if (!aiVoiceBuilderPanel) return;
+  aiVoiceBuilderPanel.hidden = !aiVoiceBuilderPanel.hidden;
+  if (!aiVoiceBuilderPanel.hidden) {
+    if (templateBrowser) templateBrowser.hidden = true;
+    if (templateManagerPanel) templateManagerPanel.hidden = true;
+    if (marketplacePanel) marketplacePanel.hidden = true;
+    aiVoicePromptEl?.focus();
+  }
+});
+
+document.getElementById("closeAiVoiceBuilderBtn")?.addEventListener("click", () => {
+  stopVoiceWorkflowCapture();
+  if (aiVoiceBuilderPanel) aiVoiceBuilderPanel.hidden = true;
+});
+
+document.getElementById("voiceListenBtn")?.addEventListener("click", startVoiceWorkflowCapture);
+document.getElementById("voiceStopBtn")?.addEventListener("click", stopVoiceWorkflowCapture);
+document.getElementById("voiceMuteBtn")?.addEventListener("click", () => {
+  if (!realtimeVoice?.stream) return;
+  const button = document.getElementById("voiceMuteBtn");
+  const muted = button.getAttribute("aria-pressed") !== "true";
+  realtimeVoice.stream.getAudioTracks().forEach((track) => { track.enabled = !muted; });
+  button.setAttribute("aria-pressed", String(muted));
+  uiText(button, muted ? "Unmute" : "Mute");
+});
+document.getElementById("voiceSendBtn")?.addEventListener("click", () => {
+  if (window.VoiceScreenshots?.images().length) { window.VoiceScreenshots.send(); return; }
+  const text = aiVoicePromptEl.value.trim();
+  if (!text || !realtimeVoice) return;
+  voiceLine("You", text);
+  voiceSend(realtimeVoice, { type: "conversation.item.create", item: { type: "message", role: "user", content: [{ type: "input_text", text }] } });
+  voiceSend(realtimeVoice, { type: "response.create" });
+  aiVoicePromptEl.value = "";
+});
+window.addEventListener("pagehide", stopVoiceWorkflowCapture);
+if (aiVoiceBuilderPanel) new MutationObserver(() => {
+  if (aiVoiceBuilderPanel.hidden && realtimeVoice) stopVoiceWorkflowCapture();
+}).observe(aiVoiceBuilderPanel, { attributes: true, attributeFilter: ["hidden"] });
+document.getElementById("buildWorkflowWithAiBtn")?.addEventListener("click", buildWorkflowWithAi);
+importAiDraftBtn?.addEventListener("click", importAiWorkflowDraft);
+
+document.getElementById("manageTemplatesBtn")?.addEventListener("click", async () => {
+  if (!templateManagerPanel) return;
+  templateManagerPanel.hidden = !templateManagerPanel.hidden;
+  if (!templateManagerPanel.hidden) {
+    if (aiVoiceBuilderPanel) aiVoiceBuilderPanel.hidden = true;
+    if (templateBrowser) templateBrowser.hidden = true;
+    if (marketplacePanel) marketplacePanel.hidden = true;
+    await loadTemplateManager();
+  }
+});
+
+document.getElementById("closeTemplateManagerBtn")?.addEventListener("click", () => {
+  if (templateManagerPanel) templateManagerPanel.hidden = true;
+});
+
+document.getElementById("refreshTemplateManagerBtn")?.addEventListener("click", loadTemplateManager);
+
+templateManagerPanel?.addEventListener("click", async (event) => {
+  const templateDelete = event.target.closest("[data-delete-managed-template]");
+  const scriptDelete = event.target.closest("[data-delete-managed-script]");
+  const timerAction = event.target.closest("[data-managed-timer-action]");
+  try {
+    if (templateDelete) {
+      await deleteManagedTemplate(templateDelete.dataset.deleteManagedTemplate);
+      return;
+    }
+    if (scriptDelete) {
+      await deleteManagedScript(scriptDelete.dataset.deleteManagedScript);
+      return;
+    }
+    if (timerAction) {
+      await manageTimer(timerAction.dataset.managedTimer, timerAction.dataset.managedTimerAction);
+    }
+  } catch (error) {
+    alert(agentT(error.message || "Management action failed."));
+  }
+});
+
 document.getElementById("marketplaceBtn")?.addEventListener("click", async () => {
   if (!marketplacePanel) return;
   marketplacePanel.hidden = !marketplacePanel.hidden;
   if (!marketplacePanel.hidden) {
+    if (aiVoiceBuilderPanel) aiVoiceBuilderPanel.hidden = true;
     if (templateBrowser) templateBrowser.hidden = true;
+    if (templateManagerPanel) templateManagerPanel.hidden = true;
     await loadMarketplace(true);
     marketplaceSearchEl?.focus();
   }
@@ -3571,6 +4707,21 @@ marketplaceListEl?.addEventListener("click", async (event) => {
     if (item) await buyMarketplaceTemplate(item);
   }
 });
+
+document.addEventListener("click", (event) => {
+  const copyButton = event.target.closest("[data-copy-node-output]");
+  if (!copyButton) return;
+  event.preventDefault();
+  event.stopPropagation();
+  copyNodeResultOutput(copyButton.dataset.copyNodeOutput, copyButton);
+});
+
+for (const [id, message] of Object.entries({
+  aiVoiceStatus: "Ready.", aiVoiceDraftMeta: "No draft yet",
+  apiStatus: "Checking...", dbStatus: "Checking...",
+  templateLibraryStatus: "Loading templates...", templateManagerStatus: "Loading backend inventory...",
+  marketplaceStatus: "Loading marketplace...",
+})) uiText(document.getElementById(id), message);
 
 renderMarketplaceAccount();
 
