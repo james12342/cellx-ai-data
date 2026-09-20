@@ -27,7 +27,9 @@ class VoiceTests(unittest.TestCase):
         self.assertEqual(set(body), {"ok", "value", "expires_at"})
         config = json.loads(call.call_args.args[0].data)["session"]
         self.assertNotEqual(config["model"], "untrusted")
-        self.assertEqual({tool["name"] for tool in config["tools"]}, {"get_current_workflow", "build_workflow", "apply_workflow_draft"})
+        self.assertEqual({tool["name"] for tool in config["tools"]}, {"get_current_workflow", "build_workflow", "apply_workflow_draft", "collect_web_page", "stop_web_collection"})
+        collect = next(tool for tool in config["tools"] if tool["name"] == "collect_web_page")
+        self.assertEqual(collect["parameters"]["properties"]["max_pages"]["maximum"], 5)
 
     def test_errors_do_not_leak_provider_response(self):
         error = HTTPError("url", 401, "bad", {}, io.BytesIO(b"sensitive provider detail"))

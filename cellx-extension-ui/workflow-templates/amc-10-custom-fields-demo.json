@@ -1,0 +1,22 @@
+{
+  "templateType": "cellx-workflow-designer",
+  "version": "1.0",
+  "name": "AMC 10 Custom Fields Collector",
+  "description": "Voice-created collector with editable demo fields (testA, testB, year, link). Review Fields before running. Requires the Browser Collector extension and a selected source page.",
+  "nodes": [
+    {
+      "id": "node-1",
+      "type": "tool",
+      "name": "Web Collector",
+      "action": "/ext-api/browser-collector",
+      "notes": "Select a public source page in the Browser Collector extension before collecting. OpenAI extraction usage is billed.",
+      "x": 70,
+      "y": 120,
+      "integrationSettings": {
+        "fields": "testA,testB,year,link",
+        "maxPages": 1
+      }
+    }
+  ],
+  "links": []
+}

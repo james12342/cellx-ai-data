@@ -11,6 +11,7 @@ import threading
 import time
 import urllib.parse
 import urllib.request
+from budget_videos import MODELS, catalog, price, fal_task
 
 LOCK = threading.RLock()
 ACTIVE = set()
@@ -31,7 +32,7 @@ def provider_info():
     return {"ok": True, "runway_configured": bool(api_key()), "recipe": "product_ad",
             "version": "2026-07", "base_credits": 200, "extra_second_credits": 36,
             "credit_usd": .01, "sdk": "runwayml",
-            "pricing_url": "https://docs.dev.runwayml.com/guides/pricing/"}
+            "pricing_url": "https://docs.dev.runwayml.com/guides/pricing/", "models": catalog(bool(api_key()))}
 
 
 class NoRedirect(urllib.request.HTTPRedirectHandler):
@@ -70,6 +71,12 @@ def product_ad_task(opts, images):
         os.environ["RUNWAYML_API_SECRET"] = os.getenv("RUNWAY_API_KEY", "")
     client = RunwayML(max_retries=0)
     concept = STYLES[opts["style"]] + " Preserve the reference product's shape, colors and branding. Do not invent claims or add text overlays. " + opts["concept"]
+    if opts.get("model") == "gen4_turbo":
+        prompt = concept + " Product: " + opts["product_info"]
+        if len(prompt.encode("utf-16-le")) // 2 > 1000:
+            raise ValueError("Runway Turbo: shorten product details and creative direction to fit 1000 characters combined.")
+        return client.image_to_video.create(model="gen4_turbo", prompt_image=images[0]["uri"],
+            prompt_text=prompt, duration=opts["duration_seconds"], ratio=RATIOS[opts["aspect_ratio"]]).wait_for_task_output()
     return client.recipes.product_ad(
         version="2026-07",
         product_images=images,
@@ -85,9 +92,13 @@ def validate(payload):
     opts = payload.get("options")
     if not isinstance(opts, dict):
         raise ValueError("Invalid video options.")
-    duration = opts.get("duration_seconds", 10)
-    if isinstance(duration, bool) or not isinstance(duration, (int, float)) or duration != int(duration) or not 4 <= duration <= 15:
-        raise ValueError("AI video duration must be a whole number from 4 to 15 seconds.")
+    model = opts.get("model", "product_ad")
+    if not isinstance(model, str) or model not in MODELS:
+        raise ValueError("Unknown video model.")
+    spec = MODELS[model]
+    duration = opts.get("duration_seconds", spec["durations"][0])
+    if isinstance(duration, bool) or not isinstance(duration, (int, float)) or duration != int(duration) or duration not in spec["durations"]:
+        raise ValueError("Unsupported duration for " + spec["name"] + ". Allowed seconds: " + str(spec["durations"]))
     aspect, style = opts.get("aspect_ratio", "9:16"), opts.get("style", "studio")
     if aspect not in RATIOS or style not in STYLES:
         raise ValueError("Invalid aspect ratio or ad style.")
@@ -98,13 +109,21 @@ def validate(payload):
         raise ValueError("Creative direction must be 2500 characters or fewer.")
     if not isinstance(opts.get("audio", False), bool):
         raise ValueError("Invalid audio option.")
+    if opts.get("audio") and not spec["audio"]:
+        raise ValueError("This model generates silent video. Add background music separately.")
+    if model == "gen4_turbo":
+        prompt = STYLES[style] + " Preserve the reference product's shape, colors and branding. Do not invent claims or add text overlays. " + concept.strip() + " Product: " + info.strip()
+        if len(prompt.encode("utf-16-le")) // 2 > 1000:
+            raise ValueError("Runway Turbo: shorten product details and creative direction to fit 1000 characters combined.")
     ids = payload.get("photo_ids")
     if not isinstance(ids, list) or not ids or any(not isinstance(i, str) or not re.fullmatch(r"[a-f0-9]{40}", i) for i in ids):
         raise ValueError("Select uploaded product photos.")
+    if len(ids) > spec["photos"] and model != "product_ad":
+        raise ValueError("This model accepts one reference photo per video.")
     if len(ids) > 10:
         raise ValueError("Runway accepts at most 10 reference photos per video. Your uploaded originals are unchanged.")
     from video_music import settings
-    return {**settings(opts), "mode": "runway", "duration_seconds": int(duration), "aspect_ratio": aspect,
+    return {**settings(opts), "mode": "runway", "model": model, "duration_seconds": int(duration), "aspect_ratio": aspect,
             "style": style, "product_info": info.strip(), "concept": concept.strip(), "audio": opts.get("audio", False)}
 
 
@@ -128,7 +147,7 @@ def download(url, destination):
     # Only provider CDN origins, no redirects, no bearer token on media requests.
     parsed = urllib.parse.urlsplit(url)
     host = parsed.hostname or ""
-    if parsed.scheme != "https" or parsed.username or parsed.password or parsed.port not in {None, 443} or not any(host.endswith("." + d) for d in ("cloudfront.net", "runwayml.com")):
+    if parsed.scheme != "https" or parsed.username or parsed.password or parsed.port not in {None, 443} or not (host == "storage.googleapis.com" or any(host.endswith("." + d) for d in ("cloudfront.net", "runwayml.com", "fal.media"))):
         raise ValueError("Unexpected video download host.")
     if any(not ipaddress.ip_address(addr[4][0]).is_global for addr in socket.getaddrinfo(host, 443, type=socket.SOCK_STREAM)):
         raise ValueError("Unsafe video download address.")
@@ -159,9 +178,9 @@ def submit(root, job, images):
     from promo_videos import write_status
     opts = job["options"]
     try:
-        job.update(status="rendering", message="Runway is generating the advertisement.")
+        job.update(status="rendering", message=MODELS[opts.get("model", "product_ad")]["name"] + " is generating the video.")
         write_status(root, job)
-        task = product_ad_task(opts, images)
+        task = fal_task(root, job, images) if job.get("provider") == "fal" else product_ad_task(opts, images)
         task_id = task_value(task, "id", "")
         if not isinstance(task_id, str) or not re.fullmatch(r"[a-zA-Z0-9-]{1,100}", task_id):
             raise ValueError("Missing task ID.")
@@ -186,7 +205,13 @@ def submit(root, job, images):
         job.update(status="failed", message=str(error))
     except Exception as error:
         details = task_failure_details(error)
-        http_status = getattr(error, "status_code", None)
+        http_status = getattr(error, "status_code", getattr(error, "code", None))
+        if job.get("provider") == "fal":
+            if not job.get("task_id") and http_status in {400, 401, 402, 403, 422, 429}:
+                job.update(status="failed", message="fal rejected the request (HTTP " + str(http_status) + "). Check credentials, credits and inputs.")
+            else:
+                job.update(status="needs_review", message="fal task needs review. Resume to retrieve an existing request; check fal history if no request ID was received.")
+            return
         rejected = {
             400: "Runway rejected the video inputs. Check reference photos (maximum 10), image format and ad settings.",
             401: "Runway rejected the API key. Update the server credential before trying again.",
@@ -220,23 +245,26 @@ def start(root, payload):
             existing = root / (job_id + ".json")
             if existing.exists():
                 job = json.loads(existing.read_text())
-                if job.get("provider") != "runway":
+                if job.get("provider") not in {"runway", "fal"}:
                     raise ValueError("Request ID is already in use.")
                 return job, 200
-            if not api_key():
+            provider = MODELS[opts["model"]]["provider"]
+            if provider == "fal" and not os.getenv("FAL_KEY", "").strip():
+                return {"ok": False, "message": "fal is not configured. Set FAL_KEY in the backend environment."}, 503
+            if provider == "runway" and not api_key():
                 return {"ok": False, "message": "Runway is not configured. Set RUNWAYML_API_SECRET in the backend environment."}, 503
-            credits = 200 + 36 * (opts["duration_seconds"] - 4)
+            credits = price(opts["model"], opts["duration_seconds"])
             if payload.get("confirm_paid") is not True or payload.get("approved_credits") != credits:
-                return {"ok": False, "message": "Confirm the paid Runway generation and photo transfer first.", "estimated_credits": credits}, 400
+                return {"ok": False, "message": "Confirm the selected paid generation and photo transfer first.", "estimated_credits": credits}, 400
             jobs = [json.loads(p.read_text()) for p in root.glob("*.json")]
-            if any(j.get("provider") == "runway" and j["status"] in {"submitting", "rendering", "needs_review"} for j in jobs):
+            if any(j.get("provider") in {"runway", "fal"} and j["status"] in {"submitting", "rendering", "needs_review"} for j in jobs):
                 return {"ok": False, "message": "An AI video is pending. Resume it or check Runway history before starting another."}, 409
             if len(jobs) >= 100 or sum(p.stat().st_size for p in root.glob("*.mp4")) > 420 * 1024 * 1024:
                 raise ValueError("Video storage is full. Remove an older video first.")
             images = photo_data(payload["photo_ids"])
-            job = {"ok": True, "id": job_id, "provider": "runway", "status": "submitting", "progress": 0,
+            job = {"ok": True, "id": job_id, "provider": provider, "status": "submitting", "progress": 0,
                    "options": opts, "photo_count": len(images), "created_at": time.time(), "estimated_credits": credits,
-                   "message": "Submitting to Runway. Do not start another generation."}
+                   "message": "Submitting to " + provider + ". Do not start another generation."}
             write_status(root, job)
             ACTIVE.add(job_id)
             threading.Thread(target=submit, args=(root, dict(job), images), daemon=True).start()
@@ -254,7 +282,12 @@ def poll(root, job):
     from promo_videos import write_status
     with LOCK:
         job = json.loads((root / (job["id"] + ".json")).read_text())
-        if job["status"] == "submitting" and job["id"] not in ACTIVE:
-            job.update(status="needs_review", message="Submission interrupted. Check Runway task history before generating again.")
+        if job.get("provider") == "fal" and job["status"] in {"rendering", "submitting", "needs_review"} and job["id"] not in ACTIVE and job.get("task_id"):
+            ACTIVE.add(job["id"])
+            job.update(status="rendering", message="Resuming existing fal request.")
+            write_status(root, job)
+            threading.Thread(target=submit, args=(root, dict(job), []), daemon=True).start()
+        if job["status"] in {"submitting", "rendering"} and job["id"] not in ACTIVE:
+            job.update(status="needs_review", message="Submission interrupted. Check provider task history before generating again.")
             write_status(root, job)
     return job

@@ -34,7 +34,7 @@ const path = require('node:path');
       builds++;
       return route.fulfill({ json: { ok: true, template: { name: 'Voice Test Workflow', nodes: [{ id: 'node-1', type: 'trigger', name: 'Daily Schedule', action: 'cron', x: 80, y: 80 }], links: [] } } });
     });
-    await page.goto('http://127.0.0.1:3016/workflow/');
+    await page.goto(process.env.VOICE_TEST_URL || 'http://127.0.0.1:3016/workflow/');
     await page.locator('#aiVoiceBuilderBtn').click();
     await page.locator('#voiceListenBtn').click();
     await page.waitForFunction(() => document.querySelector('#aiVoiceStatus').textContent === 'Voice connected.');

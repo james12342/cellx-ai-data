@@ -22,6 +22,7 @@
   dialog.setAttribute("aria-labelledby", "photoDialogTitle");
   dialog.innerHTML = `<header><h2 id="photoDialogTitle"></h2><button type="button" class="photo-close"></button></header>
     <main><input type="file" multiple aria-label="Select product photos">
+    <p>上传完成后会自动使用 OpenAI 分析整批图片，按用量计费。可在视频窗口关闭自动分析；不会自动生成视频。</p><p class="photo-analysis-status" role="status"></p>
     <p class="photo-status" role="status" aria-live="polite"></p><div class="photo-list"></div></main>
     <footer><button type="button" class="photo-done"></button></footer>`;
   document.body.append(dialog);
@@ -32,6 +33,10 @@
   const message = (text, error=false) => { status.textContent=text; status.dataset.error=String(error); };
   const setBusy = value => { busy=value; picker.disabled=value;
     list.querySelectorAll("button").forEach(b => { b.disabled=value; }); };
+  const notify = phase => document.dispatchEvent(new CustomEvent('cell-photos-changed', {detail:{node:target,workflowId,phase,photo_ids:files(target).map(f=>f.id)}}));
+  document.addEventListener('cell-photo-analysis-status',event=>{
+    if(event.detail.node===target)dialog.querySelector('.photo-analysis-status').textContent=event.detail.message;
+  });
   function result(node) {
     const photos = files(node);
     const text = photos.length ? t(`${photos.length} photos uploaded.`, `已上传 ${photos.length} 张图片。`) :
@@ -61,14 +66,20 @@
       remove.onclick=async () => {
         if (busy || !active()) return;
         setBusy(true);
+        notify('begin');
         try {
           await workflowManagementFetch(`/photo-uploads/${file.id}`, {method:"DELETE"});
           previews.delete(file.id); save(files(target).filter(f=>f.id!==file.id));
           message(t("Photo removed.", "图片已移除。"));
         } catch(error) { message(error.message,true); }
-        finally { setBusy(false); refresh(); }
+        finally { setBusy(false); refresh(); notify('commit'); }
       };
-      item.append(img,name,remove); list.append(item);
+      const position=files(target).findIndex(f=>f.id===file.id);
+      const order=document.createElement('span');order.textContent=`${position+1}. `;
+      const move=(step)=>{if(busy||!active())return;notify('begin');const current=files(target),index=current.findIndex(f=>f.id===file.id);[current[index],current[index+step]]=[current[index+step],current[index]];save(current);refresh();notify('commit');};
+      const up=document.createElement('button');up.type='button';up.textContent=t('Move earlier','前移');up.disabled=busy||position===0;up.onclick=()=>move(-1);
+      const down=document.createElement('button');down.type='button';down.textContent=t('Move later','后移');down.disabled=busy||position===files(target).length-1;down.onclick=()=>move(1);
+      item.append(img,order,name,up,down,remove); list.append(item);
       if (previews.has(file.id)) img.src=previews.get(file.id);
       else {
         workflowManagementFetch(`/photo-uploads/${file.id}`, {cache:"no-store"}).then(data => {
@@ -85,6 +96,7 @@
     const selected=Array.from(picker.files || []); picker.value="";
     if (!selected.length || busy || !active()) return;
     setBusy(true);
+    notify('begin');
     try {
       for (let i=0; i<selected.length; i++) {
         message(t(`Uploading ${i+1}/${selected.length}...`, `正在上传 ${i+1}/${selected.length}...`));
@@ -96,7 +108,7 @@
       }
       message(t("Uploaded and saved. Close to continue.", "图片已上传并保存，可以关闭窗口继续。"));
     } catch(error) { message(error.message || t("Upload failed.", "上传失败。"),true); }
-    finally { setBusy(false); refresh(); }
+    finally { setBusy(false); refresh(); notify('commit'); }
   };
   function close() { if(!busy) { dialog.close(); generation++; previews.clear(); } }
   dialog.querySelector(".photo-close").onclick=close;

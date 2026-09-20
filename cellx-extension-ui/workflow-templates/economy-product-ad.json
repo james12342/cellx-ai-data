@@ -1,0 +1,74 @@
+{
+  "templateType": "cellx-workflow-designer",
+  "version": "1.0",
+  "exportedAt": "2026-09-15T00:00:00.000Z",
+  "name": "Economy Product Ad · 经济广告",
+  "description": "Product photos → editable narration → voice → timed subtitles → music → complete ad. Inspired by MoneyPrinterTurbo.",
+  "nodes": [
+    {
+      "id": "node-1",
+      "type": "trigger",
+      "name": "Upload Product Photos",
+      "action": "/ext-api/photo-uploads",
+      "notes": "Upload 1–10 PNG, JPEG or WebP product photos. Scenes rotate through these photos.",
+      "icon": "lucide:upload",
+      "x": 80,
+      "y": 160,
+      "integrationSettings": {
+        "owner": "Marketing",
+        "timeout": "120"
+      },
+      "connection": {
+        "status": "manual",
+        "message": "Upload product photos before testing the video node."
+      }
+    },
+    {
+      "id": "node-2",
+      "type": "script",
+      "name": "Video Generation",
+      "action": "/ext-api/promo-videos",
+      "notes": "Select Economy Ad. Draft and review one narration line per scene, choose voice, brand and call to action, then create a complete MP4.",
+      "icon": "lucide:clapperboard",
+      "x": 390,
+      "y": 160,
+      "integrationSettings": {
+        "scriptName": "video_generator.py",
+        "timeout": 1800,
+        "inputJson": "{\"options\": {\"mode\": \"economy\", \"duration_seconds\": 30, \"aspect_ratio\": \"9:16\", \"voice\": \"zh-female\", \"narration\": \"\", \"product_info\": \"\", \"music_preset\": \"default\", \"music_volume\": 0.15, \"brand\": \"\", \"cta\": \"\"}}"
+      },
+      "connection": null
+    },
+    {
+      "id": "node-3",
+      "type": "control",
+      "name": "Human Review",
+      "action": "/ext-api/tools/approval",
+      "notes": "Review product accuracy and video quality before reusing this output in ads, emails, or social posts.",
+      "icon": "material-symbols:approval-delegation-outline-rounded",
+      "x": 700,
+      "y": 160,
+      "integrationSettings": {
+        "approverRole": "Admin",
+        "approvalMessage": "Review the generated MP4 for product accuracy, brand safety, and claims before publishing.",
+        "approveLabel": "Approved",
+        "rejectLabel": "Regenerate",
+        "timeout": "24 hours"
+      },
+      "connection": {
+        "status": "manual",
+        "message": "Not run. Review the video first."
+      }
+    }
+  ],
+  "links": [
+    {
+      "from": "node-1",
+      "to": "node-2"
+    },
+    {
+      "from": "node-2",
+      "to": "node-3"
+    }
+  ]
+}

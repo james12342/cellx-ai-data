@@ -145,6 +145,12 @@ def render_job(root, job, work):
 
 def video_request(method, path, payload):
     root = root_dir()
+    import gpu_jobs
+    gpu_match = re.fullmatch(r'/promo-videos/([a-f0-9]{40})(/file)?', path)
+    if gpu_match:
+        remote_result = gpu_jobs.video_request(method, gpu_match[1], bool(gpu_match[2]))
+        if remote_result is not None:
+            return remote_result
     if method == 'POST' and path == '/promo-videos/product-brief':
         from product_briefs import generate
         return generate(payload)
@@ -188,8 +194,14 @@ def video_request(method, path, payload):
             WORKER.release()
     if method == "GET" and path == "/promo-videos/providers":
         from runway_videos import provider_info
-        return provider_info(), 200
+        from economy_videos import readiness
+        return {**provider_info(), "economy": readiness(), "portrait": gpu_jobs.readiness()}, 200
     if method == "POST" and path == "/promo-videos":
+        if isinstance(payload, dict) and isinstance(payload.get('options'), dict) and payload['options'].get('mode') in {'portrait','portrait_storyboard'}:
+            return gpu_jobs.start(payload)
+        if isinstance(payload, dict) and isinstance(payload.get("options"), dict) and payload["options"].get("mode") == "economy":
+            from economy_videos import start
+            return start(root, payload)
         if isinstance(payload, dict) and isinstance(payload.get("options"), dict) and payload["options"].get("mode") == "runway":
             from runway_videos import start
             return start(root, payload)
@@ -240,10 +252,13 @@ def video_request(method, path, payload):
     if not meta.is_file():
         return {"ok":False,"message":"Video not found."},404
     job = json.loads(meta.read_text())
-    if job.get("provider") == "runway" and method == "GET" and not binary:
+    if job.get("provider") in {"runway", "fal"} and method == "GET" and not binary:
         from runway_videos import poll
         job = poll(root, job)
-    if job.get("provider") != "runway" and job["status"] == "rendering" and time.time()-job["created_at"] > 240:
+    if job.get("provider") == "economy" and method == "GET" and not binary:
+        from economy_videos import poll
+        job = poll(root, job)
+    if job.get("provider") not in {"runway", "fal", "economy"} and job["status"] == "rendering" and time.time()-job["created_at"] > 240:
         job.update(status="failed",message="Render interrupted. Please generate the video again.")
     if method == "DELETE" and not binary:
         if job["status"] in {"rendering", "submitting"}:

@@ -9,28 +9,25 @@
   <script src="./i18n.js?v=20260914-i18n-v1"></script>
   <script src="./i18n-static-zh.js?v=20260914-i18n-v1"></script>
   <script src="./i18n-zh.js?v=20260914-i18n-v1"></script>
+  <link rel="stylesheet" href="./agent-header.css?v=20260917-top-nav-v1">
 </head>
 <body>
   <div class="app-shell">
-    <aside class="side-nav">
-      <div class="brand">
+<section class="workspace">
+      <header class="topbar">
+<div class="brand">
         <img class="brand-logo" src="./logo-Ck36VV97.png" alt="CellX logo">
         <div>
           <strong>Cell AI Data</strong>
           <span data-i18n="Agent Builder">Agent Builder</span>
         </div>
       </div>
-      <nav>
+      <nav class="site-nav" aria-label="Main navigation">
         <a href="https://cellaidata.com/" data-i18n="Home">Home</a>
-        <a class="active" href="/agent/" title="Agent Builder" data-i18n-title="Agent Builder" data-i18n="Agents">Agents</a>
+        <a class="active" aria-current="page" href="/agent/" title="Agent Builder" data-i18n-title="Agent Builder" data-i18n="Agents">Agents</a>
         <a href="/data/" data-i18n="Data Explorer">Data Explorer</a>
         <a href="https://app.cellaidata.com/">CellX</a>
       </nav>
-    </aside>
-
-    <section class="workspace">
-      <header class="topbar">
-        <div class="breadcrumbs"><a href="https://cellaidata.com/" data-i18n="Home">Home</a> <span data-i18n="/ Extension /">/ Extension /</span> <strong data-i18n="Agent Builder">Agent Builder</strong></div>
         <div class="top-actions">
           <select data-language-picker aria-label="Language"><option value="en">English</option><option value="zh-CN">中文</option></select>
           <input type="search" placeholder="Please enter search content" data-i18n-placeholder="Please enter search content">
@@ -283,11 +280,13 @@
   </div>
 
   <link rel="stylesheet" href="./workflow-photos.css?v=20260914-photos-v1">
-  <script src="./app.js?v=20260914-slideshow-v1"></script>
+  <script src="./app.js?v=20260918-selenium-v1"></script>
   <script src="./workflow-photos.js?v=20260914-photos-v1"></script>
   <link rel="stylesheet" href="./voice-screenshots.css?v=20260914-paste-v2">
   <script src="./voice-screenshots.js?v=20260914-paste-v2"></script>
   <link rel="stylesheet" href="./workflow-video.css?v=20260914-runway-v1">
   <script src="./workflow-video.js?v=20260914-runway-v1"></script>
+  <script src="./workflow-product-analysis.js?v=20260917-auto-copy-v1"></script>
+  <script src="./browser-collector.js?v=20260918-selenium-v1"></script>
 </body>
 </html>

@@ -511,6 +511,7 @@ const nodeCatalog = [
   {
     group: "Agent Skills & Tools",
     children: [
+      { name: "Web Collector", type: "tool", sub: "Research", desc: "Automatic Chrome collection from a URL, with fields, up to 5 list pages and 10 detail links. No extension needed in automatic mode. OpenAI extraction usage billed. Optional Chrome helper mode remains available.", action: "/ext-api/browser-collector" },
       { name: "Video Generation", type: "script", sub: "Media", desc: "Product video with photo uploads, ad styles and background music.", action: "/ext-api/promo-videos" },
       { name: "External Agent", type: "external-agent", sub: "Developer", desc: "Call a third-party agent by API, webhook, script, or MCP-style contract.", action: "/ext-api/external-agent/run" },
       { name: "GitHub External Agent", type: "external-agent", sub: "Developer", desc: "Clone an approved GitHub AI agent repo, map JSON input, and run a configured command.", action: "/ext-api/external-agent/run" },
@@ -873,6 +874,7 @@ function persistWorkflowStore() {
     activeWorkflowId,
     workflows,
   }));
+  if (templateBrowser && !templateBrowser.hidden) refreshTemplateLibraryView();
 }
 
 function uniqueWorkflowId() {
@@ -1109,8 +1111,43 @@ function importWorkflowTemplate(file) {
   reader.readAsText(file);
 }
 
+function browserWorkflowTemplates() {
+  syncActiveWorkflow();
+  return workflows.filter(workflow => Array.isArray(workflow.nodes) && workflow.nodes.length).map(workflow => {
+    const name = workflow.name && workflow.name !== "Untitled Workflow" ? workflow.name : workflow.nodes.map(node => node.name).filter(Boolean).slice(0, 2).join(" + ") || "My Agent";
+    const templateNodes = safeWorkflowNodes(workflow.nodes, true).map(node => {
+      delete node.testResult;
+      delete node.connection;
+      return node;
+    });
+    return {
+      file: `browser:${workflow.id}`, name, category: "My Agents",
+      description: workflow.description || "Reusable agent saved in this browser.",
+      tags: ["This browser", "Auto-saved"],
+      localTemplate: {templateType: "cellx-workflow-designer", version: templateVersion,
+        name, description: workflow.description || "", nodes: templateNodes,
+        links: (workflow.links || []).map(link => ({from: String(link.from || ""), to: String(link.to || "")}))},
+    };
+  });
+}
+
+function availableTemplates() {
+  return [...browserWorkflowTemplates(), ...templateLibrary];
+}
+
+function refreshTemplateLibraryView() {
+  renderTemplateCategoryFilter();
+  renderTemplateLibrary();
+  if (templateLibraryStatusEl) {
+    const mine = browserWorkflowTemplates().length;
+    templateLibraryStatusEl.textContent = `${mine} My Agents (this browser) · ${templateLibrary.length} library templates. My Agents update automatically; they are not published to Marketplace.`;
+    templateLibraryStatusEl.removeAttribute("data-agent-i18n");
+    templateLibraryStatusEl.removeAttribute("data-i18n");
+  }
+}
+
 async function loadTemplateLibrary(force = false) {
-  if (templateLibrary.length && !force) return templateLibrary;
+  if (templateLibrary.length && !force) { refreshTemplateLibraryView(); return availableTemplates(); }
   if (templateLibraryStatusEl) uiText(templateLibraryStatusEl, "Loading templates...");
   try {
     const response = await fetch(`${templateManifestPath}?v=${Date.now()}`, { cache: "no-store" });
@@ -1127,8 +1164,8 @@ async function loadTemplateLibrary(force = false) {
     console.warn("Could not load workflow template library", error);
     renderTemplateCategoryFilter();
   }
-  renderTemplateLibrary();
-  return templateLibrary;
+  refreshTemplateLibraryView();
+  return availableTemplates();
 }
 
 function templateCategoryClass(category) {
@@ -1143,7 +1180,7 @@ function templateCategoryClass(category) {
 function renderTemplateCategoryFilter() {
   if (!templateCategoryFilterEl) return;
   const previous = templateCategoryFilterEl.value;
-  const categories = Array.from(new Set(templateLibrary.map((template) => template.category || "Workflow"))).sort();
+  const categories = Array.from(new Set(availableTemplates().map((template) => template.category || "Workflow"))).sort();
   templateCategoryFilterEl.innerHTML = [
     `<option value="" ${uiAttrs("All categories")}>${escapeHtml(agentT("All categories"))}</option>`,
     ...categories.map((category) => `<option value="${escapeHtml(category)}">${escapeHtml(category)}</option>`),
@@ -1157,7 +1194,7 @@ function renderTemplateLibrary() {
   if (!templateListEl) return;
   const query = String(templateSearchEl?.value || "").trim().toLowerCase();
   const categoryFilter = String(templateCategoryFilterEl?.value || "").trim();
-  const filtered = templateLibrary.filter((template) => {
+  const filtered = availableTemplates().filter((template) => {
     const haystack = [
       template.name,
       template.description,
@@ -1178,7 +1215,7 @@ function renderTemplateLibrary() {
       <div class="template-card-main">
         <div class="template-card-top">
           <span class="template-category">${escapeHtml(template.category || "Workflow")}</span>
-          <span class="template-file">${escapeHtml(template.file || "")}</span>
+          <span class="template-file">${escapeHtml(template.localTemplate ? "Saved on this device" : template.file || "")}</span>
         </div>
         <h2>${template.name ? escapeHtml(template.name) : uiLabel("Workflow Template")}</h2>
         <p>${template.description ? escapeHtml(template.description) : uiLabel("Generated workflow JSON template.")}</p>
@@ -1195,6 +1232,7 @@ function renderTemplateLibrary() {
 }
 
 async function fetchLibraryTemplate(template) {
+  if (template?.localTemplate) return JSON.parse(JSON.stringify(template.localTemplate));
   if (!template?.file) throw new Error("Template file is missing.");
   const response = await fetch(`./workflow-templates/${encodeURIComponent(template.file)}?v=${Date.now()}`, { cache: "no-store" });
   if (!response.ok) throw new Error(uiMessage("Could not load {name}.", { name: template.file }));
@@ -1379,6 +1417,8 @@ async function handleVoiceEvent(session, event) {
       if (!args.request || !["create", "update"].includes(args.mode)) throw new Error("Missing workflow request or mode.");
       output = await createVoiceWorkflowDraft(args.request, args.mode, session);
     } else if (event.name === "apply_workflow_draft") output = applyVoiceWorkflowDraft();
+    else if (event.name === "collect_web_page") output = await window.BrowserCollector.voice(args);
+    else if (event.name === "stop_web_collection") output = await window.BrowserCollector.stop();
     else throw new Error("Unsupported workflow operation.");
   } catch (error) {
     output = { ok: false, message: error.message };
@@ -2438,6 +2478,7 @@ const integrationSpecs = {
 };
 
 function buildIntegrationSpec(node) {
+  if (node?.action === "/ext-api/browser-collector") return {title:"Web Collector",summary:"Browser-assisted extraction",fields:[field("fields","Fields","textarea","名称, 链接"),field("maxPages","Max pages","number","1")]};
   if (node.type === "trigger" && node.action === "cron") {
     return {
       title: "Daily Schedule",
@@ -3706,6 +3747,7 @@ function renderDailyTimeField(node) {
 }
 
 function renderIntegrationFields(node) {
+  if (window.BrowserCollector?.isNode(node)) return window.BrowserCollector.settings(node, propIntegration);
   if (!propIntegration || !node) return;
   const spec = ensureIntegrationSettings(node);
   const fields = visibleIntegrationFields(spec, node);
@@ -3987,6 +4029,7 @@ async function exportWorkflowResults() {
 }
 
 async function testNodeIntegration(node, execute = false) {
+  if (window.BrowserCollector?.isNode(node)) return window.BrowserCollector.test(node);
   if (window.WorkflowVideo?.isNode(node)) return window.WorkflowVideo.test(node);
   if (window.WorkflowPhotos?.isNode(node)) {
     return window.WorkflowPhotos.test(node);
@@ -4244,11 +4287,23 @@ function renderNodeLibrary(filter = "") {
             <em class="node-tag">${item.type}</em>
           </div>
         `;
+        nodeEl.tabIndex = 0;
+        nodeEl.setAttribute("role", "button");
+        nodeEl.title = "Click to add, or drag onto the canvas";
+        let suppressClickUntil = 0;
         nodeEl.addEventListener("dragstart", (event) => {
+          suppressClickUntil = Date.now() + 1000;
+          event.dataTransfer.effectAllowed = "copy";
           event.dataTransfer.setData("node/catalog", JSON.stringify(item));
         });
+        nodeEl.addEventListener("dragend", () => { suppressClickUntil = Date.now() + 250; });
+        nodeEl.addEventListener("keydown", (event) => {
+          if (event.key === "Enter" || event.key === " ") {
+            event.preventDefault(); nodeEl.click();
+          }
+        });
         nodeEl.addEventListener("click", () => {
-          if (!isNarrowScreen()) return;
+          if (Date.now() < suppressClickUntil) return;
           const spot = nextCanvasSpot();
           addCatalogNode(item, spot.x, spot.y);
           canvas.scrollIntoView({ behavior: "smooth", block: "start" });
@@ -4728,12 +4783,12 @@ renderMarketplaceAccount();
 templateListEl?.addEventListener("click", async (event) => {
   const importTarget = event.target.closest("[data-import-library-template]");
   if (importTarget) {
-    await importLibraryTemplate(templateLibrary.find((template) => template.file === importTarget.dataset.importLibraryTemplate));
+    await importLibraryTemplate(availableTemplates().find((template) => template.file === importTarget.dataset.importLibraryTemplate));
     return;
   }
   const previewTarget = event.target.closest("[data-preview-template]");
   if (previewTarget) {
-    await previewLibraryTemplate(templateLibrary.find((template) => template.file === previewTarget.dataset.previewTemplate));
+    await previewLibraryTemplate(availableTemplates().find((template) => template.file === previewTarget.dataset.previewTemplate));
   }
 });
 
@@ -4784,3 +4839,20 @@ window.addEventListener("resize", () => {
   fitNodesToCanvas();
   render();
 });
+
+// Count page visits without collecting workflow content or URL query parameters.
+(() => {
+  if (!/^https?:$/.test(location.protocol)) return;
+  try {
+    const key = "cell-ai-data-visitor-id";
+    let visitorId = localStorage.getItem(key);
+    if (!visitorId) { visitorId = crypto.randomUUID(); localStorage.setItem(key, visitorId); }
+    let referrer = "";
+    try { referrer = document.referrer ? new URL(document.referrer).origin : ""; } catch {}
+    fetch("/ext-api/analytics/track", {
+      method: "POST", headers: {"Content-Type": "application/json"}, keepalive: true,
+      body: JSON.stringify({visitorId, eventType: "page_view", pageUrl: location.origin + location.pathname,
+        pagePath: location.pathname, pageTitle: "Agent Builder", referrer})
+    }).catch(() => {});
+  } catch { /* Analytics must not interrupt agent creation. */ }
+})();

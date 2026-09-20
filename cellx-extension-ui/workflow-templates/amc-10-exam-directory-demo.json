@@ -1,0 +1,22 @@
+{
+  "templateType": "cellx-workflow-designer",
+  "version": "1.0",
+  "name": "AMC 10 Exam Directory Collector",
+  "description": "Collect Year, Exam Name and URL from the AMC 10 exam directory. Install the Browser Collector extension, open the target page and choose it before collecting.",
+  "nodes": [
+    {
+      "id": "node-2",
+      "type": "tool",
+      "name": "Web Collector",
+      "action": "/ext-api/browser-collector",
+      "notes": "Select a public source page in the Browser Collector extension before collecting. OpenAI extraction usage is billed.",
+      "x": 427,
+      "y": 125,
+      "integrationSettings": {
+        "fields": "Year,Exam Name,URL",
+        "maxPages": 1
+      }
+    }
+  ],
+  "links": []
+}

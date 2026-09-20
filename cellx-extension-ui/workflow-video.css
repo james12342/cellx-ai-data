@@ -1,5 +1,16 @@
-.video-dialog { box-sizing:border-box; width:min(820px,calc(100vw - 24px)); max-height:calc(100dvh - 32px); padding:0; border:1px solid #b9cdec; border-radius:6px; color:#172033; background:white; overflow:auto; }
+.video-dialog { box-sizing:border-box; width:min(1120px,calc(100vw - 32px)); max-height:calc(100dvh - 24px); padding:0; border:1px solid #b9cdec; border-radius:6px; color:#172033; background:white; overflow:auto; }
 .video-dialog::backdrop { background:rgb(15 23 42 / 45%); }
+.video-dialog [hidden] { display:none !important; }
+.video-dialog .model-note { color:#526071; line-height:1.5; }
+.economy-panel { display:grid; gap:14px; margin-top:20px; padding:20px; border:1px solid #cbdccf; border-radius:8px; background:#f6faf7; }
+.economy-panel h3,.economy-panel p { margin:0; }
+.economy-panel label,.eco-draft { display:grid; gap:7px; }
+.economy-panel textarea,.economy-panel select,.economy-panel input:not([type=checkbox]) { width:100%; box-sizing:border-box; font:inherit; padding:8px; border:1px solid #bacabd; border-radius:5px; }
+.economy-grid { display:grid; grid-template-columns:1fr 1fr; gap:16px; }
+.economy-panel button { justify-self:start; }
+.eco-cost,.eco-scenes { font-size:13px; line-height:1.6; color:#435b4b; }
+.economy-panel .eco-clip-label { display:flex; align-items:center; gap:8px; }
+@media(max-width:650px) { .economy-grid { grid-template-columns:1fr; } .economy-panel { padding:12px; } }
 .video-dialog header { display:flex; justify-content:space-between; align-items:center; gap:12px; padding:14px 16px; border-bottom:1px solid #d6e2f5; }
 .video-dialog h2 { margin:0; font-size:18px; }
 .video-dialog main { padding:16px; }
@@ -8,6 +19,23 @@
 .video-options select,.video-options input { width:100%; box-sizing:border-box; }
 .video-mode { display:grid; gap:6px; margin-bottom:14px; font-size:14px; }
 .video-ai-fields { display:grid; gap:12px; margin-top:14px; }
+.product-speech { display:grid; gap:8px; }
+.speech-actions { display:flex; align-items:center; gap:12px; flex-wrap:wrap; }
+.speech-actions .speech-language { width:auto; min-width:100px; }
+.speech-toggle { display:inline-flex; align-items:center; gap:8px; }
+.speech-toggle img { width:18px; height:18px; }
+.speech-toggle[aria-pressed=true] { color:#b42318; border-color:#b42318; }
+.speech-privacy,.speech-status { font-size:12px; color:#526071; margin:0; overflow-wrap:anywhere; }
+.speech-draft[hidden] { display:none; }
+.speech-draft { display:grid; gap:8px; }
+.speech-draft button { justify-self:start; }
+.video-dialog .product-info { min-height:150px; }
+.video-dialog .concept { min-height:110px; }
+@media(min-width:900px) {
+  .video-dialog main { padding:22px 26px; }
+  .video-ai-fields { grid-template-columns:repeat(2,minmax(0,1fr)); gap:18px 24px; }
+  .video-ai-fields>.ad-preset-label,.video-ai-fields>label:has(.product-info),.video-ai-fields>.product-speech,.video-ai-fields>.product-brief-tools,.video-ai-fields>label:has(.concept),.video-ai-fields>.provider-status { grid-column:1 / -1; }
+}
 .video-ai-fields[hidden],.video-options label[hidden] { display:none; }
 .video-ai-fields label { display:grid; gap:6px; font-size:14px; }
 .video-ai-fields textarea,.video-ai-fields select { box-sizing:border-box; width:100%; min-width:0; font:inherit; }
@@ -19,6 +47,15 @@
 .video-dialog video[hidden] { display:none; }
 .video-dialog footer { display:flex; gap:8px; flex-wrap:wrap; padding:12px 16px; border-top:1px solid #d6e2f5; }
 .video-status { font-size:14px; overflow-wrap:anywhere; }
+.video-progress-panel { display:grid; gap:8px; padding:12px 0; margin-bottom:14px; background:#fff; border-bottom:1px solid #cbd5e1; overflow-wrap:anywhere; }
+.video-progress-panel.is-running strong::after { content:'...'; display:inline-block; width:24px; animation:video-wait-pulse 1.5s ease-in-out infinite; }
+@keyframes video-wait-pulse { 0%,100% { opacity:.25; } 50% { opacity:1; } }
+@media(prefers-reduced-motion:reduce) { .video-progress-panel.is-running strong::after { animation:none; } }
+.video-progress-panel[hidden] { display:none; }
+.video-progress-panel progress { display:block; width:100%; height:12px; accent-color:#16836b; }
+.video-progress-panel progress[hidden] { display:none; }
+.video-progress-times { font-size:13px; font-variant-numeric:tabular-nums; }
+.video-progress-panel small { color:#526071; font-size:12px; }
 .product-brief-tools { display:grid; gap:8px; }
 .product-brief-tools>.ai-generate-brief { justify-self:start; }
 .brief-billing { font-size:12px; color:#526071; overflow-wrap:anywhere; }
@@ -53,3 +90,21 @@
   .canvas-head:has(#workflowVideoBtn:not([hidden])) .canvas-result-tabs-host { grid-row:3; }
 }
 @media(max-width:560px) { .video-options { grid-template-columns:1fr; } }
+.product-analysis-panel{padding:16px;margin:16px 0;border:1px solid #bdd2d0;border-radius:12px;background:#f5faf8;display:grid;gap:12px}
+.product-analysis-panel label{display:grid;gap:6px}
+.product-analysis-panel label:has(input[type=checkbox]){display:flex;align-items:center;gap:8px}
+.product-analysis-panel input[type=checkbox]{width:auto}
+.product-analysis-panel textarea{width:100%;box-sizing:border-box;min-height:64px}
+.product-analysis-panel pre{white-space:pre-wrap;overflow-wrap:anywhere}
+.product-analysis-panel small{display:block;color:#49636d}
+.analysis-scenes{display:grid;gap:14px;padding-left:24px}
+.analysis-scenes p{margin:5px 0}
+.presenter-narration{margin:16px 0;padding:16px;border:1px solid #a7c9c0;border-radius:10px;background:#f5faf8}
+.presenter-narration[hidden],.presenter-narration [hidden],.analysis-scenes[hidden]{display:none!important}
+.presenter-narration h3{margin:0 0 8px}
+.presenter-narration textarea{display:block;width:100%;box-sizing:border-box;min-height:82px;margin:8px 0;resize:vertical}
+.presenter-narration .analysis-scenes{list-style:none;padding:0;margin:12px 0;gap:16px}
+.presenter-narration .analysis-scenes li{padding:12px;background:#fff;border:1px solid #d3e1dd;border-radius:8px}
+.presenter-narration .analysis-scenes li:first-child{border:2px solid #32806b}
+.presenter-narration pre{white-space:pre-wrap;overflow-wrap:anywhere}
+.presenter-narration .presenter-draft-status{color:#245648}

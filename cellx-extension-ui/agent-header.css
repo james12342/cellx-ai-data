@@ -1,0 +1,23 @@
+/* Website navigation shares the header; the designer gets the full width. */
+.app-shell { display: block; }
+.topbar { height: auto; min-height: 64px; display: flex; flex-wrap: wrap; gap: 12px 24px; padding: 10px 20px; }
+.topbar .brand { flex-direction: row; gap: 9px; margin: 0; text-align: left; flex-shrink: 0; }
+.topbar .brand span { margin-top: 3px; color: var(--muted); font-weight: 400; }
+.site-nav { display: flex; align-items: center; flex-wrap: wrap; gap: 4px; }
+.site-nav a { padding: 9px 12px; border-radius: 5px; color: var(--text); text-decoration: none; font-size: 14px; white-space: nowrap; }
+.site-nav a:hover { background: #edf4ff; }
+.site-nav a.active { background: var(--deep); color: #fff; font-weight: 700; }
+.site-nav a:focus-visible { outline: 2px solid var(--blue); outline-offset: 2px; }
+.topbar .top-actions { margin-left: auto; }
+.topbar .top-actions input { width: clamp(140px, 17vw, 280px); }
+@media (max-width: 1000px) {
+  .topbar { gap: 10px 16px; }
+  .topbar .top-actions input { display: none; }
+}
+@media (max-width: 640px) {
+  .topbar { padding: 10px 12px; gap: 10px; }
+  .site-nav { order: 3; width: 100%; }
+  .site-nav a { padding: 9px 10px; }
+  .topbar .top-actions { gap: 6px; }
+  .topbar .top-actions > a { display: none; }
+}

@@ -1,0 +1,28 @@
+{
+  "manifest_version": 3,
+  "name": "Cell AI Browser Collector",
+  "version": "0.1.1",
+  "description": "Share a chosen page with Cell AI for field extraction and bounded next-page collection.",
+  "permissions": [
+    "activeTab",
+    "scripting",
+    "storage"
+  ],
+  "action": {
+    "default_popup": "popup.html",
+    "default_title": "Choose this page for Agent collection"
+  },
+  "background": {
+    "service_worker": "background.js"
+  },
+  "content_scripts": [
+    {
+      "matches": [
+        "https://app.cellaidata.com/agent/*"
+      ],
+      "js": [
+        "bridge.js"
+      ]
+    }
+  ]
+}
